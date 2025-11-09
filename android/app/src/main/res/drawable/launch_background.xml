@@ -1,0 +1,9 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background color for the splash -->
+    <item android:drawable="@android:color/white" />
+
+    <!-- Optional centered image (uses launcher icon by default) -->
+    
+</layer-list>
+
+

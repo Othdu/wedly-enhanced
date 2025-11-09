@@ -1,0 +1,26 @@
+I'm ready to integrate real APIs into my Wedly Flutter app. Currently using mock repositories that need to be replaced with actual API calls.
+
+Current Setup:
+- Clean architecture with BLoC pattern
+- Mock repositories: AuthRepository and ServiceRepository in lib/data/repositories/
+- Models: UserModel and ServiceModel in lib/data/models/
+- Dependency injection with GetIt
+
+What I need:
+1. Replace mock methods in AuthRepository (login, logout, getCurrentUser) with real API calls
+2. Replace mock methods in ServiceRepository (getServices, getServiceById, getServicesByCategory, getCategories) with real API calls
+3. Add HTTP client (dio or http package)
+4. Add JSON serialization to models
+5. Implement secure token storage
+6. Add error handling and network interceptors
+7. Keep repository method signatures unchanged so BLoCs work without modifications
+
+Please provide:
+- Base API URL
+- Authentication endpoints and token format
+- Service endpoints (GET /services, GET /services/:id, etc.)
+- Request/response JSON examples
+- Error response format
+
+[Paste your API documentation here when ready]
+
