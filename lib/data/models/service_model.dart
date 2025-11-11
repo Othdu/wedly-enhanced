@@ -8,6 +8,7 @@ class ServiceModel extends Equatable {
   final double? price;
   final String category;
   final bool isActive;
+  final double? discountPercentage; // Optional discount percentage (0-100)
 
   const ServiceModel({
     required this.id,
@@ -17,6 +18,7 @@ class ServiceModel extends Equatable {
     this.price,
     required this.category,
     this.isActive = true,
+    this.discountPercentage,
   });
 
   @override
@@ -28,6 +30,7 @@ class ServiceModel extends Equatable {
         price,
         category,
         isActive,
+        discountPercentage,
       ];
 
   ServiceModel copyWith({
@@ -38,6 +41,7 @@ class ServiceModel extends Equatable {
     double? price,
     String? category,
     bool? isActive,
+    double? discountPercentage,
   }) {
     return ServiceModel(
       id: id ?? this.id,
@@ -47,6 +51,7 @@ class ServiceModel extends Equatable {
       price: price ?? this.price,
       category: category ?? this.category,
       isActive: isActive ?? this.isActive,
+      discountPercentage: discountPercentage ?? this.discountPercentage,
     );
   }
 
@@ -60,6 +65,9 @@ class ServiceModel extends Equatable {
       price: json['price'] != null ? (json['price'] as num).toDouble() : null,
       category: json['category'] as String,
       isActive: json['is_active'] as bool? ?? json['isActive'] as bool? ?? true,
+      discountPercentage: json['discount_percentage'] != null
+          ? (json['discount_percentage'] as num).toDouble()
+          : null,
     );
   }
 
@@ -72,6 +80,7 @@ class ServiceModel extends Equatable {
       'price': price,
       'category': category,
       'is_active': isActive,
+      'discount_percentage': discountPercentage,
     };
   }
 }

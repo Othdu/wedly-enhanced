@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/logic/blocs/booking/booking_bloc.dart';
 import 'package:wedly/logic/blocs/provider_service/provider_service_bloc.dart';
@@ -17,11 +18,11 @@ class ProviderNavigationWrapper extends StatefulWidget {
 
 class _ProviderNavigationWrapperState
     extends State<ProviderNavigationWrapper> {
-  int _currentIndex = 0;
+  int _currentIndex = 1;
 
   final List<Widget> _screens = [
-    const ProviderServicesScreen(),
     const ProviderBookingsScreen(),
+    const ProviderServicesScreen(),
     const ProviderProfileScreen(),
   ];
 
@@ -51,17 +52,41 @@ class _ProviderNavigationWrapperState
           type: BottomNavigationBarType.fixed,
           selectedItemColor: const Color(0xFFD4AF37),
           unselectedItemColor: Colors.grey,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.work),
-              label: 'خدماتي',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today),
+              icon: SvgPicture.asset(
+                'assets/images/booking.svg',
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  _currentIndex == 0 ? const Color(0xFFD4AF37) : Colors.grey,
+                  BlendMode.srcIn,
+                ),
+              ),
               label: 'الحجوزات',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person),
+              icon: SvgPicture.asset(
+                'assets/images/Vector.svg',
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  _currentIndex == 1 ? const Color(0xFFD4AF37) : Colors.grey,
+                  BlendMode.srcIn,
+                ),
+              ),
+              label: 'خدماتي',
+            ),
+            BottomNavigationBarItem(
+              icon: SvgPicture.asset(
+                'assets/images/profile.svg',
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  _currentIndex == 2 ? const Color(0xFFD4AF37) : Colors.grey,
+                  BlendMode.srcIn,
+                ),
+              ),
               label: 'حسابي',
             ),
           ],

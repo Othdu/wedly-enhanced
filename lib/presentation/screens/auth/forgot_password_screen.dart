@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/core/constants/app_colors.dart';
-import 'package:wedly/presentation/screens/auth/otp_verification_screen.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -22,13 +22,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void _sendCode() {
     if (_formKey.currentState!.validate()) {
       // Navigate to OTP screen
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(
-            phoneOrEmail: _phoneController.text,
-            isForPasswordReset: true,
-          ),
-        ),
+      Navigator.of(context).pushNamed(
+        AppRouter.otpVerification,
+        arguments: {
+          'phoneOrEmail': _phoneController.text,
+          'isForPasswordReset': true,
+        },
       );
     }
   }

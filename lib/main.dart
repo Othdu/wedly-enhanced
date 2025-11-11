@@ -4,10 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/core/theme/app_theme.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
-import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
-import 'package:wedly/presentation/screens/auth/login_screen.dart';
-import 'package:wedly/presentation/screens/auth/role_selector_screen.dart';
 import 'package:wedly/presentation/screens/splash/splash_screen.dart';
 import 'package:wedly/routes/app_router.dart';
 

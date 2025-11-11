@@ -6,8 +6,6 @@ import 'package:wedly/core/utils/enums.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
-import 'package:wedly/presentation/screens/auth/signup_screen.dart';
-import 'package:wedly/presentation/screens/auth/forgot_password_screen.dart';
 import 'package:wedly/routes/app_router.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -222,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   hintStyle: TextStyle(
                                     color: AppColors.textHint,
                                   ),
-                                  suffixIcon: const Icon(Icons.person_outline),
+                                  prefixIcon: const Icon(Icons.person_outline),
                                   filled: true,
                                   fillColor: AppColors.greyBackground,
                                   border: OutlineInputBorder(
@@ -271,8 +269,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   hintStyle: TextStyle(
                                     color: AppColors.textHint,
                                   ),
-                                  suffixIcon: const Icon(Icons.lock_outline),
-                                  prefixIcon: IconButton(
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscurePassword
                                           ? Icons.visibility_outlined
@@ -332,11 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
                                   onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const ForgotPasswordScreen(),
-                                      ),
-                                    );
+                                    Navigator.of(context).pushNamed(AppRouter.forgotPassword);
                                   },
                                   child: Text(
                                     'هل نسيت كلمة المرور ؟',
@@ -419,8 +413,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 children: [
                                   // Facebook Button
                                   _SocialLoginButton(
-                                    icon: Icons.facebook,
-                                    color: const Color(0xFF1877F2),
+                                    imagePath: 'assets/images/facebook.png',
                                     onPressed: () {
                                       // TODO: Implement Facebook login
                                     },
@@ -429,8 +422,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   // Apple Button - Only show on iOS
                                   if (Platform.isIOS) ...[
                                     _SocialLoginButton(
-                                      icon: Icons.apple,
-                                      color: AppColors.black,
+                                      imagePath: 'assets/images/apple.png',
                                       onPressed: () {
                                         // TODO: Implement Apple login
                                       },
@@ -439,8 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ],
                                   // Google Button
                                   _SocialLoginButton(
-                                    icon: Icons.g_mobiledata,
-                                    color: const Color(0xFFDB4437),
+                                    imagePath: 'assets/images/google.png',
                                     onPressed: () {
                                       // TODO: Implement Google login
                                     },
@@ -463,11 +454,7 @@ class _LoginScreenState extends State<LoginScreen> {
     const SizedBox(width: 4),
     GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const SignUpScreen(),
-          ),
-        );
+        Navigator.of(context).pushNamed(AppRouter.signup);
       },
       child: Text(
         'أنشئ حساب جديد',
@@ -499,35 +486,36 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _SocialLoginButton extends StatelessWidget {
-  final IconData icon;
-  final Color color;
+  final String imagePath;
   final VoidCallback onPressed;
 
   const _SocialLoginButton({
-    required this.icon,
-    required this.color,
+    required this.imagePath,
     required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.greyLight,
-          width: 1,
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.greyLight,
+            width: 1,
+          ),
         ),
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(
-          icon,
-          color: color,
-          size: 28,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Image.asset(
+            imagePath,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );

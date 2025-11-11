@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 import '../../data/models/service_model.dart';
 
 class ProviderServiceCard extends StatelessWidget {
@@ -18,182 +19,149 @@ class ProviderServiceCard extends StatelessWidget {
   });
 
   String _formatNumber(double number) {
-    return number.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    return number.toStringAsFixed(2).replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]},',
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Service Image with Status Badge
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12),
-                  ),
-                  child: Image.network(
-                    service.imageUrl,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Service Image
+          Expanded(
+            flex: 5,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              child: Image.network(
+                service.imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
                     width: double.infinity,
-                    height: 140,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: double.infinity,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.event,
-                          color: theme.colorScheme.primary,
-                          size: 50,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                // Active/Inactive Badge
-                if (!service.isActive)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'معطلة',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
                       ),
                     ),
-                  ),
-              ],
+                    child: const Icon(
+                      Icons.event,
+                      color: AppColors.gold,
+                      size: 40,
+                    ),
+                  );
+                },
+              ),
             ),
-            // Service Info
-            Padding(
-              padding: const EdgeInsets.all(12),
+          ),
+
+          // Service Info Section
+          Expanded(
+            flex: 5,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Service Name
+                  // Service Name - Centered, 2 lines max
                   Text(
                     service.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                      height: 1.3,
                     ),
+                    textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  // Category
-                  Text(
-                    service.category,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
                   const SizedBox(height: 8),
-                  // Price and Rating Row
+
+                  // Rating and Price Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Price
-                      Flexible(
-                        child: Row(
-                          children: [
-                            Text(
-                              'من ',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            Flexible(
-                              child: Text(
-                                '${_formatNumber(service.price ?? 0)} جنيه',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFD4AF37),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Rating (Mock)
+                      // Rating on the left
                       Row(
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Color(0xFFD4AF37),
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
+                        children: const [
                           Text(
                             '4.9',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
                             ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(
+                            Icons.star,
+                            color: AppColors.gold,
+                            size: 16,
                           ),
                         ],
                       ),
+
+                      // Price on the right
+                      Text(
+                        'من ${_formatNumber(service.price ?? 0)} جنيه',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black54,
+                        ),
+                      ),
                     ],
                   ),
-                  // Action Buttons
-                  if (showActions) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: onEdit,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFFD4AF37),
-                              side: const BorderSide(
-                                color: Color(0xFFD4AF37),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                            ),
-                            child: const Text('تعديل'),
-                          ),
+
+                  const SizedBox(height: 10),
+
+                  // Edit Button - Golden, Full Width
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: onEdit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: AppColors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
                         ),
-                      ],
+                      ),
+                      child: const Text(
+                        'تعديل',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

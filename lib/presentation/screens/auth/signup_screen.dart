@@ -5,8 +5,9 @@ import 'package:wedly/core/constants/app_colors.dart';
 import 'package:wedly/core/utils/enums.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
+import 'package:wedly/routes/app_router.dart';
 import 'package:wedly/presentation/screens/auth/login_screen.dart';
-import 'package:wedly/presentation/screens/auth/signup_otp_screen.dart';
+
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -65,15 +66,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
 
       // Navigate to OTP verification
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SignupOtpScreen(
-            phoneOrEmail: _phoneController.text.isNotEmpty
-                ? _phoneController.text
-                : _emailController.text,
-            userRole: _selectedRole!,
-          ),
-        ),
+      Navigator.of(context).pushNamed(
+        AppRouter.signupOtp,
+        arguments: {
+          'phoneOrEmail': _phoneController.text.isNotEmpty
+              ? _phoneController.text
+              : _emailController.text,
+          'userRole': _selectedRole!,
+        },
       );
     }
   }
@@ -278,7 +278,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   hintStyle: TextStyle(
                                     color: AppColors.textHint,
                                   ),
-                                  suffixIcon: const Icon(Icons.person_outline),
+                                  prefixIcon: const Icon(Icons.person_outline),
                                   filled: true,
                                   fillColor: AppColors.greyBackground,
                                   border: OutlineInputBorder(
@@ -327,7 +327,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   hintStyle: TextStyle(
                                     color: AppColors.textHint,
                                   ),
-                                  suffixIcon: const Icon(Icons.email_outlined),
+                                  prefixIcon: const Icon(Icons.email_outlined),
                                   filled: true,
                                   fillColor: AppColors.greyBackground,
                                   border: OutlineInputBorder(
@@ -380,7 +380,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     hintStyle: TextStyle(
       color: AppColors.textHint,
     ),
-    suffixIcon: const Icon(Icons.person_outline), // 👈 بدل أيقونة الهاتف
+    prefixIcon: const Icon(Icons.person_outline), // 👈 بدل أيقونة الهاتف
     filled: true,
     fillColor: AppColors.greyBackground,
     border: OutlineInputBorder(
@@ -431,8 +431,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   hintStyle: TextStyle(
                                     color: AppColors.textHint,
                                   ),
-                                  suffixIcon: const Icon(Icons.lock_outline),
-                                  prefixIcon: IconButton(
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscurePassword
                                           ? Icons.visibility_outlined
@@ -496,19 +496,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   hintStyle: TextStyle(
                                     color: AppColors.textHint,
                                   ),
-                                  suffixIcon: const Icon(Icons.lock_outline),
-                                  prefixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureConfirmPassword
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                                      });
-                                    },
-                                  ),
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  
                                   filled: true,
                                   fillColor: AppColors.greyBackground,
                                   border: OutlineInputBorder(
@@ -642,8 +631,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 children: [
                                   // Facebook Button
                                   _SocialLoginButton(
-                                    icon: Icons.facebook,
-                                    color: const Color(0xFF1877F2),
+                                    imagePath: 'assets/images/facebook.png',
                                     onPressed: () {
                                       // TODO: Implement Facebook signup
                                     },
@@ -652,8 +640,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   // Apple Button - Only show on iOS
                                   if (Platform.isIOS) ...[
                                     _SocialLoginButton(
-                                      icon: Icons.apple,
-                                      color: AppColors.black,
+                                      imagePath: 'assets/images/apple.png',
                                       onPressed: () {
                                         // TODO: Implement Apple signup
                                       },
@@ -662,8 +649,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   ],
                                   // Google Button
                                   _SocialLoginButton(
-                                    icon: Icons.g_mobiledata,
-                                    color: const Color(0xFFDB4437),
+                                    imagePath: 'assets/images/google.png',
                                     onPressed: () {
                                       // TODO: Implement Google signup
                                     },
@@ -672,37 +658,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                               const SizedBox(height: 24),
                               // Login Link
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(
-                                          builder: (_) => const LoginScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      'لديك حساب ؟',
-                                    textDirection: TextDirection.rtl,
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                   'تسجيل الدخول',
-                                      style: const TextStyle(
-                                        color: AppColors.gold,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
+Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    Text(
+      'لديك حساب ؟',
+      textDirection: TextDirection.rtl,
+      style: TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 14,
+      ),
+    ),
+    const SizedBox(width: 4),
+    GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      },
+      child: Text(
+        'تسجيل الدخول',
+        style: TextStyle(
+          color: AppColors.gold,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  ],
+)
+
                             ],
                           ),
                         ),
@@ -721,35 +707,36 @@ class _SignUpScreenState extends State<SignUpScreen> {
 }
 
 class _SocialLoginButton extends StatelessWidget {
-  final IconData icon;
-  final Color color;
+  final String imagePath;
   final VoidCallback onPressed;
 
   const _SocialLoginButton({
-    required this.icon,
-    required this.color,
+    required this.imagePath,
     required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.greyLight,
-          width: 1,
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.greyLight,
+            width: 1,
+          ),
         ),
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(
-          icon,
-          color: color,
-          size: 28,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Image.asset(
+            imagePath,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );

@@ -168,9 +168,10 @@ class BookingRepository {
     BookingStatus status,
   ) async {
     await Future.delayed(const Duration(milliseconds: 500));
+    // For mock/demo mode: return all bookings with the specified status
+    // In production, filter by providerId
     return _mockBookings
-        .where((booking) =>
-            booking.providerId == providerId && booking.status == status)
+        .where((booking) => booking.status == status)
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }

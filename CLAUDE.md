@@ -128,8 +128,27 @@ The codebase is structured for seamless API integration:
 
 1. **Mock Data**: All repositories use `Future.delayed()` to simulate async operations
 2. **Repository Pattern**: BLoCs depend on repository interfaces, not implementations
-3. **Next Steps**: Replace mock repository implementations with HTTP calls
-4. **Guidance**: See `API_INTEGRATION_PROMPT.md` for detailed integration instructions
+3. **Mock Data Inventory**: See `API_MOCK_DATA_INVENTORY.md` for comprehensive documentation of ALL mock data
+4. **Next Steps**: Replace mock repository implementations with HTTP calls
+5. **Guidance**: See `API_INTEGRATION_PROMPT.md` for detailed integration instructions
+
+### Mock Data Documentation
+
+**IMPORTANT**: Before implementing API integration, refer to `API_MOCK_DATA_INVENTORY.md` which contains:
+- Complete inventory of all 6 mock services and 7 mock bookings
+- All hardcoded profile data (phone: '+20 100 123 4567', city: 'القاهرة')
+- Network delay timings for each repository method
+- Full API endpoint specifications with request/response formats
+- 30-step API integration checklist
+- List of all TODO comments requiring API implementation
+
+**Mock Data Overview**:
+- **Services**: 6 hardcoded wedding services (Photography, Catering, Decoration, Entertainment, Venue, Beauty)
+- **Bookings**: 7 hardcoded bookings in Arabic with various statuses
+- **Auth**: Mock login accepts ANY credentials and generates fake user IDs
+- **Images**: 13 Unsplash URLs for service/booking images
+
+**Global Mock Mode**: Set `_useMockData = false` in `lib/core/di/injection_container.dart` to switch to real API
 
 When integrating APIs:
 - Add `dio` or `http` package for networking
@@ -138,6 +157,8 @@ When integrating APIs:
 - Add token storage using `flutter_secure_storage`
 - Implement error handling and network interceptors
 - Keep repository method signatures unchanged
+- Update API base URL in `lib/data/services/api_constants.dart`
+- Add `phone` and `city` fields to `UserModel`
 
 ## Testing Credentials
 

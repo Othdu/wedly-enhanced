@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/core/constants/app_colors.dart';
-import 'package:wedly/presentation/screens/auth/login_screen.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -82,10 +82,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     onPressed: () {
                       Navigator.of(context).pop(); // Close dialog
                       // Navigate to login
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (_) => const LoginScreen(),
-                        ),
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        AppRouter.login,
                         (route) => false,
                       );
                     },

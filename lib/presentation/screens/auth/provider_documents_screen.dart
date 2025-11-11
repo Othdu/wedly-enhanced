@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:wedly/core/constants/app_colors.dart';
-import 'package:wedly/presentation/screens/auth/login_screen.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class ProviderDocumentsScreen extends StatefulWidget {
   const ProviderDocumentsScreen({super.key});
@@ -15,7 +15,6 @@ class ProviderDocumentsScreen extends StatefulWidget {
 
 class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
   final ImagePicker _picker = ImagePicker();
-  Position? _currentPosition;
 
   @override
   void initState() {
@@ -116,7 +115,7 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
       }
 
       // Get current location
-      _currentPosition = await Geolocator.getCurrentPosition(
+      await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
@@ -310,10 +309,8 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
                   onPressed: () {
                     Navigator.of(context).pop(); // Close dialog
                     // Navigate to login screen
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const LoginScreen(),
-                      ),
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      AppRouter.login,
                       (route) => false,
                     );
                   },
@@ -469,7 +466,7 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isUploaded ? AppColors.gold.withOpacity(0.2) : AppColors.white,
+                color: isUploaded ? AppColors.gold.withValues(alpha: 0.2) : AppColors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(

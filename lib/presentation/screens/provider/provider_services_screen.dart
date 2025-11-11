@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../logic/blocs/auth/auth_bloc.dart';
 import '../../../logic/blocs/auth/auth_state.dart';
 import '../../../logic/blocs/provider_service/provider_service_bloc.dart';
 import '../../../logic/blocs/provider_service/provider_service_event.dart';
 import '../../../logic/blocs/provider_service/provider_service_state.dart';
+import '../../../routes/app_router.dart';
 import '../../widgets/provider_service_card.dart';
-import 'provider_add_service_screen.dart';
-import 'provider_edit_service_screen.dart';
 
 class ProviderServicesScreen extends StatefulWidget {
   const ProviderServicesScreen({super.key});
@@ -36,11 +36,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('خدماتي'),
-        backgroundColor: const Color(0xFFD4AF37),
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: AppColors.greyBackground,
       body: BlocConsumer<ProviderServiceBloc, ProviderServiceState>(
         listener: (context, state) {
           if (state is ServiceAdded) {
@@ -161,26 +157,33 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                         ),
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProviderAddServiceScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('إضافة خدمة جديدة'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
+                 ElevatedButton.icon(
+  onPressed: () {
+    Navigator.pushNamed(context, AppRouter.providerAddService);
+  },
+  icon: const Icon(
+    Icons.add,
+    color: Colors.white,
+    size: 20,
+  ),
+  label: const Text(
+    'إضافة خدمة',
+    style: TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.w500,
+      fontSize: 14,
+    ),
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: const Color(0xFFD4AF37), // gold color
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(30), // rounded button
+    ),
+    elevation: 0, // flat look
+  ),
+)
                 ],
               ),
             );
@@ -189,75 +192,94 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
           if (state is ProviderServicesLoaded) {
             final services = state.services;
 
-            return Column(
-              children: [
-                // Add Service Button
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProviderAddServiceScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('إضافة خدمة جديدة'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-                // Services Grid
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      if (_providerId != null) {
-                        context
-                            .read<ProviderServiceBloc>()
-                            .add(RefreshProviderServices(_providerId!));
-                      }
-                    },
-                    color: const Color(0xFFD4AF37),
-                    child: GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.7,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                      ),
-                      itemCount: services.length,
-                      itemBuilder: (context, index) {
-                        final service = services[index];
-                        return ProviderServiceCard(
-                          service: service,
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('قريباً: تفاصيل الخدمة')),
-                            );
-                          },
-                          onEdit: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProviderEditServiceScreen(
-                                  service: service,
-                                ),
-                              ),
-                            );
-                          },
-                        );
+            return SafeArea(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  // Add Service Button
+               Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 20),
+  child: Align(
+    alignment: Alignment.centerLeft,
+      child: Directionality(
+    textDirection: TextDirection.ltr, // forces icon to appear on the left
+    child: ElevatedButton.icon(
+      onPressed: () {
+        Navigator.pushNamed(context, AppRouter.providerAddService);
+      },
+      icon: const Icon(
+        Icons.add,
+        color: Colors.white,
+        size: 20,
+      ),
+      label: const Text(
+        'إضافة خدمة',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+          fontSize: 16,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFD4AF37), // matches #D4AF37
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(1000), // fully circular / pill shape
+        ),
+        elevation: 0, // flat, no shadow
+        minimumSize: const Size(0, 0),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    ),
+  ),
+),  ),
+
+                  const SizedBox(height: 16),
+                  // Services Grid
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        if (_providerId != null) {
+                          context
+                              .read<ProviderServiceBloc>()
+                              .add(RefreshProviderServices(_providerId!));
+                        }
                       },
+                      color: Colors.white,
+                      child: GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.68,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: services.length,
+                        itemBuilder: (context, index) {
+                          final service = services[index];
+                          return ProviderServiceCard(
+                            service: service,
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('قريباً: تفاصيل الخدمة')),
+                              );
+                            },
+                            onEdit: () {
+                              Navigator.pushNamed(
+                                context,
+                                AppRouter.providerEditService,
+                                arguments: {
+                                  'service': service,
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           }
 

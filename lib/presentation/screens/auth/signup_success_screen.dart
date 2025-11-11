@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/core/constants/app_colors.dart';
 import 'package:wedly/core/utils/enums.dart';
-import 'package:wedly/presentation/screens/auth/provider_documents_screen.dart';
 import 'package:wedly/routes/app_router.dart';
 
 class SignupSuccessScreen extends StatelessWidget {
@@ -73,11 +72,7 @@ class SignupSuccessScreen extends StatelessWidget {
                   onPressed: () {
                     if (userRole == UserRole.provider) {
                       // Provider: Navigate to documents upload screen
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => const ProviderDocumentsScreen(),
-                        ),
-                      );
+                      Navigator.of(context).pushReplacementNamed(AppRouter.providerDocuments);
                     } else {
                       // User: Navigate directly to user home
                       AppRouter.goToUserHome(context);

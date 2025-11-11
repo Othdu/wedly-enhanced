@@ -14,21 +14,13 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   final _nameController = TextEditingController();
   final _categoryController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _discountController = TextEditingController();
 
   List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   String _selectedAvailability = 'صباحي';
   String _selectedPriceTier = 'باقة 1';
-  final Map<String, bool> _selectedDays = {
-    'السبت': false,
-    'الأحد': false,
-    'الاثنين': false,
-    'الثلاثاء': false,
-    'الأربعاء': false,
-    'الخميس': false,
-    'الجمعة': false,
-  };
 
   Future<void> _pickImage() async {
     if (_selectedImages.length >= 2) {
@@ -57,6 +49,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     _nameController.dispose();
     _categoryController.dispose();
     _descriptionController.dispose();
+    _discountController.dispose();
     super.dispose();
   }
 
@@ -160,7 +153,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Description
+            // Price
             const Align(
               alignment: Alignment.centerRight,
               child: Text(
@@ -176,6 +169,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             TextFormField(
               controller: _descriptionController,
               textAlign: TextAlign.right,
+              keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: '.........',
                 hintStyle: TextStyle(color: Colors.grey.shade400),
@@ -186,6 +180,46 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                   borderSide: BorderSide.none,
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Discount (Optional)
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'نسبة الخصم (اختياري)',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFD4AF37),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _discountController,
+              textAlign: TextAlign.right,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: 'مثال: 30 (للخصم 30%)',
+                hintStyle: TextStyle(color: Colors.grey.shade400),
+                suffixText: '%',
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              validator: (value) {
+                if (value != null && value.isNotEmpty) {
+                  final discount = double.tryParse(value);
+                  if (discount == null || discount < 0 || discount > 100) {
+                    return 'يجب أن تكون النسبة بين 0 و 100';
+                  }
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
 
@@ -350,12 +384,13 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     // Show success dialog
                     showDialog(
                       context: context,
-                      builder: (context) => AlertDialog(
+                      barrierDismissible: false,
+                      builder: (dialogContext) => AlertDialog(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -373,10 +408,16 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                       ),
                     );
 
-                    Future.delayed(const Duration(seconds: 2), () {
-                      Navigator.pop(context); // Close dialog
-                      Navigator.pop(context); // Go back to services
-                    });
+                    // Wait 2 seconds before closing
+                    await Future.delayed(const Duration(seconds: 2));
+
+                    // Close dialog and navigate back if still mounted
+                    if (mounted) {
+                      Navigator.of(context).pop(); // Close dialog
+                      if (context.mounted) {
+                        Navigator.of(context).pop(); // Go back to services
+                      }
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -463,53 +504,65 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   }
 
   Widget _buildAvailabilityOption(String label) {
-    final isSelected = _selectedAvailability == label;
-    return Padding(
-      padding: const EdgeInsets.only(left: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Radio<String>(
-            value: label,
-            groupValue: _selectedAvailability,
-            onChanged: (value) {
-              setState(() {
-                _selectedAvailability = value!;
-              });
-            },
-            activeColor: const Color(0xFFD4AF37),
-          ),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedAvailability = label;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(left: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Radio<String>(
+              value: label,
+              groupValue: _selectedAvailability,
+              onChanged: (value) {
+                setState(() {
+                  _selectedAvailability = value!;
+                });
+              },
+              activeColor: const Color(0xFFD4AF37),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildPriceTierOption(String tier, String label) {
-    final isSelected = _selectedPriceTier == tier;
-    return Padding(
-      padding: const EdgeInsets.only(left: 12),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Radio<String>(
-            value: tier,
-            groupValue: _selectedPriceTier,
-            onChanged: (value) {
-              setState(() {
-                _selectedPriceTier = value!;
-              });
-            },
-            activeColor: const Color(0xFFD4AF37),
-          ),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedPriceTier = tier;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Radio<String>(
+              value: tier,
+              groupValue: _selectedPriceTier,
+              onChanged: (value) {
+                setState(() {
+                  _selectedPriceTier = value!;
+                });
+              },
+              activeColor: const Color(0xFFD4AF37),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
       ),
     );
   }

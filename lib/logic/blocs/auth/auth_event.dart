@@ -40,3 +40,18 @@ class AuthRoleChanged extends AuthEvent {
   List<Object?> get props => [role];
 }
 
+class AuthUpdateProfile extends AuthEvent {
+  final String? name;
+  final String? email;
+  final String? profileImageUrl;
+
+  const AuthUpdateProfile({
+    this.name,
+    this.email,
+    this.profileImageUrl,
+  });
+
+  @override
+  List<Object?> get props => [name, email, profileImageUrl];
+}
+

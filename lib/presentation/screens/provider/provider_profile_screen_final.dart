@@ -1,5 +1,8 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../logic/blocs/auth/auth_bloc.dart';
 import '../../../logic/blocs/auth/auth_event.dart';
 import '../../../logic/blocs/auth/auth_state.dart';
@@ -15,31 +18,54 @@ class ProviderProfileScreen extends StatelessWidget {
       builder: (BuildContext dialogContext) {
         return Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Icon
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    color: AppColors.gold,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Title
                 const Text(
                   'هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟',
                   textAlign: TextAlign.center,
+                  textDirection: ui.TextDirection.rtl,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                // Subtitle
                 const Text(
                   'بإمكانك تسجيل الدخول لاحقاً بنفس البيانات.',
                   textAlign: TextAlign.center,
+                  textDirection: ui.TextDirection.rtl,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey,
+                    height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
+                // Logout Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -48,12 +74,13 @@ class ProviderProfileScreen extends StatelessWidget {
                       context.read<AuthBloc>().add(const AuthLogoutRequested());
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
+                      backgroundColor: AppColors.gold,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 0,
                     ),
                     child: const Text(
                       'تسجيل الخروج',
@@ -65,6 +92,7 @@ class ProviderProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
+                // Cancel Button
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
@@ -73,17 +101,17 @@ class ProviderProfileScreen extends StatelessWidget {
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.grey.shade700,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: BorderSide(color: Colors.grey.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey.shade300, width: 1.5),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: const Text(
                       'إلغاء',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -99,12 +127,32 @@ class ProviderProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5), // Light gray background
+      backgroundColor: AppColors.greyBackground,
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
+          // Handle unauthenticated state safely
           if (state is! AuthAuthenticated) {
-            return const Center(
-              child: Text('لم يتم تسجيل الدخول'),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.person_off_outlined,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'لم يتم تسجيل الدخول',
+                    textDirection: ui.TextDirection.rtl,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 
@@ -120,7 +168,7 @@ class ProviderProfileScreen extends StatelessWidget {
                   bottom: 20,
                 ),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFD4AF37),
+                  color: AppColors.gold,
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
@@ -141,98 +189,170 @@ class ProviderProfileScreen extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      const SizedBox(height: 32),
-                      // Profile Picture
-                      ProfilePictureWidget(
-                        profileImageUrl: user.profileImageUrl,
-                        isEditable: true,
-                        onImageSelected: (image) {
-                          // TODO: Upload image and update profile
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('قريباً: تحديث الصورة')),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 40),
-
-                      // Profile Info Fields
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Column(
-                          children: [
-                            _buildInfoRow(
-                              'محمد حسام إبراهيم',
-                              'الاسم الكامل',
-                            ),
-                            const SizedBox(height: 20),
-                            _buildInfoRow(
-                              'M.Hossam22@Gmail.Com',
-                              'البريد الإلكتروني',
-                            ),
-                            const SizedBox(height: 20),
-                            _buildInfoRow(
-                              '+20 100 123 4567',
-                              'رقم الهاتف',
-                            ),
-                            const SizedBox(height: 20),
-                            _buildInfoRow(
-                              'القاهرة',
-                              'المدينة',
+                      const SizedBox(height: 24),
+                      // Profile Picture with shadow
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.gold.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
+                        child: ProfilePictureWidget(
+                          profileImageUrl: user.profileImageUrl,
+                          isEditable: true,
+                          onImageSelected: (image) {
+                            // TODO: Upload image and update profile via AuthBloc
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'قريباً: تحديث الصورة',
+                                  textDirection: ui.TextDirection.rtl,
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: AppColors.gold,
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 12),
+                      // User name as title
+                      Text(
+                        user.name,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // User role badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.gold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'مقدم خدمة',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
 
-                      // Action Buttons
+                      // Profile Info Section with card
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 8),
+                              _buildInfoRow(
+                                user.email,
+                                Icons.email_outlined,
+                                'البريد الإلكتروني',
+                              ),
+                              _buildDivider(),
+                              _buildInfoRow(
+                                '+201001234567', // TODO: Add phone field to UserModel
+                                Icons.phone_outlined,
+                                'رقم الهاتف',
+                              ),
+                              _buildDivider(),
+                              _buildInfoRow(
+                                'القاهرة', // TODO: Add city field to UserModel
+                                Icons.location_on_outlined,
+                                'المدينة',
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Action Buttons with improved styling
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            ElevatedButton(
+                            // Edit Profile Button with icon
+                            ElevatedButton.icon(
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const ProviderEditProfileScreen(),
+                                    builder: (context) =>
+                                        const ProviderEditProfileScreen(),
                                   ),
                                 );
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFD4AF37),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 18),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
+                              icon: const Icon(Icons.edit_outlined, size: 20),
+                              label: const Text(
                                 'تعديل البيانات',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () => _showLogoutDialog(context),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFD4AF37),
+                                backgroundColor: AppColors.gold,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 18),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                                elevation: 0,
+                                elevation: 2,
+                                shadowColor: AppColors.gold.withValues(alpha: 0.4),
                               ),
-                              child: const Text(
+                            ),
+                            const SizedBox(height: 12),
+                            // Logout Button outlined
+                            OutlinedButton.icon(
+                              onPressed: () => _showLogoutDialog(context),
+                              icon: const Icon(Icons.logout_rounded, size: 20),
+                              label: const Text(
                                 'تسجيل الخروج',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.gold,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                side: const BorderSide(
+                                  color: AppColors.gold,
+                                  width: 2,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
                             ),
@@ -251,37 +371,70 @@ class ProviderProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String value, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.shade300,
-          width: 1,
-        ),
-      ),
+  Widget _buildInfoRow(String value, IconData icon, String label) {
+    // Check if value is a phone number (starts with +)
+    final isPhoneNumber = value.startsWith('+');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        textDirection: ui.TextDirection.rtl,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFFD4AF37),
+          // Value (right side in RTL)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  value,
+                  textAlign: TextAlign.right,
+                  // Phone numbers are LTR, other text is RTL
+                  textDirection: isPhoneNumber ? ui.TextDirection.ltr : ui.TextDirection.rtl,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
+          const SizedBox(width: 16),
+          // Icon (left side in RTL)
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: AppColors.gold,
+              size: 24,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Divider(
+        height: 1,
+        thickness: 1,
+        color: Colors.grey.shade200,
       ),
     );
   }

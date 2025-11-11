@@ -75,14 +75,21 @@ class AuthRepository {
     final prefs = await SharedPreferences.getInstance();
     final isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
 
+    print('🔍 _loadUserFromCache: isLoggedIn = $isLoggedIn');
+
     if (!isLoggedIn) return null;
 
     final userJson = prefs.getString(_userKey);
+    print('🔍 _loadUserFromCache: userJson = $userJson');
+
     if (userJson == null) return null;
 
     try {
-      return UserModel.fromJson(jsonDecode(userJson));
+      final user = UserModel.fromJson(jsonDecode(userJson));
+      print('✅ Successfully loaded user from cache: ${user.email} (${user.role})');
+      return user;
     } catch (e) {
+      print('❌ Error parsing cached user: $e');
       return null;
     }
   }
@@ -143,17 +150,25 @@ class AuthRepository {
 
   /// Get current user - checks cache first
   Future<UserModel?> getCurrentUser() async {
+    print('🔍 AuthRepository.getCurrentUser() called');
+
     // First check if we have user in memory
     if (_currentUser != null) {
+      print('✅ Found user in memory: ${_currentUser!.email} (${_currentUser!.role})');
       return _currentUser;
     }
+
+    print('⚠️ No user in memory, checking SharedPreferences cache...');
 
     // Then check cache
     final cachedUser = await _loadUserFromCache();
     if (cachedUser != null) {
+      print('✅ Found user in cache: ${cachedUser.email} (${cachedUser.role})');
       _currentUser = cachedUser;
       return _currentUser;
     }
+
+    print('❌ No cached user found');
 
     // Finally, try API if not using mock data
     if (!useMockData) {
@@ -180,9 +195,11 @@ class AuthRepository {
   }
 
   /// Set user role (for testing in mock mode)
-  void setUserRole(UserRole role) {
+  Future<void> setUserRole(UserRole role) async {
     if (_currentUser != null) {
       _currentUser = _currentUser!.copyWith(role: role);
+      // Save updated user to cache
+      await _saveUserToCache(_currentUser!);
     }
   }
 }

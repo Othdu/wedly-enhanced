@@ -11,6 +11,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLoginRequested>(_onAuthLoginRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
     on<AuthRoleChanged>(_onAuthRoleChanged);
+    on<AuthUpdateProfile>(_onAuthUpdateProfile);
 
     // Check initial auth status
     add(const AuthStatusChecked());
@@ -62,11 +63,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthRoleChanged event,
     Emitter<AuthState> emit,
   ) async {
-    authRepository.setUserRole(event.role);
+    await authRepository.setUserRole(event.role);
     final user = await authRepository.getCurrentUser();
     if (user != null) {
       emit(AuthAuthenticated(user));
     }
+  }
+
+  Future<void> _onAuthUpdateProfile(
+    AuthUpdateProfile event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    // Update the user with new data
+    final updatedUser = currentState.user.copyWith(
+      name: event.name,
+      email: event.email,
+      profileImageUrl: event.profileImageUrl,
+    );
+
+    // TODO: Call authRepository.updateProfile(updatedUser) when API is ready
+    // For now, just emit the updated state
+    emit(AuthAuthenticated(updatedUser));
   }
 }
 

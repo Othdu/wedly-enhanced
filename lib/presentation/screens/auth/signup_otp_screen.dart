@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wedly/core/constants/app_colors.dart';
 import 'package:wedly/core/utils/enums.dart';
-import 'package:wedly/presentation/screens/auth/signup_success_screen.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class SignupOtpScreen extends StatefulWidget {
   final String phoneOrEmail;
@@ -38,10 +38,11 @@ class _SignupOtpScreenState extends State<SignupOtpScreen> {
     final otp = _otpControllers.map((c) => c.text).join();
     if (otp.length == 6) {
       // Navigate to success screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => SignupSuccessScreen(userRole: widget.userRole),
-        ),
+      Navigator.of(context).pushReplacementNamed(
+        AppRouter.signupSuccess,
+        arguments: {
+          'userRole': widget.userRole,
+        },
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -21,6 +21,7 @@ class BookingModel extends Equatable {
   final String eventType;
   final int guestCount;
   final String eventLocation;
+  final double? discountPercentage; // Optional discount percentage from service
 
   const BookingModel({
     required this.id,
@@ -42,6 +43,7 @@ class BookingModel extends Equatable {
     required this.eventType,
     required this.guestCount,
     required this.eventLocation,
+    this.discountPercentage,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -69,6 +71,9 @@ class BookingModel extends Equatable {
       eventType: json['eventType'] as String,
       guestCount: json['guestCount'] as int,
       eventLocation: json['eventLocation'] as String,
+      discountPercentage: json['discountPercentage'] != null
+          ? (json['discountPercentage'] as num).toDouble()
+          : null,
     );
   }
 
@@ -93,6 +98,7 @@ class BookingModel extends Equatable {
       'eventType': eventType,
       'guestCount': guestCount,
       'eventLocation': eventLocation,
+      'discountPercentage': discountPercentage,
     };
   }
 
@@ -116,6 +122,7 @@ class BookingModel extends Equatable {
     String? eventType,
     int? guestCount,
     String? eventLocation,
+    double? discountPercentage,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -137,6 +144,7 @@ class BookingModel extends Equatable {
       eventType: eventType ?? this.eventType,
       guestCount: guestCount ?? this.guestCount,
       eventLocation: eventLocation ?? this.eventLocation,
+      discountPercentage: discountPercentage ?? this.discountPercentage,
     );
   }
 
@@ -161,5 +169,6 @@ class BookingModel extends Equatable {
         eventType,
         guestCount,
         eventLocation,
+        discountPercentage,
       ];
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wedly/core/constants/app_colors.dart';
-import 'package:wedly/presentation/screens/auth/reset_password_screen.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneOrEmail;
@@ -38,11 +38,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (otp.length == 6) {
       // Verify OTP - navigate to reset password if for password reset
       if (widget.isForPasswordReset) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const ResetPasswordScreen(),
-          ),
-        );
+        Navigator.of(context).pushReplacementNamed(AppRouter.resetPassword);
       } else {
         // For account activation, show success and navigate to login
         ScaffoldMessenger.of(context).showSnackBar(

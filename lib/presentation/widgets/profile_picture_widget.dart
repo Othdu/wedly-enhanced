@@ -11,7 +11,7 @@ class ProfilePictureWidget extends StatefulWidget {
     super.key,
     this.profileImageUrl,
     this.isEditable = false,
-    this.onImageSelected,
+    this.onImageSelected, File? initialImageFile,
   });
 
   @override
