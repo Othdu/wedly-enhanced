@@ -178,19 +178,15 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
               ),
               child: Stack(
                 children: [
-                  // Back Button (RTL - right side)
+                  // Back Button (RTL - left side)
                   Positioned(
-                    left: 16,
+                    right: 16,
                     child: GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                       
-                        child: const Icon(
-                          Icons.arrow_forward_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 24,
                       ),
                     ),
                   ),
@@ -213,32 +209,68 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    const SizedBox(height: 32),
-                    // Profile Picture
-                    ProfilePictureWidget(
-                      profileImageUrl: _currentProfileImageUrl,
-                      isEditable: true,
-                      onImageSelected: _onImageSelected,
+                    const SizedBox(height: 24),
+                    // Profile Picture with shadow
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.gold.withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ProfilePictureWidget(
+                        profileImageUrl: _currentProfileImageUrl,
+                        isEditable: true,
+                        onImageSelected: _onImageSelected,
+                      ),
                     ),
                     if (_selectedImage != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          'تم اختيار صورة جديدة',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.gold,
-                            fontWeight: FontWeight.w500,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.gold.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'تم اختيار صورة جديدة',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.gold,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
 
-                    // Profile Info Fields - Editable
+                    // Profile Info Fields - Editable Card
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Column(
-                        children: [
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
                           _buildEditableField(
                             controller: _nameController,
                             label: 'الاسم الكامل',
@@ -270,6 +302,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                             controller: _phoneController,
                             label: 'رقم الهاتف',
                             keyboardType: TextInputType.phone,
+                            textDirection: TextDirection.ltr, // Phone numbers should be LTR
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
                                 return 'الرجاء إدخال رقم الهاتف';
@@ -289,37 +322,58 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                               return null;
                             },
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-
-                    // Save Button
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _saveChanges,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.gold,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'حفظ التعديلات',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
+                    const SizedBox(height: 32),
+
+                    // Save Button
+                    Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 24),
+  child: SizedBox(
+    width: double.infinity,
+    height: 56,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.gold, AppColors.gold.withOpacity(0.85)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.gold.withOpacity(0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _saveChanges,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        ),
+        child: const Text(
+          'حفظ التعديلات',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    ),
+  ),
+)
+,
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -335,6 +389,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
     required TextEditingController controller,
     required String label,
     TextInputType keyboardType = TextInputType.text,
+    TextDirection? textDirection,
     String? Function(String?)? validator,
   }) {
     return Column(
@@ -343,25 +398,25 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
         Text(
           label,
           textAlign: TextAlign.right,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.gold,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade600,
           ),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          textDirection: TextDirection.rtl,
+          textDirection: textDirection ?? TextDirection.rtl,
           textAlign: TextAlign.right,
           validator: validator,
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppColors.greyBackground,
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 18,
+              horizontal: 16,
+              vertical: 16,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -405,7 +460,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
           ),
           style: const TextStyle(
             fontSize: 15,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: Colors.black87,
           ),
         ),

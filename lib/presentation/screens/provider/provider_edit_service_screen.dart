@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../data/models/service_model.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class ProviderEditServiceScreen extends StatefulWidget {
   final ServiceModel service;
@@ -20,13 +21,18 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
   late TextEditingController _nameController;
   late TextEditingController _categoryController;
   late TextEditingController _priceController;
-  late TextEditingController _discountController;
+  late TextEditingController _chairsController; // Optional for venue services
 
   List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
-  String _selectedAvailability = 'صباحي';
-  String _selectedPriceTier = 'باقة 1';
+  String _selectedAvailability = 'مسائي';
+  String _selectedPriceTier = 'ديكورد 1';
+
+  // Google Maps variables
+  LatLng _pickedLocation = const LatLng(30.0444, 31.2357); // Cairo, Egypt default
+  GoogleMapController? _mapController;
+  final bool _useGoogleMaps = false; // Set to true when API key is configured
 
   @override
   void initState() {
@@ -37,9 +43,7 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
     _priceController = TextEditingController(
       text: widget.service.price?.toString() ?? '0',
     );
-    _discountController = TextEditingController(
-      text: widget.service.discountPercentage?.toString() ?? '',
-    );
+    _chairsController = TextEditingController(); // Optional, empty by default
   }
 
   Future<void> _pickImage() async {
@@ -69,511 +73,781 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
     _nameController.dispose();
     _categoryController.dispose();
     _priceController.dispose();
-    _discountController.dispose();
+    _chairsController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('تعديل الخدمة'),
         backgroundColor: const Color(0xFFD4AF37),
-        foregroundColor: Colors.white,
+        elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'تعديل الخدمة',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           children: [
-            // Existing Images Section
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'رفع الصور',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFD4AF37),
-                ),
-              ),
-            ),
+            // رفع الصور - Upload Images Section
+            _buildSectionLabel('رفع الصور'),
             const SizedBox(height: 12),
             Row(
               children: [
-                // First Image (Existing)
-                _buildExistingOrNewImage(0),
+                _buildImagePicker(1),
                 const SizedBox(width: 16),
-                // Second Image (Can add new)
-                _buildExistingOrNewImage(1),
+                _buildImagePicker(0),
               ],
             ),
             const SizedBox(height: 24),
 
-            // Service Name
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'اسم الخدمة',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFD4AF37),
-                ),
-              ),
-            ),
+            // اسم الخدمة - Service Name
+            _buildSectionLabel('اسم الخدمة'),
             const SizedBox(height: 8),
-            TextFormField(
-              controller: _nameController,
-              textAlign: TextAlign.right,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            _buildTextField(_nameController),
+            const SizedBox(height: 20),
 
-            // Category
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'الفئة',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFD4AF37),
-                ),
-              ),
-            ),
+            // الفئة - Category
+            _buildSectionLabel('الفئة'),
             const SizedBox(height: 8),
-            TextFormField(
-              controller: _categoryController,
-              textAlign: TextAlign.right,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            _buildTextField(_categoryController),
+            const SizedBox(height: 20),
 
-            // Price
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'السعر الافتراضي',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFD4AF37),
-                ),
-              ),
-            ),
+            // السعر الافتراضي - Default Price
+            _buildSectionLabel('السعر الافتراضي'),
             const SizedBox(height: 8),
-            TextFormField(
-              controller: _priceController,
-              textAlign: TextAlign.right,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            _buildNumberField(_priceController),
+            const SizedBox(height: 24),
 
-            // Discount (Optional)
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'نسبة الخصم (اختياري)',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFD4AF37),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _discountController,
-              textAlign: TextAlign.right,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: 'مثال: 30 (للخصم 30%)',
-                hintStyle: TextStyle(color: Colors.grey.shade400),
-                suffixText: '%',
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  final discount = double.tryParse(value);
-                  if (discount == null || discount < 0 || discount > 100) {
-                    return 'يجب أن تكون النسبة بين 0 و 100';
-                  }
-                }
-                return null;
+            // المواعيد - Appointments
+            _buildSectionLabel('المواعيد'),
+            const SizedBox(height: 12),
+
+            // صباحي option with radio button
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedAvailability = 'صباحي';
+                });
               },
-            ),
-            const SizedBox(height: 16),
-
-            // Availability (same as add screen)
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'المواعيد',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFD4AF37),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildAvailabilityOption('مسائي'),
-                _buildAvailabilityOption('صباحي'),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Time Ranges
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'من 12 ظهرًا الى 7 مساءً',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'من 8 مساءً الى 5 فجرا',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Price Tiers
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'عدد الباقات',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFD4AF37),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'من 10,500 الى 12,500 جنيه',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildPriceTierOption('باقة 3', 'ممتازة'),
-                _buildPriceTierOption('باقة 2', 'متوسطة'),
-                _buildPriceTierOption('باقة 1', 'عادية'),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Location Map Placeholder
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'الموقع',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFD4AF37),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.map,
-                        size: 48,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'اضغط لتحديد الموقع على الخريطة',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: BoxDecoration(
+                  color: _selectedAvailability == 'صباحي'
+                      ? const Color(0xFFFFF8E1)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _selectedAvailability == 'صباحي'
+                        ? const Color(0xFFD4AF37)
+                        : Colors.grey.shade200,
+                    width: _selectedAvailability == 'صباحي' ? 2 : 1,
                   ),
                 ),
+                child: Row(
+                  children: [
+                    // Radio button on the left
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _selectedAvailability == 'صباحي'
+                              ? const Color(0xFFD4AF37)
+                              : Colors.grey.shade400,
+                          width: 2.5,
+                        ),
+                        color: Colors.white,
+                      ),
+                      child: _selectedAvailability == 'صباحي'
+                          ? Center(
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFD4AF37),
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    // Content on the right (RTL)
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        textDirection: TextDirection.rtl,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'صباحي',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: _selectedAvailability == 'صباحي'
+                                      ? const Color(0xFFD4AF37)
+                                      : Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'من 12 ظهرًا حتى 7 مساءً',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'تبدأ من 10,500 جنيه',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedAvailability == 'صباحي'
+                                  ? const Color(0xFFD4AF37)
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // مسائي option with radio button
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedAvailability = 'مسائي';
+                });
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: BoxDecoration(
+                  color: _selectedAvailability == 'مسائي'
+                      ? const Color(0xFFFFF8E1)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _selectedAvailability == 'مسائي'
+                        ? const Color(0xFFD4AF37)
+                        : Colors.grey.shade200,
+                    width: _selectedAvailability == 'مسائي' ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Radio button on the left
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _selectedAvailability == 'مسائي'
+                              ? const Color(0xFFD4AF37)
+                              : Colors.grey.shade400,
+                          width: 2.5,
+                        ),
+                        color: Colors.white,
+                      ),
+                      child: _selectedAvailability == 'مسائي'
+                          ? Center(
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFD4AF37),
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    // Content on the right (RTL)
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        textDirection: TextDirection.rtl,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'مسائي',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: _selectedAvailability == 'مسائي'
+                                      ? const Color(0xFFD4AF37)
+                                      : Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'من 8 مساءً حتى 2 فجرًا',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'تبدأ من 12,500 جنيه',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedAvailability == 'مسائي'
+                                  ? const Color(0xFFD4AF37)
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
 
-            // Update Button
+            // عدد الكراسي - Optional for venue services
+            _buildSectionLabel('عدد الكراسي (اختياري)'),
+            const SizedBox(height: 8),
+            _buildNumberField(
+              _chairsController,
+              hintText: 'أدخل عدد الكراسي',
+              isOptional: true,
+              optionalErrorMessage: 'الرجاء إدخال عدد',
+            ),
+            const SizedBox(height: 24),
+
+            // الموقع - Location
+            _buildSectionLabel('الموقع'),
+            const SizedBox(height: 12),
+
+            // Map container with Google Maps integration
+            _buildMapWidget(),
+            const SizedBox(height: 32),
+
+            // Submit Button
             SizedBox(
               width: double.infinity,
+              height: 56,
               child: ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    // Show success dialog
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (dialogContext) => AlertDialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        content: const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            'تم تعديل الخدمة بنجاح',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-
-                    // Wait 2 seconds before closing
-                    await Future.delayed(const Duration(seconds: 2));
-
-                    // Close dialog and navigate back if still mounted
-                    if (mounted) {
-                      Navigator.of(context).pop(); // Close dialog
-                      if (context.mounted) {
-                        Navigator.of(context).pop(); // Go back to services
-                      }
-                    }
-                  }
-                },
+                onPressed: _handleSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD4AF37),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(16),
                   ),
+                  elevation: 0,
                 ),
                 child: const Text(
                   'تعديل الخدمة',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildExistingOrNewImage(int index) {
-    final bool isFirst = index == 0;
-    final hasNewImage = index < _selectedImages.length;
+  Widget _buildSectionLabel(String text) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFFD4AF37),
+        ),
+      ),
+    );
+  }
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: isFirst ? null : (hasNewImage ? null : _pickImage),
-        child: Container(
-          height: 120,
-          decoration: BoxDecoration(
+  Widget _buildTextField(TextEditingController controller) {
+    return TextFormField(
+      controller: controller,
+      textAlign: TextAlign.right,
+      style: const TextStyle(fontSize: 15),
+      decoration: InputDecoration(
+        hintText: '.........',
+        hintStyle: TextStyle(
+          color: Colors.grey.shade300,
+          fontSize: 18,
+          letterSpacing: 3,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
             color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(12),
+            width: 1,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFFD4AF37),
+            width: 2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberField(
+    TextEditingController controller, {
+    String? hintText,
+    bool isOptional = false,
+    String? optionalErrorMessage,
+  }) {
+    return TextFormField(
+      controller: controller,
+      textAlign: TextAlign.right,
+      keyboardType: TextInputType.number,
+      style: const TextStyle(fontSize: 15),
+      decoration: InputDecoration(
+        hintText: hintText ?? '.........',
+        hintStyle: TextStyle(
+          color: Colors.grey.shade300,
+          fontSize: hintText != null ? 14 : 18,
+          letterSpacing: hintText != null ? 0 : 3,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFFD4AF37),
+            width: 2,
+          ),
+        ),
+      ),
+      validator: (value) {
+        // Skip validation if optional and empty
+        if (isOptional && (value == null || value.isEmpty)) {
+          return null;
+        }
+
+        if (value == null || value.isEmpty) {
+          return optionalErrorMessage ?? 'الرجاء إدخال السعر';
+        }
+        if (double.tryParse(value) == null) {
+          return 'الرجاء إدخال رقم صحيح';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildImagePicker(int index) {
+    // For edit screen, show existing service image for first image
+    if (index == 0) {
+      return Expanded(
+        child: Container(
+          height: 145,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8E8E8),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: Colors.grey.shade300,
-              width: 2,
+              width: 1,
             ),
           ),
-          child: isFirst
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    widget.service.imageUrl,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.image,
-                        size: 40,
-                        color: Colors.grey,
-                      );
-                    },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              widget.service.imageUrl,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Center(
+                  child: Icon(
+                    Icons.image_outlined,
+                    size: 36,
+                    color: Colors.grey.shade400,
                   ),
-                )
-              : hasNewImage
-                  ? Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(
-                            _selectedImages[index],
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
+    // For second image, allow adding new image
+    return Expanded(
+      child: GestureDetector(
+        onTap: (index - 1 < _selectedImages.length) ? null : _pickImage,
+        child: Container(
+          height: 145,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8E8E8),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.grey.shade300,
+              width: 1,
+            ),
+          ),
+          child: (index - 1 < _selectedImages.length)
+              ? Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.file(
+                        _selectedImages[index - 1],
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: GestureDetector(
+                        onTap: () => _removeImage(index - 1),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade600,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 16,
                           ),
                         ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () => _removeImage(index),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
+                      ),
+                    ),
+                  ],
+                )
+              : Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ],
-                    )
-                  : const Icon(
-                      Icons.add_photo_alternate,
-                      size: 40,
-                      color: Colors.grey,
                     ),
+                    child: Icon(
+                      Icons.image_outlined,
+                      size: 36,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                ),
         ),
       ),
     );
   }
 
-  Widget _buildAvailabilityOption(String label) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedAvailability = label;
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.only(left: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Radio<String>(
-              value: label,
-              groupValue: _selectedAvailability,
-              onChanged: (value) {
-                setState(() {
-                  _selectedAvailability = value!;
-                });
-              },
-              activeColor: const Color(0xFFD4AF37),
+  Widget _buildRadioButton(String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFFD4AF37)
+                    : Colors.grey.shade400,
+                width: 2.5,
+              ),
+              color: Colors.white,
             ),
-            Text(label, style: const TextStyle(fontSize: 14)),
-          ],
-        ),
+            child: isSelected
+                ? Center(
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFD4AF37),
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              color: isSelected ? Colors.black87 : Colors.grey.shade600,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPriceTierOption(String tier, String label) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedPriceTier = tier;
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.only(left: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Radio<String>(
-              value: tier,
-              groupValue: _selectedPriceTier,
-              onChanged: (value) {
-                setState(() {
-                  _selectedPriceTier = value!;
-                });
-              },
-              activeColor: const Color(0xFFD4AF37),
-            ),
-            Text(label, style: const TextStyle(fontSize: 14)),
-          ],
-        ),
+  Widget _buildMapWidget() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: _useGoogleMaps
+            ? Stack(
+                children: [
+                  GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _pickedLocation,
+                      zoom: 14,
+                    ),
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                    },
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    onCameraMove: (position) {
+                      setState(() {
+                        _pickedLocation = position.target;
+                      });
+                    },
+                    onTap: (LatLng location) {
+                      setState(() {
+                        _pickedLocation = location;
+                      });
+                    },
+                  ),
+                  // Center pin marker
+                  const Center(
+                    child: Icon(
+                      Icons.location_on,
+                      size: 40,
+                      color: Colors.red,
+                    ),
+                  ),
+                  // Confirm button
+                  Positioned(
+                    bottom: 10,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'تم اختيار الموقع: ${_pickedLocation.latitude.toStringAsFixed(4)}, ${_pickedLocation.longitude.toStringAsFixed(4)}',
+                                textAlign: TextAlign.right,
+                              ),
+                              backgroundColor: const Color(0xFFD4AF37),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD4AF37),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        icon: const Icon(Icons.check, size: 20),
+                        label: const Text(
+                          'تأكيد الموقع',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : _buildMapPlaceholder(),
       ),
     );
+  }
+
+  Widget _buildMapPlaceholder() {
+    return Stack(
+      children: [
+        Container(
+          color: const Color(0xFFF5F5F5),
+          child: Center(
+            child: Icon(
+              Icons.map_outlined,
+              size: 60,
+              color: Colors.grey.shade400,
+            ),
+          ),
+        ),
+        const Center(
+          child: Icon(
+            Icons.location_on,
+            size: 36,
+            color: Colors.red,
+          ),
+        ),
+        Positioned(
+          bottom: 10,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Text(
+              'تكامل خرائط جوجل غير متاح',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _handleSubmit() async {
+    if (_formKey.currentState!.validate()) {
+      // Show success dialog
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.all(40),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD4AF37),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'تم تعديل الخدمة بنجاح',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      // Wait 2 seconds before closing
+      await Future.delayed(const Duration(seconds: 2));
+
+      // Close dialog and navigate back if still mounted
+      if (mounted) {
+        Navigator.of(context).pop(); // Close dialog
+        if (mounted) {
+          Navigator.of(context).pop(); // Go back to services
+        }
+      }
+    }
   }
 }

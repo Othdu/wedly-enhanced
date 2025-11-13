@@ -23,7 +23,7 @@ class BookingRepository {
       guestCount: 800,
       eventLocation: 'القاهرة',
       notes: null,
-      specialRequests: 'نحتاج منصور طبليس من مواضع الفافي مع شاشة العرض',
+      specialRequests: 'مطلوب ديكور خاص باللون الذهبي',
     ),
     BookingModel(
       id: '2',

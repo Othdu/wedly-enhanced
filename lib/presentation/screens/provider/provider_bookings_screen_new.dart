@@ -8,6 +8,7 @@ import '../../../logic/blocs/booking/booking_bloc.dart';
 import '../../../logic/blocs/booking/booking_event.dart';
 import '../../../logic/blocs/booking/booking_state.dart';
 import '../../widgets/booking_card_new.dart';
+import 'provider_booking_details_screen.dart';
 
 class ProviderBookingsScreen extends StatefulWidget {
   const ProviderBookingsScreen({super.key});
@@ -167,9 +168,14 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
                               return BookingCard(
                                 booking: booking,
                                 onViewDetails: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('قريباً: تفاصيل الحجز'),
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (newContext) => BlocProvider.value(
+                                        value: context.read<BookingBloc>(),
+                                        child: ProviderBookingDetailsScreen(
+                                          booking: booking,
+                                        ),
+                                      ),
                                     ),
                                   );
                                 },

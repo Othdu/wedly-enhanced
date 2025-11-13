@@ -206,6 +206,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                           controller: _phoneController,
                           label: 'رقم الهاتف',
                           keyboardType: TextInputType.phone,
+                          textDirection: TextDirection.ltr, // Phone numbers should be LTR
                         ),
                         const SizedBox(height: 20),
                         _buildEditableField(
@@ -257,6 +258,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     required TextEditingController controller,
     required String label,
     TextInputType keyboardType = TextInputType.text,
+    TextDirection? textDirection,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -273,7 +275,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          textDirection: TextDirection.rtl,
+          textDirection: textDirection ?? TextDirection.rtl,
           textAlign: TextAlign.right,
           decoration: InputDecoration(
             filled: true,
