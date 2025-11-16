@@ -18,7 +18,7 @@ class ProviderNavigationWrapper extends StatefulWidget {
 
 class _ProviderNavigationWrapperState
     extends State<ProviderNavigationWrapper> {
-  int _currentIndex = 1;
+  int _currentIndex = 0; // Default to Bookings tab (index 0)
 
   final List<Widget> _screens = [
     const ProviderBookingsScreen(),

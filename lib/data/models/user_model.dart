@@ -8,6 +8,8 @@ class UserModel extends Equatable {
   final UserRole role;
   final Gender? gender;
   final String? profileImageUrl;
+  final String? phone; // Phone number field
+  final String? city; // City field
 
   const UserModel({
     required this.id,
@@ -16,10 +18,12 @@ class UserModel extends Equatable {
     required this.role,
     this.gender,
     this.profileImageUrl,
+    this.phone,
+    this.city,
   });
 
   @override
-  List<Object?> get props => [id, email, name, role, gender, profileImageUrl];
+  List<Object?> get props => [id, email, name, role, gender, profileImageUrl, phone, city];
 
   UserModel copyWith({
     String? id,
@@ -28,6 +32,8 @@ class UserModel extends Equatable {
     UserRole? role,
     Gender? gender,
     String? profileImageUrl,
+    String? phone,
+    String? city,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -36,6 +42,8 @@ class UserModel extends Equatable {
       role: role ?? this.role,
       gender: gender ?? this.gender,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      phone: phone ?? this.phone,
+      city: city ?? this.city,
     );
   }
 
@@ -50,6 +58,8 @@ class UserModel extends Equatable {
           ? Gender.fromString(json['gender'] as String)
           : null,
       profileImageUrl: json['profile_image_url'] as String?,
+      phone: json['phone'] as String?,
+      city: json['city'] as String?,
     );
   }
 
@@ -61,6 +71,8 @@ class UserModel extends Equatable {
       'role': role.name,
       'gender': gender?.value,
       'profile_image_url': profileImageUrl,
+      'phone': phone,
+      'city': city,
     };
   }
 

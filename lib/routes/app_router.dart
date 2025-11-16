@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/core/utils/enums.dart';
+import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
+import 'package:wedly/logic/blocs/provider_service/provider_service_bloc.dart';
 import 'package:wedly/presentation/screens/auth/login_screen.dart';
 import 'package:wedly/presentation/screens/auth/signup_screen.dart';
 import 'package:wedly/presentation/screens/auth/forgot_password_screen.dart';
@@ -108,7 +110,10 @@ class AppRouter {
         );
       case providerAddService:
         return MaterialPageRoute(
-          builder: (_) => const ProviderAddServiceScreen(),
+          builder: (_) => BlocProvider<ProviderServiceBloc>(
+            create: (_) => getIt<ProviderServiceBloc>(),
+            child: const ProviderAddServiceScreen(),
+          ),
         );
       case providerEditService:
         final args = settings.arguments as Map<String, dynamic>?;
@@ -117,7 +122,10 @@ class AppRouter {
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
         return MaterialPageRoute(
-          builder: (_) => ProviderEditServiceScreen(service: service),
+          builder: (_) => BlocProvider<ProviderServiceBloc>(
+            create: (_) => getIt<ProviderServiceBloc>(),
+            child: ProviderEditServiceScreen(service: service),
+          ),
         );
       default:
         return MaterialPageRoute(builder: (_) => const LoginScreen());

@@ -69,6 +69,7 @@ dependencies:
   formz: ^0.8.0
   flutter_signin_button: ^2.1.0
   intl: ^0.20.2
+  shimmer: ^3.0.0
   
 
 dev_dependencies:
@@ -105,6 +106,10 @@ flutter:
   - assets/images/apple.png
   - assets/images/google.png
   - assets/images/facebook.png
+  - assets/images/home-alt.png
+  - assets/images/search.png
+  - assets/images/user.png
+  - assets/images/calendar-a.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

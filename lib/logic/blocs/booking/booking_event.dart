@@ -18,6 +18,16 @@ class FetchProviderBookings extends BookingEvent {
   List<Object?> get props => [providerId];
 }
 
+/// Event to fetch all bookings for a user
+class FetchUserBookings extends BookingEvent {
+  final String userId;
+
+  const FetchUserBookings(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}
+
 /// Event to fetch bookings by status
 class FetchBookingsByStatus extends BookingEvent {
   final String providerId;

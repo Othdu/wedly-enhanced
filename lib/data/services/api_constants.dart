@@ -21,6 +21,11 @@ class ApiConstants {
   static String serviceById(int id) => '$apiVersion/services/$id';
   static String servicesByCategory(String category) =>
       '$apiVersion/services/category/$category';
+  static const String categories = '$apiVersion/categories';
+
+  // Offers Endpoints
+  static const String offers = '$apiVersion/offers';
+  static String offerById(int id) => '$apiVersion/offers/$id';
 
   // Provider Endpoints
   static String providerServices(String providerId) =>
@@ -33,6 +38,10 @@ class ApiConstants {
   // User Endpoints
   static const String userProfile = '$apiVersion/user/profile';
   static const String userBookings = '$apiVersion/user/bookings';
+  static String userCountdown(String userId) => '$apiVersion/user/$userId/countdown';
+
+  // Layout Configuration Endpoints
+  static String homeLayout(String screenName) => '$apiVersion/layout/$screenName';
 
   // Booking Endpoints
   static String providerBookings(String providerId) =>

@@ -70,8 +70,8 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(dialogContext).pop();
-                      Navigator.of(context).pop(); // Go back to bookings list
+                      Navigator.of(dialogContext).pop(); // Close dialog
+                      Navigator.of(context).pop(true); // Go back and signal refresh
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.gold,
@@ -107,7 +107,7 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
                               BookingStatus.cancelled,
                             ),
                           );
-                          Navigator.of(context).pop(); // Go back to bookings list
+                          Navigator.of(context).pop(true); // Go back and signal refresh
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.gold,

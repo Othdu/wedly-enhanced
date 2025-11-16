@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/logic/blocs/provider_service/provider_service_bloc.dart';
+import 'package:wedly/logic/blocs/provider_service/provider_service_event.dart';
+import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_state.dart';
+import 'package:wedly/core/constants/app_constants.dart';
 
 class ProviderAddServiceScreen extends StatefulWidget {
   const ProviderAddServiceScreen({super.key});
@@ -15,44 +22,50 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
-  final _chairsController = TextEditingController(); // Optional for venue services
+  final _chairsController =
+      TextEditingController(); // Optional for venue services
+  final _morningPriceController = TextEditingController(); // Price for صباحي
+  final _eveningPriceController = TextEditingController(); // Price for مسائي
 
   final List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
+  bool _isPickingImage = false; // Prevent multiple simultaneous picker calls
 
   String? _selectedCategory;
-  String _selectedAvailability = 'مسائي';
-  String _selectedPriceTier = 'ديكورد 1';
 
   // Google Maps variables
-  LatLng _pickedLocation = const LatLng(30.0444, 31.2357); // Cairo, Egypt default
+  LatLng _pickedLocation = const LatLng(
+    30.0444,
+    31.2357,
+  ); // Cairo, Egypt default
   GoogleMapController? _mapController;
   final bool _useGoogleMaps = false; // Set to true when API key is configured
 
-  // Categories list - in future, fetch from API
-  final List<String> _categories = [
-    'تصوير فوتوغرافي',
-    'كوش وديكور',
-    'فرق موسيقية',
-    'قاعات أفراح',
-    'تجميل وميك أب',
-    'تنظيم حفلات',
-    'كيك وحلويات',
-    'دي جي',
-  ];
-
   Future<void> _pickImage() async {
+    // Prevent multiple simultaneous calls
+    if (_isPickingImage) return;
+
     if (_selectedImages.length >= 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يمكنك اختيار صورتين فقط')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('يمكنك اختيار صورتين فقط')));
       return;
     }
 
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    setState(() {
+      _isPickingImage = true;
+    });
+
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          _selectedImages.add(File(image.path));
+        });
+      }
+    } finally {
       setState(() {
-        _selectedImages.add(File(image.path));
+        _isPickingImage = false;
       });
     }
   }
@@ -68,44 +81,48 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     _nameController.dispose();
     _priceController.dispose();
     _chairsController.dispose();
+    _morningPriceController.dispose();
+    _eveningPriceController.dispose();
     _mapController?.dispose();
     super.dispose();
   }
+
+  String? _selectedTimeSlot; // 'morning' or 'evening'
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-  preferredSize: const Size.fromHeight(70),
-  child: AppBar(
-    automaticallyImplyLeading: false,
-    elevation: 0,
-    backgroundColor: Colors.transparent,
-    flexibleSpace: Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFD4AF37),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
+        preferredSize: const Size.fromHeight(70),
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFD4AF37),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+          ),
+          title: const Text(
+            'اضافة خدمة جديدة',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: Navigator.of(context).pop,
+          ),
         ),
       ),
-    ),
-    title: const Text(
-      'تعديل الخدمة',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-    centerTitle: true,
-    leading: IconButton(
-      icon: const Icon(Icons.arrow_back, color: Colors.white),
-      onPressed: Navigator.of(context).pop,
-    ),
-  ),
-),
 
       body: Form(
         key: _formKey,
@@ -146,103 +163,308 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             _buildSectionLabel('المواعيد'),
             const SizedBox(height: 12),
 
-            // صباحي
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'صباحي',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+            // صباحي with price input
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedTimeSlot = 'morning';
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200, width: 1),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey.shade200,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'تبدأ من 10,500 جنيه',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
+                child: Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    /// -------- زر الراديو --------
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _selectedTimeSlot == 'morning'
+                              ? const Color(0xFFD4AF37)
+                              : Colors.grey.shade400,
+                          width: 2,
+                        ),
+                      ),
+                      child: _selectedTimeSlot == 'morning'
+                          ? Center(
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFD4AF37),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            )
+                          : null,
                     ),
-                  ),
-                  Text(
-                    'من 12 ظهرًا حتى 7 مساءً',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
 
-            // مسائي
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'مسائي',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                    const SizedBox(width: 16),
+
+                    /// -------- خانة السعر --------
+                    GestureDetector(
+                      onTap: () {
+                        // Stop propagation to allow text field interaction
+                      },
+                      child: SizedBox(
+                        width: 140,
+                        child: TextFormField(
+                          controller: _morningPriceController,
+                          textAlign: TextAlign.right,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'السعر',
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 13,
+                            ),
+                            suffixText: 'جنيه',
+                            suffixStyle: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFD4AF37),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'مطلوب';
+                            }
+                            if (double.tryParse(value) == null) {
+                              return 'رقم غير صحيح';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    /// -------- النصوص --------
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'صباحي',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedTimeSlot == 'morning'
+                                  ? const Color(0xFFD4AF37)
+                                  : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'من 12 ظهرًا حتى 7 مساءً',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey.shade200,
-                  width: 1,
+
+            const SizedBox(height: 12),
+
+            // مسائي with price input
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedTimeSlot = 'evening';
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200, width: 1),
+                ),
+                child: Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    /// -------- زر الراديو --------
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _selectedTimeSlot == 'evening'
+                              ? const Color(0xFFD4AF37)
+                              : Colors.grey.shade400,
+                          width: 2,
+                        ),
+                      ),
+                      child: _selectedTimeSlot == 'evening'
+                          ? Center(
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFD4AF37),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    /// -------- خانة السعر --------
+                    GestureDetector(
+                      onTap: () {
+                        // Stop propagation to allow text field interaction
+                      },
+                      child: SizedBox(
+                        width: 140,
+                        child: TextFormField(
+                          controller: _eveningPriceController,
+                          textAlign: TextAlign.right,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'السعر',
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 13,
+                            ),
+                            suffixText: 'جنيه',
+                            suffixStyle: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFD4AF37),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'مطلوب';
+                            }
+                            if (double.tryParse(value) == null) {
+                              return 'رقم غير صحيح';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    /// -------- النصوص --------
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'مسائي',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedTimeSlot == 'evening'
+                                  ? const Color(0xFFD4AF37)
+                                  : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'من 8 مساءً حتى 2 فجرًا',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'تبدأ من 12,500 جنيه',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  Text(
-                    'من 8 مساءً حتى 2 فجرًا',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-              ),
             ),
+
             const SizedBox(height: 24),
 
-            // عدد الكراسي - Optional for venue services
-            _buildSectionLabel('عدد الكراسي'),
-            const SizedBox(height: 8),
-            _buildNumberField(_chairsController, hintText: 'أدخل عدد الكراسي'),
-            const SizedBox(height: 24),
+            // عدد الكراسي - Only for قاعات أفراح category
+            if (_selectedCategory == 'قاعات أفراح') ...[
+              _buildSectionLabel('عدد الكراسي'),
+              const SizedBox(height: 8),
+              _buildNumberField(
+                _chairsController,
+                hintText: 'أدخل عدد الكراسي',
+                isOptional: true,
+                optionalErrorMessage: 'الرجاء إدخال عدد',
+              ),
+              const SizedBox(height: 24),
+            ],
 
             // الموقع - Location
             _buildSectionLabel('الموقع'),
@@ -317,30 +539,26 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFD4AF37),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
         ),
       ),
     );
   }
 
-  Widget _buildNumberField(TextEditingController controller, {String? hintText}) {
+  Widget _buildNumberField(
+    TextEditingController controller, {
+    String? hintText,
+    bool isOptional = false,
+    String? optionalErrorMessage,
+  }) {
     return TextFormField(
       controller: controller,
       textAlign: TextAlign.right,
@@ -361,32 +579,25 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFD4AF37),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
         ),
       ),
       validator: (value) {
-        if (value == null || value.isEmpty) {
+        if (!isOptional && (value == null || value.isEmpty)) {
           return 'الرجاء إدخال السعر';
         }
-        if (double.tryParse(value) == null) {
-          return 'الرجاء إدخال رقم صحيح';
+        if (value != null &&
+            value.isNotEmpty &&
+            double.tryParse(value) == null) {
+          return optionalErrorMessage ?? 'الرجاء إدخال رقم صحيح';
         }
         return null;
       },
@@ -408,39 +619,24 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFD4AF37),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
         ),
       ),
       hint: Text(
         'اختر الفئة',
         textAlign: TextAlign.right,
-        style: TextStyle(
-          color: Colors.grey.shade400,
-          fontSize: 15,
-        ),
+        style: TextStyle(color: Colors.grey.shade400, fontSize: 15),
       ),
-      icon: Icon(
-        Icons.keyboard_arrow_down,
-        color: Colors.grey.shade600,
-      ),
-      items: _categories.map((String category) {
+      icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600),
+      items: AppConstants.serviceCategories.map((String category) {
         return DropdownMenuItem<String>(
           value: category,
           alignment: Alignment.centerRight,
@@ -476,10 +672,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFE8E8E8),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.grey.shade300,
-              width: 1,
-            ),
+            border: Border.all(color: Colors.grey.shade300, width: 1),
           ),
           child: hasImage
               ? Stack(
@@ -547,53 +740,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     );
   }
 
-  Widget _buildRadioButton(String label, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isSelected
-                    ? const Color(0xFFD4AF37)
-                    : Colors.grey.shade400,
-                width: 2.5,
-              ),
-              color: Colors.white,
-            ),
-            child: isSelected
-                ? Center(
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFFD4AF37),
-                      ),
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              color: isSelected ? Colors.black87 : Colors.grey.shade600,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildMapWidget() {
     return Container(
       height: 200,
@@ -630,11 +776,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                   ),
                   // Center pin marker
                   const Center(
-                    child: Icon(
-                      Icons.location_on,
-                      size: 40,
-                      color: Colors.red,
-                    ),
+                    child: Icon(Icons.location_on, size: 40, color: Colors.red),
                   ),
                   // Confirm button
                   Positioned(
@@ -694,11 +836,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           ),
         ),
         const Center(
-          child: Icon(
-            Icons.location_on,
-            size: 36,
-            color: Colors.red,
-          ),
+          child: Icon(Icons.location_on, size: 36, color: Colors.red),
         ),
         Positioned(
           bottom: 10,
@@ -707,10 +845,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           child: Center(
             child: Text(
               'تكامل خرائط جوجل غير متاح',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             ),
           ),
         ),
@@ -720,6 +855,44 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 
   void _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
+      // Get current user (provider) ID from AuthBloc
+      final authState = context.read<AuthBloc>().state;
+      if (authState is! AuthAuthenticated) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('خطأ: يجب تسجيل الدخول أولاً')),
+        );
+        return;
+      }
+
+      // Create service model with form data
+      final newService = ServiceModel(
+        id: '', // Will be generated by backend/repository
+        name: _nameController.text.trim(),
+        description: 'خدمة ${_nameController.text.trim()}', // TODO: Add description field to form
+        imageUrl: '', // Will be set after image upload to backend
+        price: double.tryParse(_priceController.text),
+        category: _selectedCategory!,
+        providerId: authState.user.id,
+        morningPrice: _morningPriceController.text.isNotEmpty
+            ? double.tryParse(_morningPriceController.text)
+            : null,
+        eveningPrice: _eveningPriceController.text.isNotEmpty
+            ? double.tryParse(_eveningPriceController.text)
+            : null,
+        chairCount: _chairsController.text.isNotEmpty
+            ? int.tryParse(_chairsController.text)
+            : null,
+        latitude: _pickedLocation.latitude,
+        longitude: _pickedLocation.longitude,
+        isActive: true,
+        isPendingApproval: false, // New services are immediately active (no approval needed for creation)
+        // TODO: Upload images to backend and get URLs
+        // imageUrls: await _uploadImages(_selectedImages),
+      );
+
+      // Dispatch AddService event to BLoC
+      context.read<ProviderServiceBloc>().add(AddService(newService));
+
       // Show success dialog
       showDialog(
         context: context,
@@ -754,6 +927,15 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                   color: Colors.black87,
                 ),
               ),
+              const SizedBox(height: 8),
+              const Text(
+                'ستظهر الخدمة في قائمة خدماتك وللعملاء',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                ),
+              ),
             ],
           ),
         ),
@@ -766,7 +948,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       if (mounted) {
         Navigator.of(context).pop(); // Close dialog
         if (context.mounted) {
-          Navigator.of(context).pop(); // Go back to services
+          Navigator.of(context).pop(true); // Go back to services with success flag
         }
       }
     }

@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/data/models/countdown_model.dart';
+import 'package:wedly/data/models/home_layout_model.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/logic/blocs/home/home_state.dart';
@@ -17,9 +19,34 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   ) async {
     emit(const HomeLoading());
     try {
-      final services = await serviceRepository.getServices();
-      final categories = await serviceRepository.getCategories();
-      emit(HomeLoaded(services: services, categories: categories));
+      // Fetch all data in parallel for better performance
+      final results = await Future.wait([
+        serviceRepository.getServices(),
+        serviceRepository.getCategories(),
+        serviceRepository.getCategoriesWithDetails(),
+        serviceRepository.getActiveOffers(),
+        serviceRepository.getHomeLayout(),
+        if (event.userId != null)
+          serviceRepository.getUserCountdown(event.userId!)
+        else
+          Future.value(null),
+      ]);
+
+      final services = results[0] as List;
+      final categories = results[1] as List<String>;
+      final categoriesWithDetails = results[2] as List;
+      final offers = results[3] as List;
+      final layout = results[4] as HomeLayoutModel?;
+      final countdown = results.length > 5 ? results[5] as CountdownModel? : null;
+
+      emit(HomeLoaded(
+        services: services.cast(),
+        categories: categories,
+        categoriesWithDetails: categoriesWithDetails.cast(),
+        offers: offers.cast(),
+        layout: layout,
+        countdown: countdown,
+      ));
     } catch (e) {
       emit(HomeError(e.toString()));
     }

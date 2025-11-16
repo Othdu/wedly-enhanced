@@ -44,14 +44,18 @@ class AuthUpdateProfile extends AuthEvent {
   final String? name;
   final String? email;
   final String? profileImageUrl;
+  final String? phone;
+  final String? city;
 
   const AuthUpdateProfile({
     this.name,
     this.email,
     this.profileImageUrl,
+    this.phone,
+    this.city,
   });
 
   @override
-  List<Object?> get props => [name, email, profileImageUrl];
+  List<Object?> get props => [name, email, profileImageUrl, phone, city];
 }
 

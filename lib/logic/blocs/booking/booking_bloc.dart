@@ -8,6 +8,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
   BookingBloc({required this.bookingRepository}) : super(BookingInitial()) {
     on<FetchProviderBookings>(_onFetchProviderBookings);
+    on<FetchUserBookings>(_onFetchUserBookings);
     on<FetchBookingsByStatus>(_onFetchBookingsByStatus);
     on<FetchBookingDetails>(_onFetchBookingDetails);
     on<UpdateBookingStatus>(_onUpdateBookingStatus);
@@ -21,6 +22,24 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     emit(BookingLoading());
     try {
       final bookings = await bookingRepository.getProviderBookings(event.providerId);
+
+      if (bookings.isEmpty) {
+        emit(const BookingsEmpty('لا توجد حجوزات حتى الآن'));
+      } else {
+        emit(BookingsLoaded(bookings));
+      }
+    } catch (e) {
+      emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onFetchUserBookings(
+    FetchUserBookings event,
+    Emitter<BookingState> emit,
+  ) async {
+    emit(BookingLoading());
+    try {
+      final bookings = await bookingRepository.getUserBookings(event.userId);
 
       if (bookings.isEmpty) {
         emit(const BookingsEmpty('لا توجد حجوزات حتى الآن'));

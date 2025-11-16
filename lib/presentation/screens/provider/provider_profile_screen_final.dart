@@ -128,33 +128,44 @@ class ProviderProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyBackground,
-      body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          // Handle unauthenticated state safely
-          if (state is! AuthAuthenticated) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.person_off_outlined,
-                    size: 64,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'لم يتم تسجيل الدخول',
-                    textDirection: ui.TextDirection.rtl,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
+      body: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          // Navigate to login screen when user logs out
+          if (state is AuthUnauthenticated) {
+            // Use pushNamedAndRemoveUntil to prevent going back
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/login',
+              (route) => false,
             );
           }
+        },
+        child: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            // Handle unauthenticated state safely
+            if (state is! AuthAuthenticated) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.person_off_outlined,
+                      size: 64,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'لم يتم تسجيل الدخول',
+                      textDirection: ui.TextDirection.rtl,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
 
           final user = state.user;
 
@@ -279,13 +290,13 @@ class ProviderProfileScreen extends StatelessWidget {
                               ),
                               _buildDivider(),
                               _buildInfoRow(
-                                '+201001234567', // TODO: Add phone field to UserModel
+                                user.phone ?? 'غير محدد',
                                 Icons.phone_outlined,
                                 'رقم الهاتف',
                               ),
                               _buildDivider(),
                               _buildInfoRow(
-                                'القاهرة', // TODO: Add city field to UserModel
+                                user.city ?? 'غير محدد',
                                 Icons.location_on_outlined,
                                 'المدينة',
                               ),
@@ -367,6 +378,7 @@ class ProviderProfileScreen extends StatelessWidget {
             ],
           );
         },
+        ),
       ),
     );
   }

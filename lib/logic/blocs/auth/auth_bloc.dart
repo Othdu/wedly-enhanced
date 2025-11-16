@@ -82,6 +82,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       name: event.name,
       email: event.email,
       profileImageUrl: event.profileImageUrl,
+      phone: event.phone,
+      city: event.city,
     );
 
     // TODO: Call authRepository.updateProfile(updatedUser) when API is ready

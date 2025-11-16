@@ -26,9 +26,9 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthAuthenticated) {
         _providerId = authState.user.id;
-        context
-            .read<ProviderServiceBloc>()
-            .add(FetchProviderServices(_providerId!));
+        context.read<ProviderServiceBloc>().add(
+          FetchProviderServices(_providerId!),
+        );
       }
     });
   }
@@ -48,9 +48,9 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
             );
             // Refresh services list
             if (_providerId != null) {
-              context
-                  .read<ProviderServiceBloc>()
-                  .add(RefreshProviderServices(_providerId!));
+              context.read<ProviderServiceBloc>().add(
+                RefreshProviderServices(_providerId!),
+              );
             }
           }
 
@@ -63,9 +63,9 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
             );
             // Refresh services list
             if (_providerId != null) {
-              context
-                  .read<ProviderServiceBloc>()
-                  .add(RefreshProviderServices(_providerId!));
+              context.read<ProviderServiceBloc>().add(
+                RefreshProviderServices(_providerId!),
+              );
             }
           }
 
@@ -78,9 +78,9 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
             );
             // Refresh services list
             if (_providerId != null) {
-              context
-                  .read<ProviderServiceBloc>()
-                  .add(RefreshProviderServices(_providerId!));
+              context.read<ProviderServiceBloc>().add(
+                RefreshProviderServices(_providerId!),
+              );
             }
           }
 
@@ -96,9 +96,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
         builder: (context, state) {
           if (state is ProviderServiceLoading) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFD4AF37),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
             );
           }
 
@@ -122,9 +120,9 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                   ElevatedButton.icon(
                     onPressed: () {
                       if (_providerId != null) {
-                        context
-                            .read<ProviderServiceBloc>()
-                            .add(FetchProviderServices(_providerId!));
+                        context.read<ProviderServiceBloc>().add(
+                          FetchProviderServices(_providerId!),
+                        );
                       }
                     },
                     icon: const Icon(Icons.refresh),
@@ -144,46 +142,55 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.event_busy,
-                    size: 80,
-                    color: Colors.grey.shade300,
-                  ),
+                  Icon(Icons.event_busy, size: 80, color: Colors.grey.shade300),
                   const SizedBox(height: 16),
                   Text(
                     state.message,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                   const SizedBox(height: 24),
-                 ElevatedButton.icon(
-  onPressed: () {
-    Navigator.pushNamed(context, AppRouter.providerAddService);
-  },
-  icon: const Icon(
-    Icons.add,
-    color: Colors.white,
-    size: 20,
-  ),
-  label: const Text(
-    'إضافة خدمة',
-    style: TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.w500,
-      fontSize: 14,
-    ),
-  ),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: const Color(0xFFD4AF37), // gold color
-    foregroundColor: Colors.white,
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(30), // rounded button
-    ),
-    elevation: 0, // flat look
-  ),
-)
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final result = await Navigator.pushNamed(
+                        context,
+                        AppRouter.providerAddService,
+                      );
+                      // Refresh services list if a service was added
+                      if (result == true && mounted) {
+                        final authState = context.read<AuthBloc>().state;
+                        if (authState is AuthAuthenticated) {
+                          context.read<ProviderServiceBloc>().add(
+                            FetchProviderServices(authState.user.id),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                    label: const Text(
+                      'إضافة خدمة',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD4AF37), // gold color
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          30,
+                        ), // rounded button
+                      ),
+                      elevation: 0, // flat look
+                    ),
+                  ),
                 ],
               ),
             );
@@ -197,42 +204,63 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                 children: [
                   const SizedBox(height: 16),
                   // Add Service Button
-               Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 20),
-  child: Align(
-    alignment: Alignment.centerLeft,
-      child: Directionality(
-    textDirection: TextDirection.ltr, // forces icon to appear on the left
-    child: ElevatedButton.icon(
-      onPressed: () {
-        Navigator.pushNamed(context, AppRouter.providerAddService);
-      },
-      icon: const Icon(
-        Icons.add,
-        color: Colors.white,
-        size: 20,
-      ),
-      label: const Text(
-        'إضافة خدمة',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
-          fontSize: 16,
-        ),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFD4AF37), // matches #D4AF37
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(1000), // fully circular / pill shape
-        ),
-        elevation: 0, // flat, no shadow
-        minimumSize: const Size(0, 0),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-    ),
-  ),
-),  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Directionality(
+                        textDirection: TextDirection
+                            .ltr, // forces icon to appear on the left
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final result = await Navigator.pushNamed(
+                              context,
+                              AppRouter.providerAddService,
+                            );
+                            // Refresh services list if a service was added
+                            if (result == true && mounted) {
+                              final authState = context.read<AuthBloc>().state;
+                              if (authState is AuthAuthenticated) {
+                                context.read<ProviderServiceBloc>().add(
+                                  FetchProviderServices(authState.user.id),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          label: const Text(
+                            'إضافة خدمة',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(
+                              0xFFD4AF37,
+                            ), // matches #D4AF37
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                1000,
+                              ), // fully circular / pill shape
+                            ),
+                            elevation: 0, // flat, no shadow
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 16),
                   // Services Grid
@@ -240,20 +268,24 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                     child: RefreshIndicator(
                       onRefresh: () async {
                         if (_providerId != null) {
-                          context
-                              .read<ProviderServiceBloc>()
-                              .add(RefreshProviderServices(_providerId!));
+                          context.read<ProviderServiceBloc>().add(
+                            RefreshProviderServices(_providerId!),
+                          );
                         }
                       },
                       color: Colors.white,
                       child: GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.68,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.68,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                            ),
                         itemCount: services.length,
                         itemBuilder: (context, index) {
                           final service = services[index];
@@ -261,17 +293,28 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                             service: service,
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('قريباً: تفاصيل الخدمة')),
+                                const SnackBar(
+                                  content: Text('قريباً: تفاصيل الخدمة'),
+                                ),
                               );
                             },
-                            onEdit: () {
-                              Navigator.pushNamed(
+                            onEdit: () async {
+                              final result = await Navigator.pushNamed(
                                 context,
                                 AppRouter.providerEditService,
-                                arguments: {
-                                  'service': service,
-                                },
+                                arguments: {'service': service},
                               );
+                              // Refresh services list if service was edited
+                              if (result == true && mounted) {
+                                final authState = context
+                                    .read<AuthBloc>()
+                                    .state;
+                                if (authState is AuthAuthenticated) {
+                                  context.read<ProviderServiceBloc>().add(
+                                    FetchProviderServices(authState.user.id),
+                                  );
+                                }
+                              }
                             },
                           );
                         },

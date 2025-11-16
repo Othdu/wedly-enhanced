@@ -19,10 +19,12 @@ class ProviderServiceCard extends StatelessWidget {
   });
 
   String _formatNumber(double number) {
-    return number.toStringAsFixed(2).replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return number
+        .toStringAsFixed(2)
+        .replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 
   @override
@@ -42,34 +44,71 @@ class ProviderServiceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Service Image
+          // Service Image with Pending Approval Badge
           Expanded(
-            flex: 5,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-              child: Image.network(
-                service.imageUrl,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
+            flex: 6,
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  child: Image.network(
+                    service.imageUrl,
                     width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.event,
+                          color: AppColors.gold,
+                          size: 40,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // Pending Approval Badge
+                if (service.isPendingApproval)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.schedule, color: Colors.white, size: 12),
+                          SizedBox(width: 4),
+                          Text(
+                            'تحت المراجعة',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: const Icon(
-                      Icons.event,
-                      color: AppColors.gold,
-                      size: 40,
-                    ),
-                  );
-                },
-              ),
+                  ),
+              ],
             ),
           ),
 
@@ -100,26 +139,6 @@ class ProviderServiceCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Rating on the left
-                      Row(
-                        children: const [
-                          Text(
-                            '4.9',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(
-                            Icons.star,
-                            color: AppColors.gold,
-                            size: 16,
-                          ),
-                        ],
-                      ),
-
                       // Price on the right
                       Text(
                         'من ${_formatNumber(service.price ?? 0)} جنيه',
@@ -129,10 +148,43 @@ class ProviderServiceCard extends StatelessWidget {
                           color: Colors.black54,
                         ),
                       ),
+                      // Rating on the left (only show if rating exists)
+                      if (service.rating != null && service.rating! > 0)
+                        Row(
+                          children: [
+                            Text(
+                              service.rating!.toStringAsFixed(1),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.star,
+                              color: AppColors.gold,
+                              size: 16,
+                            ),
+                            if (service.reviewCount != null)
+                              Text(
+                                ' (${service.reviewCount})',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                          ],
+                        )
+                      else
+                        const Text(
+                          'لا توجد تقييمات',
+                          style: TextStyle(fontSize: 11, color: Colors.black38),
+                        ),
                     ],
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
 
                   // Edit Button - Golden, Full Width
                   SizedBox(

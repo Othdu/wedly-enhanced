@@ -167,8 +167,8 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
                               final booking = bookings[index];
                               return BookingCard(
                                 booking: booking,
-                                onViewDetails: () {
-                                  Navigator.of(context).push(
+                                onViewDetails: () async {
+                                  final result = await Navigator.of(context).push<bool>(
                                     MaterialPageRoute(
                                       builder: (newContext) => BlocProvider.value(
                                         value: context.read<BookingBloc>(),
@@ -178,6 +178,11 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
                                       ),
                                     ),
                                   );
+
+                                  // Refresh the current tab if booking was updated
+                                  if (result == true && mounted) {
+                                    _fetchBookingsByStatus(_statusForIndex(_currentTabIndex));
+                                  }
                                 },
                               );
                             },
