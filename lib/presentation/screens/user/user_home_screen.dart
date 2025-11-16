@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wedly/core/constants/app_strings.dart';
+import 'package:wedly/data/models/widget_config_model.dart';
+import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/logic/blocs/home/home_state.dart';
-import 'package:wedly/presentation/widgets/service_card.dart';
+import 'package:wedly/presentation/widgets/widget_factory.dart';
+import 'package:wedly/presentation/widgets/skeleton_loading.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -17,50 +20,49 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<HomeBloc>().add(const HomeServicesRequested());
+
+    final authState = context.read<AuthBloc>().state;
+    String? userId;
+
+    if (authState is AuthAuthenticated) {
+      userId = authState.user.id;
+    }
+
+    context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          AppStrings.userHome,
-          textDirection: TextDirection.rtl,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implement search
-            },
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFF5F5F5),
       body: BlocBuilder<HomeBloc, HomeState>(
-        builder: (context, state) {
-          if (state is HomeLoading) {
-            return const Center(child: CircularProgressIndicator());
+        builder: (context, homeState) {
+          if (homeState is HomeLoading) {
+            return SkeletonLoading.homeScreen();
           }
 
-          if (state is HomeError) {
+          if (homeState is HomeError) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text(
-                    state.message,
-                    textDirection: TextDirection.rtl,
-                  ),
+                  Text(homeState.message, textDirection: TextDirection.rtl),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      context.read<HomeBloc>().add(const HomeServicesRequested());
+                      final authState = context.read<AuthBloc>().state;
+                      String? userId;
+                      if (authState is AuthAuthenticated) {
+                        userId = authState.user.id;
+                      }
+                      context.read<HomeBloc>().add(
+                        HomeServicesRequested(userId: userId),
+                      );
                     },
-                    child: Text(
-                      AppStrings.retry,
+                    child: const Text(
+                      'إعادة المحاولة',
                       textDirection: TextDirection.rtl,
                     ),
                   ),
@@ -69,91 +71,246 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             );
           }
 
-          if (state is HomeLoaded) {
-            if (state.services.isEmpty) {
-              return Center(
-                child: Text(
-                  AppStrings.noServices,
-                  textDirection: TextDirection.rtl,
-                ),
-              );
-            }
-
+          if (homeState is HomeLoaded) {
             return RefreshIndicator(
               onRefresh: () async {
-                context.read<HomeBloc>().add(const HomeServicesRequested());
+                final authState = context.read<AuthBloc>().state;
+                String? userId;
+                if (authState is AuthAuthenticated) {
+                  userId = authState.user.id;
+                }
+                context.read<HomeBloc>().add(
+                  HomeServicesRequested(userId: userId),
+                );
               },
-              child: Column(
-                children: [
-                  // Categories Section
-                  if (state.categories.isNotEmpty)
-                    SizedBox(
-                      height: 50,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: state.categories.length,
-                        itemBuilder: (context, index) {
-                          final category = state.categories[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: FilterChip(
-                              label: Text(
-                                category,
-                                textDirection: TextDirection.rtl,
-                              ),
-                              onSelected: (selected) {
-                                // TODO: Filter by category
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  // Services Grid
-                  Expanded(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.75,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                      ),
-                      itemCount: state.services.length,
-                      itemBuilder: (context, index) {
-                        final service = state.services[index];
-                        return ServiceCard(
-                          service: service,
-                          onTap: () {
-                            // TODO: Navigate to service details
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '${AppStrings.selected}: ${service.name}',
-                                  textDirection: TextDirection.rtl,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
+              child: CustomScrollView(
+                slivers: [
+                  // Custom App Bar with user info
+                  _buildAppBar(context),
+
+                  // Dynamic widgets based on API layout configuration
+                  ...(_buildDynamicWidgets(homeState)),
+
+                  // Bottom padding
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],
               ),
             );
           }
 
-          return Center(
-            child: Text(
-              AppStrings.noData,
-              textDirection: TextDirection.rtl,
-            ),
+          return const Center(
+            child: Text('لا توجد بيانات', textDirection: TextDirection.rtl),
           );
         },
       ),
     );
   }
-}
 
+  // ----------------------------------------------------------------------
+  // FIXED APP BAR
+  // ----------------------------------------------------------------------
+  Widget _buildAppBar(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        String userName = 'محمد';
+        String? userImageUrl;
+
+        if (authState is AuthAuthenticated) {
+          userName = authState.user.name.split(' ').first;
+          userImageUrl = authState.user.profileImageUrl;
+        }
+
+        return SliverToBoxAdapter(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 50, 16, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFD4AF37).withValues(alpha: 0.8),
+                  const Color(0xFFB8941E).withValues(alpha: 0.9),
+                ],
+              ),
+            ),
+            child: Row(
+              children: [
+                // Profile on the FAR LEFT (reversed)
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: Colors.white,
+                  backgroundImage: userImageUrl != null
+                      ? NetworkImage(userImageUrl)
+                      : null,
+                  child: userImageUrl == null
+                      ? const Icon(
+                          Icons.person,
+                          size: 36,
+                          color: Color(0xFFD4AF37),
+                        )
+                      : null,
+                ),
+
+                const SizedBox(width: 16),
+
+                // Text in the CENTER
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start, // moved to left
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'أهلاً بك $userName!',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textDirection: TextDirection.rtl,
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'جاهز تبدأ رحلة تحضيرات زفافك مع Wedly؟',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Notification button on FAR RIGHT (reversed)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build widgets dynamically from API layout configuration
+  List<Widget> _buildDynamicWidgets(HomeLoaded state) {
+    final widgets = <Widget>[];
+
+    // If layout config is available from API, use it
+    if (state.layout != null) {
+      final visibleWidgets = state.layout!.visibleWidgets;
+
+      for (final config in visibleWidgets) {
+        final widget = WidgetFactory.buildWidget(
+          config: config,
+          countdown: state.countdown,
+          offers: state.offers,
+          categories: state.categoriesWithDetails,
+          services: state.services,
+          onTap: (item) {
+            // Handle tap based on item type
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  item.toString(),
+                  textDirection: TextDirection.rtl,
+                ),
+              ),
+            );
+          },
+        );
+
+        if (widget != null) {
+          widgets.add(SliverToBoxAdapter(child: widget));
+        }
+      }
+    } else {
+      // Fallback: Show default layout if no API config available
+      widgets.addAll(_buildDefaultLayout(state));
+    }
+
+    return widgets;
+  }
+
+  /// Fallback default layout when no API config is available
+  List<Widget> _buildDefaultLayout(HomeLoaded state) {
+    final widgets = <Widget>[];
+
+    // Countdown
+    if (state.countdown != null) {
+      final countdownWidget = WidgetFactory.buildWidget(
+        config: const WidgetConfigModel(
+          id: 'countdown_default',
+          type: WidgetType.countdown,
+          titleAr: 'العد التنازلي للفرح',
+          isVisible: true,
+          order: 1,
+        ),
+        countdown: state.countdown,
+      );
+      if (countdownWidget != null) {
+        widgets.add(SliverToBoxAdapter(child: countdownWidget));
+      }
+    }
+
+    // Offers
+    if (state.offers.isNotEmpty) {
+      final offersWidget = WidgetFactory.buildWidget(
+        config: const WidgetConfigModel(
+          id: 'offers_default',
+          type: WidgetType.offers,
+          titleAr: 'عروض الأسبوع',
+          isVisible: true,
+          order: 2,
+        ),
+        offers: state.offers,
+        onTap: (offer) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(offer.titleAr, textDirection: TextDirection.rtl),
+            ),
+          );
+        },
+      );
+      if (offersWidget != null) {
+        widgets.add(SliverToBoxAdapter(child: offersWidget));
+      }
+    }
+
+    // Categories
+    if (state.categoriesWithDetails.isNotEmpty) {
+      final categoriesWidget = WidgetFactory.buildWidget(
+        config: const WidgetConfigModel(
+          id: 'categories_default',
+          type: WidgetType.categories,
+          titleAr: 'الخدمات',
+          isVisible: true,
+          order: 3,
+        ),
+        categories: state.categoriesWithDetails,
+        onTap: (category) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(category.nameAr, textDirection: TextDirection.rtl),
+            ),
+          );
+        },
+      );
+      if (categoriesWidget != null) {
+        widgets.add(SliverToBoxAdapter(child: categoriesWidget));
+      }
+    }
+
+    return widgets;
+  }
+}

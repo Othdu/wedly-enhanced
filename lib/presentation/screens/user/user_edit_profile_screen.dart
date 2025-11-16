@@ -35,7 +35,8 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           _nameController.text = authState.user.name;
           _emailController.text = authState.user.email;
           // Phone and city would come from user model when available
-          _phoneController.text = '+20 100 123 4567'; // TODO: Get from user model
+          _phoneController.text =
+              '+20 100 123 4567'; // TODO: Get from user model
           _cityController.text = 'القاهرة'; // TODO: Get from user model
         });
       }
@@ -72,9 +73,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -89,10 +88,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
               const Text(
                 'تم تحديث البيانات بنجاح',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -112,10 +108,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                   ),
                   child: const Text(
                     'حسناً',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -206,7 +199,8 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                           controller: _phoneController,
                           label: 'رقم الهاتف',
                           keyboardType: TextInputType.phone,
-                          textDirection: TextDirection.ltr, // Phone numbers should be LTR
+                          textDirection:
+                              TextDirection.ltr, // Phone numbers should be LTR
                         ),
                         const SizedBox(height: 20),
                         _buildEditableField(
@@ -280,7 +274,10 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
