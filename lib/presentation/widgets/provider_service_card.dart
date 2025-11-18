@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/service_model.dart';
+import 'skeleton_image.dart';
 
 class ProviderServiceCard extends StatelessWidget {
   final ServiceModel service;
@@ -49,32 +50,18 @@ class ProviderServiceCard extends StatelessWidget {
             flex: 6,
             child: Stack(
               children: [
-                ClipRRect(
+                SkeletonImage(
+                  imageUrl: service.imageUrl,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  child: Image.network(
-                    service.imageUrl,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(16),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.event,
-                          color: AppColors.gold,
-                          size: 40,
-                        ),
-                      );
-                    },
+                  errorWidget: const Icon(
+                    Icons.event,
+                    color: AppColors.gold,
+                    size: 40,
                   ),
                 ),
                 // Pending Approval Badge

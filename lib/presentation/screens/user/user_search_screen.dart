@@ -6,6 +6,7 @@ import 'package:wedly/logic/blocs/search/search_bloc.dart';
 import 'package:wedly/logic/blocs/search/search_event.dart';
 import 'package:wedly/logic/blocs/search/search_state.dart';
 import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/presentation/widgets/skeleton_image.dart';
 
 // TODO: API - دمج نقطة نهاية البحث
 // Endpoint: GET /api/services/search?query={query}&category={category}
@@ -424,22 +425,17 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Stack(
               children: [
-                Image.network(
-                  service.imageUrl,
+                SkeletonImage(
+                  imageUrl: service.imageUrl,
                   height: 200,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 200,
-                      color: Colors.grey[300],
-                      child: const Icon(
-                        Icons.image_not_supported,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                    );
-                  },
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  errorWidget: const Icon(
+                    Icons.image_not_supported,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
                 ),
               ],
             ),

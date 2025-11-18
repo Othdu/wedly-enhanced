@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/widget_config_model.dart';
+import 'package:wedly/data/models/category_model.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
@@ -12,6 +13,7 @@ import 'package:wedly/logic/blocs/cart/cart_event.dart';
 import 'package:wedly/presentation/widgets/widget_factory.dart';
 import 'package:wedly/presentation/widgets/skeleton_loading.dart';
 import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -294,14 +296,18 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           services: state.services,
           onTap: (item) {
             // Handle tap based on item type
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  item.toString(),
-                  textDirection: TextDirection.rtl,
+            if (item is CategoryModel) {
+              _handleCategoryTap(context, item);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    item.toString(),
+                    textDirection: TextDirection.rtl,
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           },
         );
 
@@ -374,11 +380,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         ),
         categories: state.categoriesWithDetails,
         onTap: (category) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(category.nameAr, textDirection: TextDirection.rtl),
-            ),
-          );
+          // Navigate based on category
+          _handleCategoryTap(context, category);
         },
       );
       if (categoriesWidget != null) {
@@ -387,5 +390,21 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     }
 
     return widgets;
+  }
+
+  /// Handle category tap navigation
+  void _handleCategoryTap(BuildContext context, CategoryModel category) {
+    // Check if it's the venues category (قاعات الأفراح)
+    // Venues have a dedicated screen with VenueModel
+    if (category.nameAr == 'قاعات الأفراح' || category.name == 'Venues') {
+      Navigator.pushNamed(context, AppRouter.venuesList);
+    } else {
+      // All other categories use the generic CategoryServicesListScreen
+      Navigator.pushNamed(
+        context,
+        AppRouter.categoryServices,
+        arguments: {'category': category},
+      );
+    }
   }
 }

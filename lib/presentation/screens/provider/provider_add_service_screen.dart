@@ -87,8 +87,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     super.dispose();
   }
 
-  String? _selectedTimeSlot; // 'morning' or 'evening'
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,295 +157,209 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             _buildNumberField(_priceController),
             const SizedBox(height: 24),
 
-            // المواعيد - Appointments
+            // المواعيد - Appointments (Prices Only - User selects in booking)
             _buildSectionLabel('المواعيد'),
             const SizedBox(height: 12),
 
-            // صباحي with price input
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedTimeSlot = 'morning';
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200, width: 1),
-                ),
-                child: Row(
-                  textDirection: TextDirection.rtl,
-                  children: [
-                    /// -------- زر الراديو --------
-                    Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _selectedTimeSlot == 'morning'
-                              ? const Color(0xFFD4AF37)
-                              : Colors.grey.shade400,
-                          width: 2,
+            // صباحي - Morning Shift Price
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200, width: 1),
+              ),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  // Price input field
+                  SizedBox(
+                    width: 140,
+                    child: TextFormField(
+                      controller: _morningPriceController,
+                      textAlign: TextAlign.right,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'السعر',
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 13,
+                        ),
+                        suffixText: 'جنيه',
+                        suffixStyle: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFD4AF37),
+                            width: 1.5,
+                          ),
                         ),
                       ),
-                      child: _selectedTimeSlot == 'morning'
-                          ? Center(
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFD4AF37),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            )
-                          : null,
-                    ),
-
-                    const SizedBox(width: 16),
-
-                    /// -------- خانة السعر --------
-                    GestureDetector(
-                      onTap: () {
-                        // Stop propagation to allow text field interaction
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'مطلوب';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'رقم غير صحيح';
+                        }
+                        return null;
                       },
-                      child: SizedBox(
-                        width: 140,
-                        child: TextFormField(
-                          controller: _morningPriceController,
-                          textAlign: TextAlign.right,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'السعر',
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade400,
-                              fontSize: 13,
-                            ),
-                            suffixText: 'جنيه',
-                            suffixStyle: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 13,
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                                width: 1,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD4AF37),
-                                width: 1.5,
-                              ),
-                            ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Label and time range
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'صباحي',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'مطلوب';
-                            }
-                            if (double.tryParse(value) == null) {
-                              return 'رقم غير صحيح';
-                            }
-                            return null;
-                          },
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 16),
-
-                    /// -------- النصوص --------
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'صباحي',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: _selectedTimeSlot == 'morning'
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.black87,
-                            ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'من 12 ظهرًا حتى 7 مساءً',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'من 12 ظهرًا حتى 7 مساءً',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
             const SizedBox(height: 12),
 
-            // مسائي with price input
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedTimeSlot = 'evening';
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200, width: 1),
-                ),
-                child: Row(
-                  textDirection: TextDirection.rtl,
-                  children: [
-                    /// -------- زر الراديو --------
-                    Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _selectedTimeSlot == 'evening'
-                              ? const Color(0xFFD4AF37)
-                              : Colors.grey.shade400,
-                          width: 2,
+            // مسائي - Evening Shift Price
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200, width: 1),
+              ),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  // Price input field
+                  SizedBox(
+                    width: 140,
+                    child: TextFormField(
+                      controller: _eveningPriceController,
+                      textAlign: TextAlign.right,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'السعر',
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 13,
+                        ),
+                        suffixText: 'جنيه',
+                        suffixStyle: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFD4AF37),
+                            width: 1.5,
+                          ),
                         ),
                       ),
-                      child: _selectedTimeSlot == 'evening'
-                          ? Center(
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFD4AF37),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            )
-                          : null,
-                    ),
-
-                    const SizedBox(width: 16),
-
-                    /// -------- خانة السعر --------
-                    GestureDetector(
-                      onTap: () {
-                        // Stop propagation to allow text field interaction
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'مطلوب';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'رقم غير صحيح';
+                        }
+                        return null;
                       },
-                      child: SizedBox(
-                        width: 140,
-                        child: TextFormField(
-                          controller: _eveningPriceController,
-                          textAlign: TextAlign.right,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'السعر',
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade400,
-                              fontSize: 13,
-                            ),
-                            suffixText: 'جنيه',
-                            suffixStyle: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 13,
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                                width: 1,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD4AF37),
-                                width: 1.5,
-                              ),
-                            ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Label and time range
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'مسائي',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'مطلوب';
-                            }
-                            if (double.tryParse(value) == null) {
-                              return 'رقم غير صحيح';
-                            }
-                            return null;
-                          },
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 16),
-
-                    /// -------- النصوص --------
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'مسائي',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: _selectedTimeSlot == 'evening'
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.black87,
-                            ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'من 8 مساءً حتى 2 فجرًا',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'من 8 مساءً حتى 2 فجرًا',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
@@ -868,7 +780,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       final newService = ServiceModel(
         id: '', // Will be generated by backend/repository
         name: _nameController.text.trim(),
-        description: 'خدمة ${_nameController.text.trim()}', // TODO: Add description field to form
+        description:
+            'خدمة ${_nameController.text.trim()}', // TODO: Add description field to form
         imageUrl: '', // Will be set after image upload to backend
         price: double.tryParse(_priceController.text),
         category: _selectedCategory!,
@@ -885,7 +798,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         latitude: _pickedLocation.latitude,
         longitude: _pickedLocation.longitude,
         isActive: true,
-        isPendingApproval: false, // New services are immediately active (no approval needed for creation)
+        isPendingApproval:
+            false, // New services are immediately active (no approval needed for creation)
         // TODO: Upload images to backend and get URLs
         // imageUrls: await _uploadImages(_selectedImages),
       );
@@ -931,10 +845,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               const Text(
                 'ستظهر الخدمة في قائمة خدماتك وللعملاء',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.black54),
               ),
             ],
           ),
@@ -948,7 +859,9 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       if (mounted) {
         Navigator.of(context).pop(); // Close dialog
         if (context.mounted) {
-          Navigator.of(context).pop(true); // Go back to services with success flag
+          Navigator.of(
+            context,
+          ).pop(true); // Go back to services with success flag
         }
       }
     }

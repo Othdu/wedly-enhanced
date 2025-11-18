@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../data/models/booking_model.dart';
+import 'skeleton_image.dart';
 
 class BookingCard extends StatelessWidget {
   final BookingModel booking;
@@ -49,32 +50,18 @@ class BookingCard extends StatelessWidget {
           // Service Image with Discount Badge
           Stack(
             children: [
-              ClipRRect(
+              SkeletonImage(
+                imageUrl: booking.serviceImage,
+                width: double.infinity,
+                height: 160,
+                fit: BoxFit.cover,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(20),
                 ),
-                child: Image.network(
-                  booking.serviceImage,
-                  width: double.infinity,
-                  height: 160,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: double.infinity,
-                      height: 160,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.event,
-                        size: 60,
-                        color: AppColors.gold,
-                      ),
-                    );
-                  },
+                errorWidget: const Icon(
+                  Icons.event,
+                  size: 60,
+                  color: AppColors.gold,
                 ),
               ),
               // Display discount badge if booking has discount

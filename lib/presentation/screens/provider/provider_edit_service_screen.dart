@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/service_model.dart';
 import '../../../logic/blocs/provider_service/provider_service_bloc.dart';
 import '../../../logic/blocs/provider_service/provider_service_event.dart';
+import '../../widgets/skeleton_image.dart';
 
 class ProviderEditServiceScreen extends StatefulWidget {
   final ServiceModel service;
@@ -499,29 +500,25 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey.shade300, width: 1),
         ),
-        child: ClipRRect(
+        child: SkeletonImage(
+          imageUrl: widget.service.imageUrl, // Same image for both (mock data)
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
           borderRadius: BorderRadius.circular(16),
-          child: Image.network(
-            widget.service.imageUrl, // Same image for both (mock data)
-            width: double.infinity,
-            height: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.image_outlined,
-                    size: 36,
-                    color: Colors.grey.shade400,
-                  ),
-                ),
-              );
-            },
+          errorWidget: Center(
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.image_outlined,
+                size: 36,
+                color: Colors.grey.shade400,
+              ),
+            ),
           ),
         ),
       ),

@@ -7,6 +7,7 @@ import 'package:wedly/logic/blocs/cart/cart_event.dart';
 import 'package:wedly/logic/blocs/cart/cart_state.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/presentation/screens/user/payment_method_screen.dart';
+import 'package:wedly/presentation/widgets/skeleton_image.dart';
 import 'package:intl/intl.dart';
 
 class UserCartScreen extends StatefulWidget {
@@ -240,21 +241,15 @@ class _UserCartScreenState extends State<UserCartScreen> {
           const SizedBox(width: 12),
 
           // Service image on the right
-          ClipRRect(
+          SkeletonImage(
+            imageUrl: item.service.imageUrl,
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              item.service.imageUrl,
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 80,
-                  height: 80,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.image, color: Colors.grey),
-                );
-              },
+            errorWidget: const Icon(
+              Icons.image,
+              color: Colors.grey,
             ),
           ),
         ],

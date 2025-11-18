@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'skeleton_image.dart';
 
 class ProfilePictureWidget extends StatefulWidget {
   final String? profileImageUrl;
@@ -63,19 +64,13 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                   ),
                 )
               : (widget.profileImageUrl != null
-                  ? ClipOval(
-                      child: Image.network(
-                        widget.profileImageUrl!,
-                        width: widget.size,
-                        height: widget.size,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.person,
-                            size: widget.size * 0.5,
-                            color: Colors.grey.shade400,
-                          );
-                        },
+                  ? SkeletonCircleImage(
+                      imageUrl: widget.profileImageUrl!,
+                      size: widget.size,
+                      errorWidget: Icon(
+                        Icons.person,
+                        size: widget.size * 0.5,
+                        color: Colors.grey.shade400,
                       ),
                     )
                   : Icon(

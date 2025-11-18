@@ -5,6 +5,7 @@ import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/provider_service/provider_service_bloc.dart';
+import 'package:wedly/logic/blocs/venue/venue_bloc.dart';
 import 'package:wedly/presentation/screens/auth/login_screen.dart';
 import 'package:wedly/presentation/screens/auth/signup_screen.dart';
 import 'package:wedly/presentation/screens/auth/forgot_password_screen.dart';
@@ -19,6 +20,11 @@ import 'package:wedly/presentation/screens/provider/provider_add_service_screen.
 import 'package:wedly/presentation/screens/provider/provider_edit_service_screen.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 import 'package:wedly/presentation/screens/user/user_edit_profile_screen.dart';
+import 'package:wedly/presentation/screens/user/venues_list_screen.dart';
+import 'package:wedly/presentation/screens/user/venue_details_screen.dart';
+import 'package:wedly/presentation/screens/user/category_services_list_screen.dart';
+import 'package:wedly/logic/blocs/service/service_bloc.dart';
+import 'package:wedly/logic/blocs/review/review_bloc.dart';
 
 class AppRouter {
   static const String login = '/login';
@@ -32,6 +38,9 @@ class AppRouter {
   static const String roleSelector = '/role-selector';
   static const String userHome = '/user';
   static const String userEditProfile = '/user-edit-profile';
+  static const String venuesList = '/venues-list';
+  static const String venueDetails = '/venue-details';
+  static const String categoryServices = '/category-services';
   static const String providerHome = '/provider';
   static const String providerAddService = '/provider/add-service';
   static const String providerEditService = '/provider/edit-service';
@@ -132,6 +141,37 @@ class AppRouter {
       case userEditProfile:
         return MaterialPageRoute(
           builder: (_) => const UserEditProfileScreen(),
+        );
+      case venuesList:
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider<VenueBloc>(
+            create: (_) => getIt<VenueBloc>(),
+            child: const VenuesListScreen(),
+          ),
+        );
+      case venueDetails:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final venue = args?['venue'];
+        if (venue == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider<ReviewBloc>(
+            create: (_) => getIt<ReviewBloc>(),
+            child: VenueDetailsScreen(venue: venue),
+          ),
+        );
+      case categoryServices:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final category = args?['category'];
+        if (category == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider<ServiceBloc>(
+            create: (_) => getIt<ServiceBloc>(),
+            child: CategoryServicesListScreen(category: category),
+          ),
         );
       default:
         return MaterialPageRoute(builder: (_) => const LoginScreen());

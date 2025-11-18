@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/category_model.dart';
+import 'skeleton_image.dart';
 
 /// Widget that displays a category card with image and name
 class CategoryCardWidget extends StatelessWidget {
@@ -33,15 +34,15 @@ class CategoryCardWidget extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               // Background image
-              Image.network(
-                category.imageUrl,
+              SkeletonImage(
+                imageUrl: category.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.category, size: 40, color: Colors.grey),
-                  );
-                },
+                borderRadius: BorderRadius.circular(12),
+                errorWidget: const Icon(
+                  Icons.category,
+                  size: 40,
+                  color: Colors.grey,
+                ),
               ),
               // Gradient overlay
               Container(

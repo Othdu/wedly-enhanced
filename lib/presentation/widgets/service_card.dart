@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
+import 'skeleton_image.dart';
 
 class ServiceCard extends StatelessWidget {
   final ServiceModel service;
@@ -25,22 +26,17 @@ class ServiceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
+            SkeletonImage(
+              imageUrl: service.imageUrl,
+              height: 150,
+              width: double.infinity,
+              fit: BoxFit.cover,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(12),
               ),
-              child: Image.network(
-                service.imageUrl,
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 150,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image_not_supported),
-                  );
-                },
+              errorWidget: const Icon(
+                Icons.image_not_supported,
+                color: Colors.grey,
               ),
             ),
             Padding(

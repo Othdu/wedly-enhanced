@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/offer_model.dart';
+import 'skeleton_image.dart';
 
 /// Widget that displays a carousel of promotional offers
 /// Responsive and reusable across different screens
@@ -137,15 +138,15 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
               fit: StackFit.expand,
               children: [
                 // Background image
-                Image.network(
-                  offer.imageUrl,
+                SkeletonImage(
+                  imageUrl: offer.imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image, size: 50, color: Colors.grey),
-                    );
-                  },
+                  borderRadius: BorderRadius.circular(16),
+                  errorWidget: const Icon(
+                    Icons.image,
+                    size: 50,
+                    color: Colors.grey,
+                  ),
                 ),
                 // Gradient overlay
                 Container(
