@@ -79,6 +79,15 @@ class AppStrings {
   static const String email = 'البريد الإلكتروني';
   static const String role = 'الدور';
   static const String logout = 'تسجيل الخروج';
+  static const String welcome2 = 'مرحبا';
+  static const String profileManagement = 'إدارة الملف الشخصي';
+  static const String editProfile = 'تعديل الملف الشخصي';
+  static const String changePassword = 'تغيير كلمة المرور';
+  static const String address = 'العنوان';
+  static const String settings = 'الإعدادات';
+  static const String notifications = 'الإشعارات';
+  static const String termsAndConditions = 'الشروط والأحكام';
+  static const String helpAndSupport = 'المساعدة والدعم';
   
   // Role Selection
   static const String selectRoleRole = 'اختر نوع الحساب';

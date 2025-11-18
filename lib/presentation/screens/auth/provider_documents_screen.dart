@@ -15,6 +15,7 @@ class ProviderDocumentsScreen extends StatefulWidget {
 
 class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
   final ImagePicker _picker = ImagePicker();
+  bool _isPickingImage = false;
 
   @override
   void initState() {
@@ -147,6 +148,13 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
   }
 
   Future<void> _uploadDocument(String docType) async {
+    // Prevent multiple simultaneous calls
+    if (_isPickingImage) return;
+
+    setState(() {
+      _isPickingImage = true;
+    });
+
     try {
       // Check and request permission first
       PermissionStatus status = await Permission.photos.status;
@@ -210,7 +218,7 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
         imageQuality: 80,
       );
 
-      if (image != null) {
+      if (image != null && mounted) {
         setState(() {
           _uploadedDocs[docType] = true;
           _imagePaths[docType] = image.path;
@@ -233,12 +241,18 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'حدث خطأ أثناء رفع المستند',
+            'حدث خطأ أثناء رفع المستند: $e',
             textDirection: TextDirection.rtl,
           ),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingImage = false;
+        });
+      }
     }
   }
 

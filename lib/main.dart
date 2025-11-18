@@ -5,6 +5,7 @@ import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/core/theme/app_theme.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
+import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/presentation/screens/splash/splash_screen.dart';
 import 'package:wedly/routes/app_router.dart';
 
@@ -29,6 +30,9 @@ class WedlyApp extends StatelessWidget {
         ),
         BlocProvider<HomeBloc>(
           create: (context) => getIt<HomeBloc>(),
+        ),
+        BlocProvider<CartBloc>(
+          create: (context) => getIt<CartBloc>(),
         ),
       ],
       child: MaterialApp(

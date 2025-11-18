@@ -6,12 +6,16 @@ class ProfilePictureWidget extends StatefulWidget {
   final String? profileImageUrl;
   final bool isEditable;
   final Function(File)? onImageSelected;
+  final double size;
+  final bool showEditIcon;
 
   const ProfilePictureWidget({
     super.key,
     this.profileImageUrl,
     this.isEditable = false,
-    this.onImageSelected, File? initialImageFile,
+    this.onImageSelected,
+    this.size = 98,
+    this.showEditIcon = true,
   });
 
   @override
@@ -39,18 +43,22 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
     final child = Stack(
       children: [
         Container(
-          width: 98,
-          height: 98,
+          width: widget.size,
+          height: widget.size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.grey.shade200,
+            border: Border.all(
+              color: Colors.white,
+              width: 3,
+            ),
           ),
           child: _selectedImage != null
               ? ClipOval(
                   child: Image.file(
                     _selectedImage!,
-                    width: 98,
-                    height: 98,
+                    width: widget.size,
+                    height: widget.size,
                     fit: BoxFit.cover,
                   ),
                 )
@@ -58,13 +66,13 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                   ? ClipOval(
                       child: Image.network(
                         widget.profileImageUrl!,
-                        width: 98,
-                        height: 98,
+                        width: widget.size,
+                        height: widget.size,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Icon(
                             Icons.person,
-                            size: 49,
+                            size: widget.size * 0.5,
                             color: Colors.grey.shade400,
                           );
                         },
@@ -72,26 +80,27 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                     )
                   : Icon(
                       Icons.person,
-                      size: 49,
+                      size: widget.size * 0.5,
                       color: Colors.grey.shade400,
                     )),
         ),
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.camera_alt,
-              size: 16,
-              color: Colors.grey,
+        if (widget.showEditIcon && widget.isEditable)
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.camera_alt,
+                size: 16,
+                color: Colors.grey,
+              ),
             ),
           ),
-        ),
       ],
     );
 

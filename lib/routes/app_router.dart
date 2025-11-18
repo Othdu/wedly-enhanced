@@ -18,6 +18,7 @@ import 'package:wedly/presentation/screens/provider/provider_navigation_wrapper.
 import 'package:wedly/presentation/screens/provider/provider_add_service_screen.dart';
 import 'package:wedly/presentation/screens/provider/provider_edit_service_screen.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
+import 'package:wedly/presentation/screens/user/user_edit_profile_screen.dart';
 
 class AppRouter {
   static const String login = '/login';
@@ -30,6 +31,7 @@ class AppRouter {
   static const String providerDocuments = '/provider-documents';
   static const String roleSelector = '/role-selector';
   static const String userHome = '/user';
+  static const String userEditProfile = '/user-edit-profile';
   static const String providerHome = '/provider';
   static const String providerAddService = '/provider/add-service';
   static const String providerEditService = '/provider/edit-service';
@@ -126,6 +128,10 @@ class AppRouter {
             create: (_) => getIt<ProviderServiceBloc>(),
             child: ProviderEditServiceScreen(service: service),
           ),
+        );
+      case userEditProfile:
+        return MaterialPageRoute(
+          builder: (_) => const UserEditProfileScreen(),
         );
       default:
         return MaterialPageRoute(builder: (_) => const LoginScreen());

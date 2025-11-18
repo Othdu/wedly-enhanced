@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/data/repositories/booking_repository.dart';
+import 'package:wedly/data/repositories/cart_repository.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/token_manager.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
@@ -10,6 +11,8 @@ import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/service/service_bloc.dart';
 import 'package:wedly/logic/blocs/booking/booking_bloc.dart';
 import 'package:wedly/logic/blocs/provider_service/provider_service_bloc.dart';
+import 'package:wedly/logic/blocs/search/search_bloc.dart';
+import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -54,6 +57,10 @@ Future<void> setupDependencyInjection() async {
     () => BookingRepository(),
   );
 
+  getIt.registerLazySingleton<CartRepository>(
+    () => CartRepository(),
+  );
+
   // BLoCs - registered as factories for new instances
   getIt.registerFactory<AuthBloc>(
     () => AuthBloc(authRepository: getIt<AuthRepository>()),
@@ -73,6 +80,14 @@ Future<void> setupDependencyInjection() async {
 
   getIt.registerFactory<ProviderServiceBloc>(
     () => ProviderServiceBloc(serviceRepository: getIt<ServiceRepository>()),
+  );
+
+  getIt.registerFactory<SearchBloc>(
+    () => SearchBloc(serviceRepository: getIt<ServiceRepository>()),
+  );
+
+  getIt.registerFactory<CartBloc>(
+    () => CartBloc(cartRepository: getIt<CartRepository>()),
   );
 }
 

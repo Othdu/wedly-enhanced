@@ -70,6 +70,7 @@ dependencies:
   flutter_signin_button: ^2.1.0
   intl: ^0.20.2
   shimmer: ^3.0.0
+  google_fonts: ^6.2.0
   
 
 dev_dependencies:

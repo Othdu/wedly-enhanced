@@ -146,7 +146,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                   child: GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
                     child: const Icon(
-                      Icons.arrow_forward,
+                      Icons.arrow_back_ios,
                       color: Colors.white,
                       size: 24,
                     ),
@@ -255,7 +255,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     TextDirection? textDirection,
   }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,

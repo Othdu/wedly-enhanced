@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:wedly/core/constants/app_colors.dart';
-import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/core/utils/enums.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
@@ -42,6 +41,25 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
     return formatter.format(number);
   }
 
+  String _formatPhoneNumber(String phone) {
+    // Remove all non-digit characters
+    String digitsOnly = phone.replaceAll(RegExp(r'[^\d+]'), '');
+
+    // Format as: 4567 123 100 20+ (reversed for RTL display)
+    if (digitsOnly.startsWith('+20')) {
+      String withoutCountryCode = digitsOnly.substring(3);
+      if (withoutCountryCode.length == 10) {
+        String last4 = withoutCountryCode.substring(6);
+        String middle3 = withoutCountryCode.substring(3, 6);
+        String first3 = withoutCountryCode.substring(0, 3);
+        return '$last4 $middle3 $first3 20+';
+      }
+    }
+
+    // Return original if format doesn't match
+    return phone;
+  }
+
   Color _getStatusColor(BookingStatus status) {
     switch (status) {
       case BookingStatus.pending:
@@ -71,26 +89,26 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
   String _getStatusText(BookingStatus status) {
     switch (status) {
       case BookingStatus.pending:
-        return 'Pending';
+        return 'قيد الانتظار';
       case BookingStatus.confirmed:
-        return 'Confirmed';
+        return 'مؤكد';
       case BookingStatus.completed:
-        return 'Completed';
+        return 'مكتمل';
       case BookingStatus.cancelled:
-        return 'Cancelled';
+        return 'ملغي';
     }
   }
 
   String _getStatusTextAr(BookingStatus status) {
     switch (status) {
       case BookingStatus.pending:
-        return 'حجز القستان';
+        return 'قيد الانتظار';
       case BookingStatus.confirmed:
-        return 'حجز مؤكد';
+        return 'مؤكد';
       case BookingStatus.completed:
-        return 'حجز المصور';
+        return 'مكتمل';
       case BookingStatus.cancelled:
-        return 'حجز القاعة';
+        return 'ملغي';
     }
   }
 
@@ -181,6 +199,7 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                             booking: booking,
                             formatDate: _formatDate,
                             formatNumber: _formatNumber,
+                            formatPhoneNumber: _formatPhoneNumber,
                             getStatusColor: _getStatusColor,
                             getStatusTextColor: _getStatusTextColor,
                             getStatusText: _getStatusText,
@@ -206,6 +225,7 @@ class _BookingCard extends StatelessWidget {
   final BookingModel booking;
   final String Function(DateTime) formatDate;
   final String Function(double) formatNumber;
+  final String Function(String) formatPhoneNumber;
   final Color Function(BookingStatus) getStatusColor;
   final Color Function(BookingStatus) getStatusTextColor;
   final String Function(BookingStatus) getStatusText;
@@ -215,6 +235,7 @@ class _BookingCard extends StatelessWidget {
     required this.booking,
     required this.formatDate,
     required this.formatNumber,
+    required this.formatPhoneNumber,
     required this.getStatusColor,
     required this.getStatusTextColor,
     required this.getStatusText,
@@ -241,13 +262,12 @@ class _BookingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // Fixed Right-Aligned Header Row
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Expanded(
                   child: Text(
-                    getStatusTextAr(booking.status),
+                    booking.serviceName,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -256,28 +276,25 @@ class _BookingCard extends StatelessWidget {
                     textAlign: TextAlign.right,
                   ),
                 ),
-
-                const SizedBox(width: 12),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: getStatusColor(booking.status),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    getStatusText(booking.status),
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: getStatusTextColor(booking.status),
-                    ),
-                  ),
-                ),
               ],
+            ),
+
+            const SizedBox(height: 8),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: getStatusColor(booking.status),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                getStatusText(booking.status),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: getStatusTextColor(booking.status),
+                ),
+              ),
             ),
 
             const SizedBox(height: 12),
@@ -302,8 +319,8 @@ class _BookingCard extends StatelessWidget {
 
             _buildInfoRow(
               label: 'للتواصل',
-              value: booking.customerPhone,
-              valueColor: Colors.black87,
+              value: formatPhoneNumber(booking.customerPhone),
+              valueColor: Colors.black,
             ),
           ],
         ),
@@ -319,23 +336,23 @@ class _BookingCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: valueColor,
-            ),
-          ),
-          const SizedBox(width: 8),
           Text(
             label,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: AppColors.gold,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: valueColor,
             ),
           ),
         ],

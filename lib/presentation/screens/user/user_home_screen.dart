@@ -6,8 +6,12 @@ import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/logic/blocs/home/home_state.dart';
+import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
+import 'package:wedly/logic/blocs/cart/cart_state.dart';
+import 'package:wedly/logic/blocs/cart/cart_event.dart';
 import 'package:wedly/presentation/widgets/widget_factory.dart';
 import 'package:wedly/presentation/widgets/skeleton_loading.dart';
+import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -29,6 +33,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     }
 
     context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
+
+    // Load cart items
+    if (userId != null) {
+      context.read<CartBloc>().add(CartItemsRequested(userId: userId));
+    }
   }
 
   @override
@@ -180,6 +189,72 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 ),
 
                 const SizedBox(width: 12),
+
+                // Cart button with badge
+                BlocBuilder<CartBloc, CartState>(
+                  builder: (context, cartState) {
+                    int itemCount = 0;
+                    if (cartState is CartLoaded) {
+                      itemCount = cartState.items.length;
+                    }
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const UserCartScreen(),
+                          ),
+                        );
+                      },
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.shopping_cart_outlined,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          if (itemCount > 0)
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 20,
+                                  minHeight: 20,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    itemCount > 9 ? '9+' : '$itemCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(width: 8),
 
                 // Notification button on FAR RIGHT (reversed)
                 Container(

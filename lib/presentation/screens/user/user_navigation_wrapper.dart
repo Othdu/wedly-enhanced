@@ -5,27 +5,34 @@ import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/booking/booking_bloc.dart';
 import 'package:wedly/presentation/screens/user/user_home_screen.dart';
+import 'package:wedly/presentation/screens/user/user_search_screen.dart';
 import 'package:wedly/presentation/screens/user/user_profile_screen.dart';
 import 'package:wedly/presentation/screens/user/user_bookings_screen.dart';
 
 class UserNavigationWrapper extends StatefulWidget {
-  const UserNavigationWrapper({super.key});
+  final int initialIndex;
+
+  const UserNavigationWrapper({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<UserNavigationWrapper> createState() => _UserNavigationWrapperState();
 }
 
 class _UserNavigationWrapperState extends State<UserNavigationWrapper> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _screens = [
       const UserHomeScreen(),
-      const Placeholder(), // TODO: Add search screen
+      const UserSearchScreen(),
       const UserBookingsScreen(),
       const UserProfileScreen(),
     ];
@@ -50,9 +57,16 @@ class _UserNavigationWrapperState extends State<UserNavigationWrapper> {
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
+            // If user taps search icon while already on search screen, focus the search field
+            if (index == 1 && _currentIndex == 1) {
+              // User is already on search screen, focus the search field
+              UserSearchScreen.focusSearchField();
+            } else {
+              // Navigate to the selected screen
+              setState(() {
+                _currentIndex = index;
+              });
+            }
           },
           type: BottomNavigationBarType.fixed,
           selectedItemColor: const Color(0xFFD4AF37),
