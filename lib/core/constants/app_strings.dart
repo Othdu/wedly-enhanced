@@ -67,7 +67,7 @@ class AppStrings {
   static const String home = 'الرئيسية';
   static const String bookings = 'الحجوزات';
   static const String favorites = 'المفضلة';
-  static const String profile = 'الملف الشخصي';
+  static const String profile = 'حسابي';
   static const String dashboard = 'لوحة التحكم';
   static const String services = 'الخدمات';
   static const String analytics = 'التحليلات';

@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_event.dart';
 import 'package:wedly/logic/blocs/review/review_state.dart';
+import 'package:wedly/presentation/screens/user/venue_booking_screen.dart';
 
 /// Venue details screen matching the screenshot design
 /// Shows venue image, name, features, pricing, location, and reviews
@@ -878,14 +879,14 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
               return;
             }
 
-            // TODO: Navigate to booking/reservation screen with selections
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'تم الاختيار: $_selectedTimeSlot - $_selectedDecoration',
-                  textAlign: TextAlign.center,
+            // Navigate to booking screen with selections
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => VenueBookingScreen(
+                  venue: widget.venue,
+                  timeSlot: _selectedTimeSlot!,
+                  decoration: _selectedDecoration!,
                 ),
-                backgroundColor: const Color(0xFFD4AF37),
               ),
             );
           },

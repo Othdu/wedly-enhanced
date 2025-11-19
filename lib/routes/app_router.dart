@@ -22,7 +22,12 @@ import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 import 'package:wedly/presentation/screens/user/user_edit_profile_screen.dart';
 import 'package:wedly/presentation/screens/user/venues_list_screen.dart';
 import 'package:wedly/presentation/screens/user/venue_details_screen.dart';
+import 'package:wedly/presentation/screens/user/venue_booking_screen.dart';
 import 'package:wedly/presentation/screens/user/category_services_list_screen.dart';
+import 'package:wedly/presentation/screens/user/photographer_booking_screen.dart';
+import 'package:wedly/presentation/screens/user/videographer_booking_screen.dart';
+import 'package:wedly/presentation/screens/user/makeupartist_booking_screen.dart';
+import 'package:wedly/presentation/screens/user/car_booking_screen.dart';
 import 'package:wedly/logic/blocs/service/service_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 
@@ -40,7 +45,12 @@ class AppRouter {
   static const String userEditProfile = '/user-edit-profile';
   static const String venuesList = '/venues-list';
   static const String venueDetails = '/venue-details';
+  static const String venueBooking = '/venue-booking';
   static const String categoryServices = '/category-services';
+  static const String photographerBooking = '/photographer-booking';
+  static const String videographerBooking = '/videographer-booking';
+  static const String makeupArtistBooking = '/makeup-artist-booking';
+  static const String carBooking = '/car-booking';
   static const String providerHome = '/provider';
   static const String providerAddService = '/provider/add-service';
   static const String providerEditService = '/provider/edit-service';
@@ -161,6 +171,21 @@ class AppRouter {
             child: VenueDetailsScreen(venue: venue),
           ),
         );
+      case venueBooking:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final venue = args?['venue'];
+        final timeSlot = args?['timeSlot'];
+        final decoration = args?['decoration'];
+        if (venue == null || timeSlot == null || decoration == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => VenueBookingScreen(
+            venue: venue,
+            timeSlot: timeSlot,
+            decoration: decoration,
+          ),
+        );
       case categoryServices:
         final args = settings.arguments as Map<String, dynamic>?;
         final category = args?['category'];
@@ -172,6 +197,42 @@ class AppRouter {
             create: (_) => getIt<ServiceBloc>(),
             child: CategoryServicesListScreen(category: category),
           ),
+        );
+      case photographerBooking:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        if (service == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => PhotographerBookingScreen(service: service),
+        );
+      case videographerBooking:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        if (service == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => VideographerBookingScreen(service: service),
+        );
+      case makeupArtistBooking:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        if (service == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => MakeupArtistBookingScreen(service: service),
+        );
+      case carBooking:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        if (service == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => CarBookingScreen(service: service),
         );
       default:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
