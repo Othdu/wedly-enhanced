@@ -187,20 +187,6 @@ For testing purposes (mock authentication):
 
 ---
 
-## 📸 Screenshots
-
-### User Flow
-| Home Screen | Offers List | Booking Screen |
-|------------|------------|---------------|
-| Service categories, offers carousel, countdown timer | All available offers with discounts | Date selection and personal info |
-
-### Provider Flow
-| Dashboard | Add Service | Service Management |
-|-----------|------------|-------------------|
-| Services overview and analytics | Comprehensive service creation form | Edit and manage existing services |
-
----
-
 ## 🔌 API Integration
 
 The codebase is **API-ready** with comprehensive TODO comments throughout. All repositories currently use mock data but are structured for seamless API integration.
@@ -415,35 +401,6 @@ flutter analyze
 - [ ] CI/CD pipeline
 
 ---
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Coding Standards
-- Follow Flutter/Dart style guide
-- Use BLoC pattern for state management
-- Add TODO comments for API integration points
-- Maintain clean architecture separation
-- Write descriptive commit messages
-
----
-
-## 📝 Documentation
-
-For detailed documentation, see:
-- **[CLAUDE.md](CLAUDE.md)**: Project overview and development guidelines
-- **[API_INTEGRATION_PROMPT.md](API_INTEGRATION_PROMPT.md)**: Comprehensive API integration guide
-- **[API_MOCK_DATA_INVENTORY.md](API_MOCK_DATA_INVENTORY.md)**: Complete mock data documentation
-
----
-
 ## 🐛 Known Issues
 
 - Unused `_isOffer` variable in booking screens (cosmetic warning)
@@ -458,28 +415,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 👥 Authors
-
-**Wedly Team**
-- Lead Developer: [Your Name]
-- UI/UX Design: [Designer Name]
-
----
-
 ## 🙏 Acknowledgments
 
 - Flutter & Dart teams for the amazing framework
 - BLoC library maintainers
 - Unsplash for placeholder images
 - The open-source community
-
+-claudeeeeeeeeee<3
 ---
 
 ## 📞 Support
 
 For support, please:
-- 📧 Email: support@wedly.com
-- 💬 Discord: [Join our server]
+- 📧 Email: moh.mus2019@gmail.com
 - 🐛 Issues: [GitHub Issues](https://github.com/yourusername/wedly-enhanced/issues)
 
 ---
@@ -487,9 +435,5 @@ For support, please:
 <div align="center">
 
 **Built with ❤️ using Flutter**
-
-⭐ Star us on GitHub — it helps!
-
-[Website](https://wedly.com) • [Documentation](docs/) • [Blog](https://blog.wedly.com)
 
 </div>
