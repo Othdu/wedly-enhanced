@@ -2,13 +2,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/countdown_model.dart';
 import 'package:wedly/data/models/home_layout_model.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
+import 'package:wedly/data/repositories/offer_repository.dart';
 import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/logic/blocs/home/home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final ServiceRepository serviceRepository;
+  final OfferRepository offerRepository;
 
-  HomeBloc({required this.serviceRepository}) : super(const HomeInitial()) {
+  HomeBloc({
+    required this.serviceRepository,
+    required this.offerRepository,
+  }) : super(const HomeInitial()) {
     on<HomeServicesRequested>(_onHomeServicesRequested);
     on<HomeCategoriesRequested>(_onHomeCategoriesRequested);
   }
@@ -24,7 +29,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         serviceRepository.getServices(),
         serviceRepository.getCategories(),
         serviceRepository.getCategoriesWithDetails(),
-        serviceRepository.getActiveOffers(),
+        offerRepository.getOffers(), // Use OfferRepository instead
         serviceRepository.getHomeLayout(),
         if (event.userId != null)
           serviceRepository.getUserCountdown(event.userId!)

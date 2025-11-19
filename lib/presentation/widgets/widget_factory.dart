@@ -19,6 +19,7 @@ class WidgetFactory {
     List<CategoryModel>? categories,
     List<ServiceModel>? services,
     Function(dynamic)? onTap,
+    VoidCallback? onSeeAllOffers,
   }) {
     if (!config.isVisible) {
       return null;
@@ -29,7 +30,7 @@ class WidgetFactory {
         return _buildCountdownWidget(config, countdown);
 
       case WidgetType.offers:
-        return _buildOffersWidget(config, offers, onTap);
+        return _buildOffersWidget(config, offers, onTap, onSeeAllOffers);
 
       case WidgetType.categories:
         return _buildCategoriesWidget(config, categories, onTap);
@@ -70,39 +71,23 @@ class WidgetFactory {
     WidgetConfigModel config,
     List<OfferModel>? offers,
     Function(dynamic)? onTap,
+    VoidCallback? onSeeAllOffers,
   ) {
     if (offers == null || offers.isEmpty) return null;
 
     final settings = config.settings ?? {};
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        if (config.titleAr.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Text(
-              config.titleAr,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFD4AF37),
-              ),
-              textDirection: TextDirection.rtl,
-            ),
-          ),
-        OffersCarouselWidget(
-          offers: offers,
-          onOfferTap: onTap != null ? (offer) => onTap(offer) : null,
-          autoplay: settings['autoplay'] as bool? ?? false,
-          autoplayDuration: Duration(
-            milliseconds: settings['autoplayDuration'] as int? ?? 3000,
-          ),
-          showIndicators: settings['showIndicators'] as bool? ?? true,
-          height: settings['height'] as double?,
-        ),
-      ],
+    return OffersCarouselWidget(
+      offers: offers,
+      onOfferTap: onTap != null ? (offer) => onTap(offer) : null,
+      onSeeAllTap: onSeeAllOffers,
+      autoplay: settings['autoplay'] as bool? ?? false,
+      autoplayDuration: Duration(
+        milliseconds: settings['autoplayDuration'] as int? ?? 3000,
+      ),
+      showIndicators: settings['showIndicators'] as bool? ?? true,
+      height: settings['height'] as double?,
+      showHeader: true,
     );
   }
 

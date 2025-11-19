@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// Model representing a promotional offer
+/// TODO: API Integration - Connect to real offers API endpoint
 class OfferModel extends Equatable {
   final String id;
   final String title;
@@ -11,6 +12,13 @@ class OfferModel extends Equatable {
   final String? discount; // e.g., "خصم %30"
   final DateTime? expiryDate;
   final String? serviceId; // Optional link to a specific service
+  final String providerId; // Provider who created the offer
+  final String providerName; // Provider name in Arabic
+  final String serviceType; // Type of service (decoration, photography, etc.)
+  final double originalPrice; // Original price before discount
+  final double discountedPrice; // Price after discount
+  final double rating; // Provider rating
+  final int reviewCount; // Number of reviews
 
   const OfferModel({
     required this.id,
@@ -19,9 +27,16 @@ class OfferModel extends Equatable {
     required this.description,
     required this.descriptionAr,
     required this.imageUrl,
+    required this.providerId,
+    required this.providerName,
+    required this.serviceType,
+    required this.originalPrice,
+    required this.discountedPrice,
     this.discount,
     this.expiryDate,
     this.serviceId,
+    this.rating = 4.8,
+    this.reviewCount = 200,
   });
 
   /// Check if offer is still valid
@@ -41,6 +56,13 @@ class OfferModel extends Equatable {
         discount,
         expiryDate,
         serviceId,
+        providerId,
+        providerName,
+        serviceType,
+        originalPrice,
+        discountedPrice,
+        rating,
+        reviewCount,
       ];
 
   OfferModel copyWith({
@@ -53,6 +75,13 @@ class OfferModel extends Equatable {
     String? discount,
     DateTime? expiryDate,
     String? serviceId,
+    String? providerId,
+    String? providerName,
+    String? serviceType,
+    double? originalPrice,
+    double? discountedPrice,
+    double? rating,
+    int? reviewCount,
   }) {
     return OfferModel(
       id: id ?? this.id,
@@ -64,6 +93,13 @@ class OfferModel extends Equatable {
       discount: discount ?? this.discount,
       expiryDate: expiryDate ?? this.expiryDate,
       serviceId: serviceId ?? this.serviceId,
+      providerId: providerId ?? this.providerId,
+      providerName: providerName ?? this.providerName,
+      serviceType: serviceType ?? this.serviceType,
+      originalPrice: originalPrice ?? this.originalPrice,
+      discountedPrice: discountedPrice ?? this.discountedPrice,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
     );
   }
 
@@ -81,6 +117,13 @@ class OfferModel extends Equatable {
           ? DateTime.parse(json['expiry_date'] as String)
           : null,
       serviceId: json['service_id']?.toString(),
+      providerId: json['provider_id']?.toString() ?? '',
+      providerName: json['provider_name'] as String? ?? '',
+      serviceType: json['service_type'] as String? ?? '',
+      originalPrice: (json['original_price'] as num?)?.toDouble() ?? 0.0,
+      discountedPrice: (json['discounted_price'] as num?)?.toDouble() ?? 0.0,
+      rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
+      reviewCount: json['review_count'] as int? ?? 200,
     );
   }
 
@@ -95,6 +138,13 @@ class OfferModel extends Equatable {
       'discount': discount,
       'expiry_date': expiryDate?.toIso8601String(),
       'service_id': serviceId,
+      'provider_id': providerId,
+      'provider_name': providerName,
+      'service_type': serviceType,
+      'original_price': originalPrice,
+      'discounted_price': discountedPrice,
+      'rating': rating,
+      'review_count': reviewCount,
     };
   }
 }

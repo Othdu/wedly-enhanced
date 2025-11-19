@@ -20,8 +20,10 @@ class ServiceRepository {
     const ServiceModel(
       id: '1',
       name: 'قاعة روزا - التجمع الخامس',
-      description: 'قاعة أفراح فاخرة بالتجمع الخامس، تتسع لـ 500 شخص مع خدمات متكاملة',
-      imageUrl: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
+      description:
+          'قاعة أفراح فاخرة بالتجمع الخامس، تتسع لـ 500 شخص مع خدمات متكاملة',
+      imageUrl:
+          'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
       price: 10000.0,
       category: 'قاعات',
       providerId: 'provider_1',
@@ -33,7 +35,8 @@ class ServiceRepository {
       id: '2',
       name: 'قاعة ليالي - الشيخ زايد',
       description: 'قاعة أفراح راقية في الشيخ زايد، تصميم عصري وإضاءة مميزة',
-      imageUrl: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
       price: 15000.0,
       category: 'قاعات',
       providerId: 'provider_2',
@@ -45,7 +48,8 @@ class ServiceRepository {
       id: '3',
       name: 'قاعة روتانا - 6 أكتوبر - القاهرة',
       description: 'قاعة أفراح فخمة في 6 أكتوبر مع ديكورات كلاسيكية وخدمة VIP',
-      imageUrl: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=800',
       price: 20000.0,
       category: 'قاعات',
       providerId: 'provider_3',
@@ -57,7 +61,8 @@ class ServiceRepository {
       id: '4',
       name: 'تصوير فوتوغرافي احترافي',
       description: 'تصوير احترافي لحفلات الزفاف مع فريق متخصص وأحدث المعدات',
-      imageUrl: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
       price: 3000.0,
       category: 'Photography',
       providerId: 'provider_4',
@@ -68,7 +73,8 @@ class ServiceRepository {
       id: '5',
       name: 'ديكور وزينة الأفراح',
       description: 'تنسيق وديكور حفلات الزفاف بأحدث التصاميم والألوان',
-      imageUrl: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=800',
       price: 5000.0,
       category: 'Decoration',
       providerId: 'provider_5',
@@ -79,7 +85,8 @@ class ServiceRepository {
       id: '6',
       name: 'كوافير وميكب للعروسة',
       description: 'خدمات تجميل وميكب احترافية للعروسة في يوم زفافها',
-      imageUrl: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800',
       price: 2500.0,
       category: 'Beauty',
       providerId: 'provider_6',
@@ -90,7 +97,8 @@ class ServiceRepository {
       id: '7',
       name: 'BMW 6 Series - سيارة زفاف فاخرة',
       description: 'سيارة BMW 6 Series فاخرة مع سائق محترف وتزيين خاص للزفاف',
-      imageUrl: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800',
       price: 1500.0,
       category: 'Cars',
       providerId: 'provider_7',
@@ -101,7 +109,8 @@ class ServiceRepository {
       id: '8',
       name: 'فيديوغراف وتصوير سينمائي',
       description: 'تصوير فيديو احترافي بتقنية سينمائية لحفل زفافك',
-      imageUrl: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800',
       price: 4000.0,
       category: 'Entertainment',
       providerId: 'provider_8',
@@ -113,7 +122,8 @@ class ServiceRepository {
       id: '9',
       name: 'استوديو النور للتصوير',
       description: 'تصوير زفاف احترافي مع باقات متنوعة تناسب جميع الميزانيات',
-      imageUrl: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
       price: 2500.0,
       category: 'Photography',
       providerId: 'provider_9',
@@ -124,7 +134,8 @@ class ServiceRepository {
       id: '10',
       name: 'عدسة الفن للتصوير',
       description: 'تصوير فني راقي مع فريق متميز وأحدث المعدات العالمية',
-      imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
       price: 3500.0,
       category: 'Photography',
       providerId: 'provider_10',
@@ -136,7 +147,8 @@ class ServiceRepository {
       id: '11',
       name: 'ديكورات الأحلام',
       description: 'تصاميم ديكور عصرية وكلاسيكية لحفلات الزفاف الفاخرة',
-      imageUrl: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
       price: 6000.0,
       category: 'Decoration',
       providerId: 'provider_11',
@@ -147,7 +159,8 @@ class ServiceRepository {
       id: '12',
       name: 'زينة القصور',
       description: 'ديكورات فاخرة مع ورود طبيعية وإضاءة رومانسية',
-      imageUrl: 'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7?w=800',
       price: 7500.0,
       category: 'Decoration',
       providerId: 'provider_12',
@@ -159,7 +172,8 @@ class ServiceRepository {
       id: '13',
       name: 'صالون الجمال الملكي',
       description: 'خدمات تجميل شاملة للعروسة مع أمهر المتخصصين',
-      imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800',
       price: 3000.0,
       category: 'Beauty',
       providerId: 'provider_13',
@@ -170,7 +184,8 @@ class ServiceRepository {
       id: '14',
       name: 'بيوتي لاونج',
       description: 'ميكب عرائس فخم مع تسريحات شعر عصرية',
-      imageUrl: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=800',
       price: 2000.0,
       category: 'Beauty',
       providerId: 'provider_14',
@@ -182,7 +197,8 @@ class ServiceRepository {
       id: '15',
       name: 'ليموزين VIP',
       description: 'سيارات ليموزين فاخرة للعرسان مع خدمة راقية',
-      imageUrl: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800',
       price: 2000.0,
       category: 'Cars',
       providerId: 'provider_15',
@@ -193,7 +209,8 @@ class ServiceRepository {
       id: '16',
       name: 'مرسيدس S-Class - سيارة زفاف كلاسيك',
       description: 'سيارة مرسيدس S-Class كلاسيكية فاخرة مجهزة بالكامل للزفاف',
-      imageUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800',
       price: 2500.0,
       category: 'Cars',
       providerId: 'provider_16',
@@ -205,7 +222,8 @@ class ServiceRepository {
       id: '17',
       name: 'سينما الأحلام',
       description: 'إنتاج فيديو سينمائي لحفل زفافك بجودة عالية',
-      imageUrl: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=800',
       price: 4500.0,
       category: 'Entertainment',
       providerId: 'provider_17',
@@ -216,19 +234,129 @@ class ServiceRepository {
       id: '18',
       name: 'فيديو برودكشن',
       description: 'تصوير فيديو احترافي مع مونتاج ومؤثرات خاصة',
-      imageUrl: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800',
+      imageUrl:
+          'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800',
       price: 3500.0,
       category: 'Entertainment',
       providerId: 'provider_18',
       rating: 4.7,
       reviewCount: 92,
     ),
+    // Wedding Organizers services
+    const ServiceModel(
+      id: '19',
+      name: 'منظم أفراح محترف',
+      description: 'تنظيم وتنسيق حفلات زفاف كاملة مع إدارة يوم الفرح بالكامل',
+      imageUrl:
+          'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
+      price: 9000.0,
+      category: 'Wedding Organizers',
+      providerId: 'provider_19',
+      rating: 4.9,
+      reviewCount: 85,
+    ),
+    const ServiceModel(
+      id: '20',
+      name: 'وكالة أحلام الزفاف',
+      description: 'تخطيط شامل لحفلات الزفاف مع تنسيق جميع الموردين والخدمات',
+      imageUrl:
+          'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+      price: 12000.0,
+      category: 'Wedding Organizers',
+      providerId: 'provider_20',
+      rating: 5.0,
+      reviewCount: 120,
+    ),
+    const ServiceModel(
+      id: '21',
+      name: 'استوديو إيفنت للتخطيط',
+      description: 'خدمات تخطيط وتنظيم أفراح احترافية مع إشراف كامل على الحدث',
+      imageUrl:
+          'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
+      price: 10000.0,
+      category: 'Wedding Organizers',
+      providerId: 'provider_21',
+      rating: 4.8,
+      reviewCount: 95,
+    ),
+    // Wedding Dress services
+    const ServiceModel(
+      id: '23',
+      name: 'فستان الخصر العالي',
+      description: 'فستان زفاف فاخر بخصر عالي وتصميم عصري مع طرحة مطابقة',
+      imageUrl:
+          'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800',
+      price: 5000.0,
+      category: 'Wedding Dresses',
+      providerId: 'provider_22',
+      rating: 4.9,
+      reviewCount: 115,
+    ),
+    const ServiceModel(
+      id: '22',
+      name: 'فستان الأميرة الكلاسيكي',
+      description:
+          'فستان زفاف على طراز الأميرات مع تطريز يدوي فاخر وقصة منفوشة',
+      imageUrl:
+          'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=800',
+      price: 12000.0,
+      category: 'Wedding Dresses',
+      providerId: 'provider_23',
+      rating: 5.0,
+      reviewCount: 142,
+    ),
+    const ServiceModel(
+      id: '24',
+      name: 'فستان حورية البحر',
+      description: 'فستان زفاف بقصة حورية البحر مع دانتيل فرنسي وتصميم أنيق',
+      imageUrl:
+          'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+      price: 8000.0,
+      category: 'Wedding Dresses',
+      providerId: 'provider_24',
+      rating: 4.8,
+      reviewCount: 98,
+    ),
+    const ServiceModel(
+      id: '25',
+      name: 'فستان البوهيمي المستقيم',
+      description: 'فستان زفاف بستايل بوهيمي مريح مع تفاصيل رومانسية ناعمة',
+      imageUrl:
+          'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
+      price: 6000.0,
+      category: 'Wedding Dresses',
+      providerId: 'provider_25',
+      rating: 4.7,
+      reviewCount: 87,
+    ),
+    const ServiceModel(
+      id: '26',
+      name: 'فستان القصير العصري',
+      description: 'فستان زفاف قصير عصري مثالي لحفلات الزفاف الصغيرة والحديثة',
+      imageUrl:
+          'https://images.unsplash.com/photo-1542042161784-26ab9e041e89?w=800',
+      price: 3500.0,
+      category: 'Wedding Dresses',
+      providerId: 'provider_26',
+      rating: 4.6,
+      reviewCount: 73,
+    ),
+    const ServiceModel(
+      id: '27',
+      name: 'فستان الفينتدج الكلاسيكي',
+      description: 'فستان زفاف فينتدج بأكمام طويلة ودانتيل كلاسيكي أنيق',
+      imageUrl:
+          'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=800',
+      price: 7500.0,
+      category: 'Wedding Dresses',
+      providerId: 'provider_27',
+      rating: 4.9,
+      reviewCount: 105,
+    ),
   ];
 
-  ServiceRepository({
-    ApiClient? apiClient,
-    this.useMockData = true,
-  }) : _apiClient = apiClient;
+  ServiceRepository({ApiClient? apiClient, this.useMockData = true})
+    : _apiClient = apiClient;
 
   /// Get all services
   Future<List<ServiceModel>> getServices() async {
@@ -275,7 +403,9 @@ class ServiceRepository {
   /// API implementation: Get service by ID
   Future<ServiceModel?> _apiGetServiceById(String id) async {
     try {
-      final response = await _apiClient!.get(ApiConstants.serviceById(int.parse(id)));
+      final response = await _apiClient!.get(
+        ApiConstants.serviceById(int.parse(id)),
+      );
       return ServiceModel.fromJson(response.data['service'] ?? response.data);
     } catch (e) {
       return null;
@@ -301,7 +431,9 @@ class ServiceRepository {
 
   /// API implementation: Get services by category
   Future<List<ServiceModel>> _apiGetServicesByCategory(String category) async {
-    final response = await _apiClient!.get(ApiConstants.servicesByCategory(category));
+    final response = await _apiClient!.get(
+      ApiConstants.servicesByCategory(category),
+    );
     final List<dynamic> data = response.data['services'] ?? response.data;
     return data.map((json) => ServiceModel.fromJson(json)).toList();
   }
@@ -348,7 +480,9 @@ class ServiceRepository {
 
   /// API implementation: Get provider services
   Future<List<ServiceModel>> _apiGetProviderServices(String providerId) async {
-    final response = await _apiClient!.get(ApiConstants.providerServices(providerId));
+    final response = await _apiClient!.get(
+      ApiConstants.providerServices(providerId),
+    );
     final List<dynamic> data = response.data['services'] ?? response.data;
     return data.map((json) => ServiceModel.fromJson(json)).toList();
   }
@@ -479,57 +613,65 @@ class ServiceRepository {
         id: '1',
         name: 'Photography',
         nameAr: 'مصورين',
-        imageUrl: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=400',
+        imageUrl:
+            'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=400',
         serviceCount: 1,
       ),
       const CategoryModel(
         id: '2',
         name: 'Venues',
         nameAr: 'قاعات الأفراح',
-        imageUrl: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=400',
+        imageUrl:
+            'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=400',
         serviceCount: 1,
       ),
       const CategoryModel(
         id: '3',
         name: 'Cars',
         nameAr: 'سيارات الزفاف',
-        imageUrl: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400',
+        imageUrl:
+            'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400',
         serviceCount: 1,
       ),
       const CategoryModel(
         id: '4',
         name: 'Decoration',
         nameAr: 'ديكور و زينة',
-        imageUrl: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=400',
+        imageUrl:
+            'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=400',
         serviceCount: 1,
       ),
       const CategoryModel(
         id: '5',
         name: 'Beauty',
         nameAr: 'كوافير وميكب',
-        imageUrl: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400',
+        imageUrl:
+            'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400',
         serviceCount: 1,
       ),
       const CategoryModel(
         id: '6',
         name: 'Entertainment',
         nameAr: 'فيديوغراف',
-        imageUrl: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=400',
+        imageUrl:
+            'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=400',
         serviceCount: 1,
       ),
       const CategoryModel(
         id: '7',
         name: 'Wedding Organizers',
         nameAr: 'منظمين الأفراح',
-        imageUrl: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400',
-        serviceCount: 0,
+        imageUrl:
+            'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400',
+        serviceCount: 3,
       ),
       const CategoryModel(
         id: '8',
         name: 'Wedding Dresses',
         nameAr: 'فساتين الزفاف',
-        imageUrl: 'https://images.unsplash.com/photo-1594552072238-122d05fe1882?w=400',
-        serviceCount: 0,
+        imageUrl:
+            'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=400',
+        serviceCount: 6,
       ),
     ];
 
@@ -568,8 +710,12 @@ class ServiceRepository {
   /// API implementation: Get user countdown
   Future<CountdownModel?> _apiGetUserCountdown(String userId) async {
     try {
-      final response = await _apiClient!.get(ApiConstants.userCountdown(userId));
-      return CountdownModel.fromJson(response.data['countdown'] ?? response.data);
+      final response = await _apiClient!.get(
+        ApiConstants.userCountdown(userId),
+      );
+      return CountdownModel.fromJson(
+        response.data['countdown'] ?? response.data,
+      );
     } catch (e) {
       return null;
     }
@@ -593,12 +739,22 @@ class ServiceRepository {
         id: '1',
         title: '30% Discount on Wedding Venues',
         titleAr: 'خصم %30 على قاعات الأفراح',
-        description: 'احصل على خصم 30% على قاعات الأفراح تحتاجات واقعية بأسعار تناسبك',
-        descriptionAr: 'احصل على خصم 30% على قاعات الأفراح تحتاجات واقعية بأسعار تناسبك',
-        imageUrl: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
+        description:
+            'احصل على خصم 30% على قاعات الأفراح تحتاجات واقعية بأسعار تناسبك',
+        descriptionAr:
+            'احصل على خصم 30% على قاعات الأفراح تحتاجات واقعية بأسعار تناسبك',
+        imageUrl:
+            'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
         discount: 'خصم %30',
         expiryDate: DateTime.now().add(const Duration(days: 30)),
         serviceId: '5',
+        providerId: 'provider_1',
+        providerName: 'قصور الأفراح الذهبية',
+        serviceType: 'venue',
+        originalPrice: 50000.0,
+        discountedPrice: 35000.0,
+        rating: 4.7,
+        reviewCount: 150,
       ),
       OfferModel(
         id: '2',
@@ -606,10 +762,18 @@ class ServiceRepository {
         titleAr: 'باقة التصوير المميزة',
         description: 'باقة تصوير فوتوغرافي احترافية لحفل زفافك',
         descriptionAr: 'باقة تصوير فوتوغرافي احترافية لحفل زفافك',
-        imageUrl: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
+        imageUrl:
+            'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
         discount: 'عرض خاص',
         expiryDate: DateTime.now().add(const Duration(days: 45)),
         serviceId: '1',
+        providerId: 'provider_2',
+        providerName: 'استوديو النور الإبداعي',
+        serviceType: 'photography',
+        originalPrice: 8000.0,
+        discountedPrice: 6000.0,
+        rating: 4.9,
+        reviewCount: 220,
       ),
       OfferModel(
         id: '3',
@@ -617,9 +781,17 @@ class ServiceRepository {
         titleAr: 'باقة زفاف متكاملة',
         description: 'باقة شاملة لجميع احتياجات حفل الزفاف',
         descriptionAr: 'باقة شاملة لجميع احتياجات حفل الزفاف',
-        imageUrl: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
+        imageUrl:
+            'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
         discount: 'عرض محدود',
         expiryDate: DateTime.now().add(const Duration(days: 60)),
+        providerId: 'provider_3',
+        providerName: 'منظمو الأحلام',
+        serviceType: 'weddingplanner',
+        originalPrice: 30000.0,
+        discountedPrice: 22000.0,
+        rating: 4.8,
+        reviewCount: 180,
       ),
     ];
 
@@ -685,11 +857,7 @@ class ServiceRepository {
           title: 'Services',
           isVisible: true,
           order: 3,
-          settings: {
-            'columns': 2,
-            'aspectRatio': 1.2,
-            'spacing': 12.0,
-          },
+          settings: {'columns': 2, 'aspectRatio': 1.2, 'spacing': 12.0},
         ),
         const WidgetConfigModel(
           id: 'services_1',
@@ -718,4 +886,3 @@ class ServiceRepository {
     return HomeLayoutModel.fromJson(response.data['layout'] ?? response.data);
   }
 }
-

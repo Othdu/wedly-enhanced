@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/widget_config_model.dart';
 import 'package:wedly/data/models/category_model.dart';
+import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
@@ -298,6 +299,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             // Handle tap based on item type
             if (item is CategoryModel) {
               _handleCategoryTap(context, item);
+            } else if (item is OfferModel) {
+              _handleOfferTap(context, item);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -308,6 +311,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 ),
               );
             }
+          },
+          onSeeAllOffers: () {
+            Navigator.pushNamed(context, AppRouter.offersList);
           },
         );
 
@@ -356,11 +362,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         ),
         offers: state.offers,
         onTap: (offer) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(offer.titleAr, textDirection: TextDirection.rtl),
-            ),
-          );
+          _handleOfferTap(context, offer);
+        },
+        onSeeAllOffers: () {
+          Navigator.pushNamed(context, AppRouter.offersList);
         },
       );
       if (offersWidget != null) {
@@ -405,6 +410,51 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         AppRouter.categoryServices,
         arguments: {'category': category},
       );
+    }
+  }
+
+  /// Handle offer tap navigation based on service type
+  void _handleOfferTap(BuildContext context, OfferModel offer) {
+    // Navigate to appropriate booking screen based on service type
+    switch (offer.serviceType.toLowerCase()) {
+      case 'decoration':
+        Navigator.pushNamed(
+          context,
+          AppRouter.decorationBooking,
+          arguments: {'offer': offer},
+        );
+        break;
+      case 'wedding_dress':
+      case 'weddingdress':
+        Navigator.pushNamed(
+          context,
+          AppRouter.weddingDressBooking,
+          arguments: {'offer': offer},
+        );
+        break;
+      case 'weddingplanner':
+      case 'wedding_planner':
+        Navigator.pushNamed(
+          context,
+          AppRouter.weddingPlannerBooking,
+          arguments: {'offer': offer},
+        );
+        break;
+      case 'photography':
+      case 'catering':
+      case 'beauty':
+      case 'venue':
+      default:
+        // For other service types, show coming soon message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'صفحة الحجز لخدمة ${offer.titleAr} قريباً',
+              textDirection: TextDirection.rtl,
+            ),
+            backgroundColor: const Color(0xFFD4AF37),
+          ),
+        );
     }
   }
 }

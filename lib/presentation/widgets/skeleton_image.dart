@@ -60,18 +60,21 @@ class SkeletonImage extends StatelessWidget {
         );
       },
       errorBuilder: (context, error, stackTrace) {
-        // Show shimmer skeleton on error (no internet/not cached)
-        return Shimmer.fromColors(
-          baseColor: baseColor,
-          highlightColor: highlightColor,
-          child: Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              color: baseColor,
-              borderRadius: borderRadius,
-            ),
-            child: errorWidget,
+        // Show error widget or default placeholder on error
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: borderRadius,
+          ),
+          child: Center(
+            child: errorWidget ??
+                Icon(
+                  Icons.image_not_supported_outlined,
+                  size: 48,
+                  color: Colors.grey[400],
+                ),
           ),
         );
       },

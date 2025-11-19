@@ -49,9 +49,10 @@ class AuthRepository {
     await Future.delayed(const Duration(seconds: 1));
 
     // Mock login - always succeeds
+    // Use a fixed user ID for mock data consistency with bookings
     final userRole = role ?? UserRole.user;
     _currentUser = UserModel(
-      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'user_1763246207853', // Fixed mock user ID
       email: email,
       name: email.split('@')[0],
       role: userRole,

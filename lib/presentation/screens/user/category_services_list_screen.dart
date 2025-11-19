@@ -260,6 +260,143 @@ class _CategoryServicesListScreenState
     return serviceMatches || categoryMatches;
   }
 
+  /// Check if a service is a wedding dress service
+  bool _isWeddingDressService(ServiceModel service) {
+    // Check service category
+    final serviceCategory = service.category.toLowerCase().trim();
+
+    // Check current category being viewed
+    final currentCategoryName = widget.category.name.toLowerCase().trim();
+    final currentCategoryNameAr = widget.category.nameAr.toLowerCase().trim();
+
+    // List of wedding dress category identifiers
+    final weddingDressCategories = [
+      'wedding dress',
+      'فساتين',
+      'فساتين الزفاف',
+      'فساتين زفاف',
+      'فستان',
+      'dresses',
+      'bridal',
+      'عروس',
+    ];
+
+    // Check if service category matches
+    final serviceMatches = weddingDressCategories.any(
+      (dressCategory) {
+        final lowerCategory = dressCategory.toLowerCase().trim();
+        return serviceCategory == lowerCategory ||
+               serviceCategory.contains(lowerCategory) ||
+               lowerCategory.contains(serviceCategory);
+      },
+    );
+
+    // Check if current category matches
+    final categoryMatches = weddingDressCategories.any(
+      (dressCategory) {
+        final lowerCategory = dressCategory.toLowerCase().trim();
+        return currentCategoryName == lowerCategory ||
+               currentCategoryName.contains(lowerCategory) ||
+               currentCategoryNameAr.contains(lowerCategory) ||
+               lowerCategory.contains(currentCategoryName) ||
+               lowerCategory.contains(currentCategoryNameAr);
+      },
+    );
+
+    return serviceMatches || categoryMatches;
+  }
+
+  /// Check if a service is a decoration service
+  bool _isDecorationService(ServiceModel service) {
+    // Check service category
+    final serviceCategory = service.category.toLowerCase().trim();
+
+    // Check current category being viewed
+    final currentCategoryName = widget.category.name.toLowerCase().trim();
+    final currentCategoryNameAr = widget.category.nameAr.toLowerCase().trim();
+
+    // List of decoration category identifiers
+    final decorationCategories = [
+      'decoration',
+      'ديكور',
+      'الديكور',
+      'الديكور والزينة',
+      'ديكور والزينة',
+      'زينة',
+      'تزيين',
+      'decor',
+    ];
+
+    // Check if service category matches
+    final serviceMatches = decorationCategories.any(
+      (decorCategory) {
+        final lowerCategory = decorCategory.toLowerCase().trim();
+        return serviceCategory == lowerCategory ||
+               serviceCategory.contains(lowerCategory) ||
+               lowerCategory.contains(serviceCategory);
+      },
+    );
+
+    // Check if current category matches
+    final categoryMatches = decorationCategories.any(
+      (decorCategory) {
+        final lowerCategory = decorCategory.toLowerCase().trim();
+        return currentCategoryName == lowerCategory ||
+               currentCategoryName.contains(lowerCategory) ||
+               currentCategoryNameAr.contains(lowerCategory) ||
+               lowerCategory.contains(currentCategoryName) ||
+               lowerCategory.contains(currentCategoryNameAr);
+      },
+    );
+
+    return serviceMatches || categoryMatches;
+  }
+
+  /// Check if a service is a wedding planner service
+  bool _isWeddingPlannerService(ServiceModel service) {
+    // Check service category
+    final serviceCategory = service.category.toLowerCase().trim();
+
+    // Check current category being viewed
+    final currentCategoryName = widget.category.name.toLowerCase().trim();
+    final currentCategoryNameAr = widget.category.nameAr.toLowerCase().trim();
+
+    // List of wedding planner category identifiers
+    final weddingPlannerCategories = [
+      'wedding organizers',
+      'منظمين الأفراح',
+      'منظم أفراح',
+      'تنظيم أفراح',
+      'wedding planners',
+      'event planners',
+      'organizers',
+    ];
+
+    // Check if service category matches
+    final serviceMatches = weddingPlannerCategories.any(
+      (plannerCategory) {
+        final lowerCategory = plannerCategory.toLowerCase().trim();
+        return serviceCategory == lowerCategory ||
+               serviceCategory.contains(lowerCategory) ||
+               lowerCategory.contains(serviceCategory);
+      },
+    );
+
+    // Check if current category matches
+    final categoryMatches = weddingPlannerCategories.any(
+      (plannerCategory) {
+        final lowerCategory = plannerCategory.toLowerCase().trim();
+        return currentCategoryName == lowerCategory ||
+               currentCategoryName.contains(lowerCategory) ||
+               currentCategoryNameAr.contains(lowerCategory) ||
+               lowerCategory.contains(currentCategoryName) ||
+               lowerCategory.contains(currentCategoryNameAr);
+      },
+    );
+
+    return serviceMatches || categoryMatches;
+  }
+
   /// Navigate to appropriate service details/booking screen
   void _navigateToServiceDetails(BuildContext context, ServiceModel service) {
     if (_isPhotographerService(service)) {
@@ -288,6 +425,27 @@ class _CategoryServicesListScreenState
       Navigator.pushNamed(
         context,
         AppRouter.carBooking,
+        arguments: {'service': service},
+      );
+    } else if (_isWeddingDressService(service)) {
+      // Navigate to wedding dress booking screen
+      Navigator.pushNamed(
+        context,
+        AppRouter.weddingDressBooking,
+        arguments: {'service': service},
+      );
+    } else if (_isDecorationService(service)) {
+      // Navigate to decoration booking screen
+      Navigator.pushNamed(
+        context,
+        AppRouter.decorationBooking,
+        arguments: {'service': service},
+      );
+    } else if (_isWeddingPlannerService(service)) {
+      // Navigate to wedding planner booking screen
+      Navigator.pushNamed(
+        context,
+        AppRouter.weddingPlannerBooking,
         arguments: {'service': service},
       );
     } else {

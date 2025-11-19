@@ -8,23 +8,27 @@ import 'skeleton_image.dart';
 class OffersCarouselWidget extends StatefulWidget {
   final List<OfferModel> offers;
   final Function(OfferModel)? onOfferTap;
+  final VoidCallback? onSeeAllTap;
   final double? height;
   final double viewportFraction;
   final bool autoplay;
   final Duration autoplayDuration;
   final bool showIndicators;
   final Color? accentColor;
+  final bool showHeader;
 
   const OffersCarouselWidget({
     super.key,
     required this.offers,
     this.onOfferTap,
+    this.onSeeAllTap,
     this.height,
     this.viewportFraction = 0.9,
     this.autoplay = false,
     this.autoplayDuration = const Duration(seconds: 3),
     this.showIndicators = true,
     this.accentColor,
+    this.showHeader = true,
   });
 
   @override
@@ -88,12 +92,74 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Responsive height calculation
-        final carouselHeight = widget.height ??
-            (constraints.maxWidth > 600 ? 250.0 : 200.0);
+        final carouselHeight =
+            widget.height ?? (constraints.maxWidth > 600 ? 250.0 : 200.0);
 
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Header with title and "See All" button
+            if (widget.showHeader) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // "المزيد" button on the left
+
+                    // "عروض الأسبوع" title on the right
+                    const Text(
+                      'عروض الأسبوع',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                      textDirection: TextDirection.rtl,
+                    ),
+                    GestureDetector(
+                      onTap: widget.onSeeAllTap,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'المزيد',
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              textDirection: TextDirection.rtl,
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 12,
+                              color: accentColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            // Carousel
             SizedBox(
               height: carouselHeight,
               child: PageView.builder(
@@ -112,7 +178,8 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   widget.offers.length,
-                  (index) => _buildIndicator(index == _currentPage, accentColor),
+                  (index) =>
+                      _buildIndicator(index == _currentPage, accentColor),
                 ),
               ),
             ],

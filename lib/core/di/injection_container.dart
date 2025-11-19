@@ -6,6 +6,7 @@ import 'package:wedly/data/repositories/booking_repository.dart';
 import 'package:wedly/data/repositories/cart_repository.dart';
 import 'package:wedly/data/repositories/venue_repository.dart';
 import 'package:wedly/data/repositories/review_repository.dart';
+import 'package:wedly/data/repositories/offer_repository.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/token_manager.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
@@ -73,13 +74,20 @@ Future<void> setupDependencyInjection() async {
     () => ReviewRepository(),
   );
 
+  getIt.registerLazySingleton<OfferRepository>(
+    () => OfferRepository(),
+  );
+
   // BLoCs - registered as factories for new instances
   getIt.registerFactory<AuthBloc>(
     () => AuthBloc(authRepository: getIt<AuthRepository>()),
   );
 
   getIt.registerFactory<HomeBloc>(
-    () => HomeBloc(serviceRepository: getIt<ServiceRepository>()),
+    () => HomeBloc(
+      serviceRepository: getIt<ServiceRepository>(),
+      offerRepository: getIt<OfferRepository>(),
+    ),
   );
 
   getIt.registerFactory<ServiceBloc>(

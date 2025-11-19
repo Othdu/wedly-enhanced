@@ -20,6 +20,7 @@ import 'package:wedly/presentation/screens/provider/provider_add_service_screen.
 import 'package:wedly/presentation/screens/provider/provider_edit_service_screen.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 import 'package:wedly/presentation/screens/user/user_edit_profile_screen.dart';
+import 'package:wedly/presentation/screens/user/offers_list_screen.dart';
 import 'package:wedly/presentation/screens/user/venues_list_screen.dart';
 import 'package:wedly/presentation/screens/user/venue_details_screen.dart';
 import 'package:wedly/presentation/screens/user/venue_booking_screen.dart';
@@ -28,6 +29,9 @@ import 'package:wedly/presentation/screens/user/photographer_booking_screen.dart
 import 'package:wedly/presentation/screens/user/videographer_booking_screen.dart';
 import 'package:wedly/presentation/screens/user/makeupartist_booking_screen.dart';
 import 'package:wedly/presentation/screens/user/car_booking_screen.dart';
+import 'package:wedly/presentation/screens/user/wedding_dress_booking_screen.dart';
+import 'package:wedly/presentation/screens/user/decoration_booking_screen.dart';
+import 'package:wedly/presentation/screens/user/weddingplanner_booking_screen.dart';
 import 'package:wedly/logic/blocs/service/service_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 
@@ -43,6 +47,7 @@ class AppRouter {
   static const String roleSelector = '/role-selector';
   static const String userHome = '/user';
   static const String userEditProfile = '/user-edit-profile';
+  static const String offersList = '/offers-list';
   static const String venuesList = '/venues-list';
   static const String venueDetails = '/venue-details';
   static const String venueBooking = '/venue-booking';
@@ -51,6 +56,9 @@ class AppRouter {
   static const String videographerBooking = '/videographer-booking';
   static const String makeupArtistBooking = '/makeup-artist-booking';
   static const String carBooking = '/car-booking';
+  static const String weddingDressBooking = '/wedding-dress-booking';
+  static const String decorationBooking = '/decoration-booking';
+  static const String weddingPlannerBooking = '/wedding-planner-booking';
   static const String providerHome = '/provider';
   static const String providerAddService = '/provider/add-service';
   static const String providerEditService = '/provider/edit-service';
@@ -152,6 +160,10 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => const UserEditProfileScreen(),
         );
+      case offersList:
+        return MaterialPageRoute(
+          builder: (_) => const OffersListScreen(),
+        );
       case venuesList:
         return MaterialPageRoute(
           builder: (_) => BlocProvider<VenueBloc>(
@@ -233,6 +245,45 @@ class AppRouter {
         }
         return MaterialPageRoute(
           builder: (_) => CarBookingScreen(service: service),
+        );
+      case weddingDressBooking:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        final offer = args?['offer'];
+        if (service == null && offer == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => WeddingDressBookingScreen(
+            service: service,
+            offer: offer,
+          ),
+        );
+      case decorationBooking:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        final offer = args?['offer'];
+        if (service == null && offer == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => DecorationBookingScreen(
+            service: service,
+            offer: offer,
+          ),
+        );
+      case weddingPlannerBooking:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        final offer = args?['offer'];
+        if (service == null && offer == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => WeddingPlannerBookingScreen(
+            service: service,
+            offer: offer,
+          ),
         );
       default:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
