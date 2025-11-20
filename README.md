@@ -319,7 +319,7 @@ The codebase is **API-ready** with comprehensive TODO comments throughout. All r
 - Consistent spacing and typography
 
 ### Localization
-- **Primary Language**: Arabic (ar_SA)
+- **Primary Language**: Arabic (ar_SA) 
 - **RTL Support**: Full right-to-left layout
 - **Fallback**: English support configured
 - All UI text uses Arabic with proper text direction
