@@ -142,14 +142,9 @@ class UserProfileScreen extends StatelessWidget {
                           icon: Icons.article_outlined,
                           title: AppStrings.termsAndConditions,
                           onTap: () {
-                            // TODO: Navigate to terms and conditions
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'الشروط والأحكام - قريباً',
-                                  textDirection: TextDirection.rtl,
-                                ),
-                              ),
+                            Navigator.pushNamed(
+                              context,
+                              AppRouter.termsAndConditions,
                             );
                           },
                         ),
@@ -158,14 +153,9 @@ class UserProfileScreen extends StatelessWidget {
                           icon: Icons.help_outline,
                           title: AppStrings.helpAndSupport,
                           onTap: () {
-                            // TODO: Navigate to help and support
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'المساعدة والدعم - قريباً',
-                                  textDirection: TextDirection.rtl,
-                                ),
-                              ),
+                            Navigator.pushNamed(
+                              context,
+                              AppRouter.helpAndSupport,
                             );
                           },
                         ),

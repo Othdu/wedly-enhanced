@@ -24,6 +24,8 @@ import 'package:wedly/presentation/screens/user/change_password_screen.dart';
 import 'package:wedly/presentation/screens/user/user_address_screen.dart';
 import 'package:wedly/presentation/screens/user/offers_list_screen.dart';
 import 'package:wedly/presentation/screens/user/notifications_list_screen.dart';
+import 'package:wedly/presentation/screens/user/terms_conditions_screen.dart';
+import 'package:wedly/presentation/screens/user/help_and_support_screen.dart';
 import 'package:wedly/presentation/screens/user/venues_list_screen.dart';
 import 'package:wedly/presentation/screens/user/venue_booking_screen.dart';
 import 'package:wedly/presentation/screens/user/category_services_list_screen.dart';
@@ -54,6 +56,8 @@ class AppRouter {
   static const String userAddress = '/user-address';
   static const String offersList = '/offers-list';
   static const String notificationsList = '/notifications-list';
+  static const String termsAndConditions = '/terms-and-conditions';
+  static const String helpAndSupport = '/help-and-support';
   static const String venuesList = '/venues-list';
   static const String venueDetails = '/venue-details';
   static const String venueBooking = '/venue-booking';
@@ -173,6 +177,14 @@ class AppRouter {
             create: (_) => getIt<NotificationBloc>(),
             child: const NotificationsListScreen(),
           ),
+        );
+      case termsAndConditions:
+        return MaterialPageRoute(
+          builder: (_) => const TermsConditionsScreen(),
+        );
+      case helpAndSupport:
+        return MaterialPageRoute(
+          builder: (_) => const HelpAndSupportScreen(),
         );
       case venuesList:
         return MaterialPageRoute(

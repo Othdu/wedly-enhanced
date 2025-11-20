@@ -11,11 +11,7 @@ class BookingCard extends StatelessWidget {
   final BookingModel booking;
   final VoidCallback? onViewDetails;
 
-  const BookingCard({
-    super.key,
-    required this.booking,
-    this.onViewDetails,
-  });
+  const BookingCard({super.key, required this.booking, this.onViewDetails});
 
   String _formatDate(DateTime date) {
     // Format date in Arabic using intl package
@@ -65,7 +61,8 @@ class BookingCard extends StatelessWidget {
                 ),
               ),
               // Display discount badge if booking has discount
-              if (booking.discountPercentage != null && booking.discountPercentage! > 0)
+              if (booking.discountPercentage != null &&
+                  booking.discountPercentage! > 0)
                 Positioned(
                   top: 12,
                   right: 12,
@@ -95,11 +92,12 @@ class BookingCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Customer Name with "اسم العميل:" prefix
                 RichText(
                   textDirection: ui.TextDirection.rtl,
+                  textAlign: TextAlign.left,
                   text: TextSpan(
                     style: const TextStyle(
                       fontSize: 15,
@@ -116,13 +114,13 @@ class BookingCard extends StatelessWidget {
 
                 // Date and Time
                 Text(
-                  _formatDate(booking.bookingDate),
+                  'التاريخ: ${_formatDate(booking.bookingDate)}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
-                  textAlign: TextAlign.right,
+                  textAlign: TextAlign.left,
                   textDirection: ui.TextDirection.rtl,
                 ),
                 const SizedBox(height: 8),
@@ -135,7 +133,7 @@ class BookingCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
-                  textAlign: TextAlign.right,
+                  textAlign: TextAlign.left,
                   textDirection: ui.TextDirection.rtl,
                 ),
                 const SizedBox(height: 8),
@@ -148,7 +146,7 @@ class BookingCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
-                  textAlign: TextAlign.right,
+                  textAlign: TextAlign.left,
                   textDirection: ui.TextDirection.rtl,
                 ),
                 const SizedBox(height: 16),

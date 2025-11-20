@@ -50,7 +50,9 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
 
   void _fetchBookingsByStatus(BookingStatus status) {
     if (_providerId == null) return;
-    context.read<BookingBloc>().add(FetchBookingsByStatus(_providerId!, status));
+    context.read<BookingBloc>().add(
+      FetchBookingsByStatus(_providerId!, status),
+    );
   }
 
   BookingStatus _statusForIndex(int index) {
@@ -142,7 +144,9 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
                     builder: (context, state) {
                       if (state is BookingLoading) {
                         return const Center(
-                          child: CircularProgressIndicator(color: AppColors.gold),
+                          child: CircularProgressIndicator(
+                            color: AppColors.gold,
+                          ),
                         );
                       }
 
@@ -155,33 +159,43 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
                         if (bookings.isEmpty) return _buildEmpty();
 
                         return RefreshIndicator(
-                          onRefresh: () async =>
-                              _fetchBookingsByStatus(_statusForIndex(_currentTabIndex)),
+                          onRefresh: () async => _fetchBookingsByStatus(
+                            _statusForIndex(_currentTabIndex),
+                          ),
                           color: AppColors.gold,
                           child: ListView.separated(
                             padding: const EdgeInsets.symmetric(
-                                vertical: 16, horizontal: 12),
-                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                              vertical: 16,
+                              horizontal: 12,
+                            ),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 12),
                             itemCount: bookings.length,
                             itemBuilder: (context, index) {
                               final booking = bookings[index];
                               return BookingCard(
                                 booking: booking,
                                 onViewDetails: () async {
-                                  final result = await Navigator.of(context).push<bool>(
-                                    MaterialPageRoute(
-                                      builder: (newContext) => BlocProvider.value(
-                                        value: context.read<BookingBloc>(),
-                                        child: ProviderBookingDetailsScreen(
-                                          booking: booking,
+                                  final result = await Navigator.of(context)
+                                      .push<bool>(
+                                        MaterialPageRoute(
+                                          builder: (newContext) =>
+                                              BlocProvider.value(
+                                                value: context
+                                                    .read<BookingBloc>(),
+                                                child:
+                                                    ProviderBookingDetailsScreen(
+                                                      booking: booking,
+                                                    ),
+                                              ),
                                         ),
-                                      ),
-                                    ),
-                                  );
+                                      );
 
                                   // Refresh the current tab if booking was updated
                                   if (result == true && mounted) {
-                                    _fetchBookingsByStatus(_statusForIndex(_currentTabIndex));
+                                    _fetchBookingsByStatus(
+                                      _statusForIndex(_currentTabIndex),
+                                    );
                                   }
                                 },
                               );
@@ -230,9 +244,9 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
           const SizedBox(height: 16),
           Text(
             'لا توجد حجوزات',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.grey.shade600),
           ),
         ],
       ),
