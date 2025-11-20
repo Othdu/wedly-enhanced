@@ -428,7 +428,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For support, please:
 - 📧 Email: moh.mus2019@gmail.com
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/wedly-enhanced/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/othdu/wedly-enhanced/issues)
 
 ---
 
