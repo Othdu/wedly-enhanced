@@ -11,6 +11,9 @@ import 'package:wedly/logic/blocs/home/home_state.dart';
 import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/logic/blocs/cart/cart_state.dart';
 import 'package:wedly/logic/blocs/cart/cart_event.dart';
+import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
+import 'package:wedly/logic/blocs/notification/notification_state.dart';
+import 'package:wedly/logic/blocs/notification/notification_event.dart';
 import 'package:wedly/presentation/widgets/widget_factory.dart';
 import 'package:wedly/presentation/widgets/skeleton_loading.dart';
 import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
@@ -40,6 +43,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     // Load cart items
     if (userId != null) {
       context.read<CartBloc>().add(CartItemsRequested(userId: userId));
+    }
+
+    // Load notifications
+    if (userId != null) {
+      context.read<NotificationBloc>().add(NotificationsRequested(userId: userId));
     }
   }
 
@@ -259,18 +267,63 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
                 const SizedBox(width: 8),
 
-                // Notification button on FAR RIGHT (reversed)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.notifications_outlined,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                // Notification button with badge on FAR RIGHT (reversed)
+                BlocBuilder<NotificationBloc, NotificationState>(
+                  builder: (context, notificationState) {
+                    int unreadCount = 0;
+                    if (notificationState is NotificationLoaded) {
+                      unreadCount = notificationState.unreadCount;
+                    }
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRouter.notificationsList);
+                      },
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          if (unreadCount > 0)
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 20,
+                                  minHeight: 20,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    unreadCount > 9 ? '9+' : '$unreadCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

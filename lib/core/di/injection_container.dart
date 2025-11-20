@@ -7,6 +7,7 @@ import 'package:wedly/data/repositories/cart_repository.dart';
 import 'package:wedly/data/repositories/venue_repository.dart';
 import 'package:wedly/data/repositories/review_repository.dart';
 import 'package:wedly/data/repositories/offer_repository.dart';
+import 'package:wedly/data/repositories/notification_repository.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/token_manager.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
@@ -18,6 +19,7 @@ import 'package:wedly/logic/blocs/search/search_bloc.dart';
 import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/logic/blocs/venue/venue_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
+import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -78,6 +80,10 @@ Future<void> setupDependencyInjection() async {
     () => OfferRepository(),
   );
 
+  getIt.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepository(),
+  );
+
   // BLoCs - registered as factories for new instances
   getIt.registerFactory<AuthBloc>(
     () => AuthBloc(authRepository: getIt<AuthRepository>()),
@@ -116,6 +122,10 @@ Future<void> setupDependencyInjection() async {
 
   getIt.registerFactory<ReviewBloc>(
     () => ReviewBloc(reviewRepository: getIt<ReviewRepository>()),
+  );
+
+  getIt.registerFactory<NotificationBloc>(
+    () => NotificationBloc(notificationRepository: getIt<NotificationRepository>()),
   );
 }
 

@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/data/models/offer_model.dart';
 
 /// Photographer booking screen with package-based pricing
 /// User selects one package, then one option within that package
+/// Can accept either a service or an offer
 class PhotographerBookingScreen extends StatefulWidget {
-  final ServiceModel service;
+  final ServiceModel? service;
+  final OfferModel? offer;
 
-  const PhotographerBookingScreen({super.key, required this.service});
+  const PhotographerBookingScreen({
+    super.key,
+    this.service,
+    this.offer,
+  }) : assert(service != null || offer != null,
+            'Either service or offer must be provided');
 
   @override
   State<PhotographerBookingScreen> createState() =>
@@ -30,6 +38,23 @@ class _PhotographerBookingScreenState extends State<PhotographerBookingScreen> {
   // Package selection
   String? _selectedPackage; // 'session', 'half_day', 'full_day', 'no_print'
   String? _selectedOption; // The specific pricing option within the package
+
+  // Helper getters to work with both service and offer
+  String get _title {
+    if (widget.offer != null) {
+      return widget.offer!.titleAr;
+    }
+    return widget.service!.name;
+  }
+
+  String get _imageUrl {
+    if (widget.offer != null) {
+      return widget.offer!.imageUrl;
+    }
+    return widget.service!.imageUrl;
+  }
+
+  bool get _isOffer => widget.offer != null;
 
   // Hardcoded packages for photographer (will come from backend later)
   final Map<String, List<Map<String, dynamic>>> _packages = {
@@ -155,7 +180,7 @@ class _PhotographerBookingScreenState extends State<PhotographerBookingScreen> {
           fit: StackFit.expand,
           children: [
             Image.network(
-              widget.service.imageUrl,
+              _imageUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -196,12 +221,13 @@ class _PhotographerBookingScreenState extends State<PhotographerBookingScreen> {
         borderRadius: BorderRadius.circular(25),
       ),
       child: Text(
-        widget.service.name,
+        _title,
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
+        textDirection: TextDirection.rtl,
         textAlign: TextAlign.center,
       ),
     );

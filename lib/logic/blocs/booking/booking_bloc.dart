@@ -39,7 +39,9 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
   ) async {
     emit(BookingLoading());
     try {
+      print('DEBUG: Fetching bookings for user ID: ${event.userId}');
       final bookings = await bookingRepository.getUserBookings(event.userId);
+      print('DEBUG: Found ${bookings.length} bookings');
 
       if (bookings.isEmpty) {
         emit(const BookingsEmpty('لا توجد حجوزات حتى الآن'));
@@ -47,6 +49,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingsLoaded(bookings));
       }
     } catch (e) {
+      print('DEBUG: Error fetching bookings: $e');
       emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}'));
     }
   }

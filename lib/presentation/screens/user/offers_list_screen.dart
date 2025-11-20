@@ -170,17 +170,13 @@ class _OffersListScreenState extends State<OffersListScreen> {
           // 1. Image & Badge Section
           Stack(
             children: [
-              ClipRRect(
+              SkeletonImage(
+                imageUrl: offer.imageUrl,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
-                ),
-                child: SkeletonImage(
-                  imageUrl: offer.imageUrl,
-                  height: 180, // Adjusted height for card balance
-                  fit: BoxFit.cover,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
                 ),
               ),
               // White Pill Discount Badge (Top Right)
@@ -221,7 +217,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Title
                 Text(
@@ -240,7 +236,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
 
                 // Row: Rating (Left) vs Provider/Capacity (Right)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     // Rating Star (Left)
                     Row(
@@ -257,6 +253,14 @@ class _OffersListScreenState extends State<OffersListScreen> {
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${offer.reviewCount})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
                           ),
                         ),
                       ],
@@ -318,6 +322,32 @@ class _OffersListScreenState extends State<OffersListScreen> {
                   children: [
                     // Share Button (White with Border)
                     Expanded(
+                      flex: 6,
+                      child: SizedBox(
+                        height: 55,
+                        child: ElevatedButton(
+                          onPressed: () => _handleOfferBooking(offer),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4AF37),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'احجز الآن',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            textDirection: TextDirection.rtl,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
                       flex: 4,
                       child: SizedBox(
                         height: 45,
@@ -343,32 +373,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
                           child: const Text(
                             'مشاركة',
                             style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Book Button (Gold Filled)
-                    Expanded(
-                      flex: 6,
-                      child: SizedBox(
-                        height: 45,
-                        child: ElevatedButton(
-                          onPressed: () => _handleOfferBooking(offer),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD4AF37),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'احجز الآن',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                            textDirection: TextDirection.rtl,
                           ),
                         ),
                       ),
@@ -386,36 +391,60 @@ class _OffersListScreenState extends State<OffersListScreen> {
   /// Handle offer booking navigation based on service type
   void _handleOfferBooking(OfferModel offer) {
     // Navigate to appropriate booking screen based on service type
-    switch (offer.serviceType.toLowerCase()) {
+    final serviceType = offer.serviceType.toLowerCase();
+
+    String? routeName;
+
+    // Map service types to their booking routes
+    switch (serviceType) {
       case 'decoration':
-        Navigator.pushNamed(
-          context,
-          AppRouter.decorationBooking,
-          arguments: {'offer': offer},
-        );
+        routeName = AppRouter.decorationBooking;
         break;
       case 'wedding_dress':
       case 'weddingdress':
-        Navigator.pushNamed(
-          context,
-          AppRouter.weddingDressBooking,
-          arguments: {'offer': offer},
-        );
+        routeName = AppRouter.weddingDressBooking;
         break;
       case 'weddingplanner':
       case 'wedding_planner':
-        Navigator.pushNamed(
-          context,
-          AppRouter.weddingPlannerBooking,
-          arguments: {'offer': offer},
-        );
+        routeName = AppRouter.weddingPlannerBooking;
         break;
       case 'photography':
-      case 'catering':
+      case 'photographer':
+        routeName = AppRouter.photographerBooking;
+        break;
+      case 'videography':
+      case 'videographer':
+        routeName = AppRouter.videographerBooking;
+        break;
       case 'beauty':
+      case 'makeup':
+      case 'makeupartist':
+      case 'makeup_artist':
+        routeName = AppRouter.makeupArtistBooking;
+        break;
       case 'venue':
+      case 'hall':
+        routeName = AppRouter.venueBooking;
+        break;
+      case 'car':
+      case 'transportation':
+        routeName = AppRouter.carBooking;
+        break;
+      case 'catering':
+      case 'food':
+        // TODO: Create catering booking screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'صفحة حجز الطعام قريباً - ${offer.titleAr}',
+              textDirection: TextDirection.rtl,
+            ),
+            backgroundColor: const Color(0xFFD4AF37),
+          ),
+        );
+        return;
       default:
-        // For other service types, show coming soon message
+        // Show coming soon message for unsupported service types
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -425,7 +454,15 @@ class _OffersListScreenState extends State<OffersListScreen> {
             backgroundColor: const Color(0xFFD4AF37),
           ),
         );
+        return;
     }
+
+    // Navigate to the booking screen
+    Navigator.pushNamed(
+      context,
+      routeName,
+      arguments: {'offer': offer},
+    );
   }
 
   Widget _buildLoadingSkeleton() {
@@ -438,9 +475,17 @@ class _OffersListScreenState extends State<OffersListScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             children: [
+              // Image skeleton
               Container(
                 height: 180,
                 decoration: BoxDecoration(
@@ -455,8 +500,9 @@ class _OffersListScreenState extends State<OffersListScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    // Title skeleton
                     Container(
-                      height: 20,
+                      height: 18,
                       width: 200,
                       decoration: BoxDecoration(
                         color: Colors.grey[300],
@@ -464,32 +510,61 @@ class _OffersListScreenState extends State<OffersListScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    // Rating and provider row skeleton
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          height: 16,
+                          width: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        Container(
+                          height: 16,
+                          width: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Price skeleton
                     Container(
-                      height: 16,
+                      height: 20,
                       width: 150,
                       decoration: BoxDecoration(
                         color: Colors.grey[300],
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+                    // Buttons skeleton
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          height: 40,
-                          width: 120,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(8),
+                        Expanded(
+                          flex: 4,
+                          child: Container(
+                            height: 45,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(25),
+                            ),
                           ),
                         ),
-                        Container(
-                          height: 40,
-                          width: 100,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(4),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 6,
+                          child: Container(
+                            height: 45,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(25),
+                            ),
                           ),
                         ),
                       ],

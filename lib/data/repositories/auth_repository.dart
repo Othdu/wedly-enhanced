@@ -58,6 +58,8 @@ class AuthRepository {
       role: userRole,
     );
 
+    print('DEBUG AUTH: Logged in user with ID: ${_currentUser!.id}');
+
     // Save user data to SharedPreferences
     await _saveUserToCache(_currentUser!);
 

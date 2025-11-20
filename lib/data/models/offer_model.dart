@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:wedly/data/models/service_model.dart';
 
 /// Model representing a promotional offer
 /// TODO: API Integration - Connect to real offers API endpoint
@@ -43,6 +44,22 @@ class OfferModel extends Equatable {
   bool get isValid {
     if (expiryDate == null) return true;
     return DateTime.now().isBefore(expiryDate!);
+  }
+
+  /// Convert offer to a ServiceModel for booking screens that don't support offers yet
+  /// This is a temporary solution until all booking screens are updated
+  ServiceModel toService() {
+    return ServiceModel(
+      id: serviceId ?? id,
+      name: titleAr,
+      description: descriptionAr,
+      imageUrl: imageUrl,
+      price: discountedPrice,
+      category: serviceType,
+      providerId: providerId,
+      rating: rating,
+      reviewCount: reviewCount,
+    );
   }
 
   @override

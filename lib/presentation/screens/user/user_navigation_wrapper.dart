@@ -4,6 +4,7 @@ import 'package:wedly/core/constants/app_strings.dart';
 import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/booking/booking_bloc.dart';
+import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
 import 'package:wedly/presentation/screens/user/user_home_screen.dart';
 import 'package:wedly/presentation/screens/user/user_search_screen.dart';
 import 'package:wedly/presentation/screens/user/user_profile_screen.dart';
@@ -47,6 +48,9 @@ class _UserNavigationWrapperState extends State<UserNavigationWrapper> {
         ),
         BlocProvider<BookingBloc>(
           create: (context) => getIt<BookingBloc>(),
+        ),
+        BlocProvider<NotificationBloc>(
+          create: (context) => getIt<NotificationBloc>(),
         ),
       ],
       child: Scaffold(

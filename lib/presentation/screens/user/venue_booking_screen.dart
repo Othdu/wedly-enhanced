@@ -1,124 +1,134 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/venue_model.dart';
-import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
+import 'package:wedly/data/models/review_model.dart';
+import 'package:wedly/presentation/widgets/skeleton_image.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:wedly/logic/blocs/review/review_bloc.dart';
+import 'package:wedly/logic/blocs/review/review_event.dart';
+import 'package:wedly/logic/blocs/review/review_state.dart';
 
-/// Venue booking confirmation screen matching the screenshot design
-/// Shows booking summary receipt, calendar date picker, and personal info form
+/// Venue details screen matching the screenshot design
+/// Shows venue image, name, features, pricing, location, and reviews
 class VenueBookingScreen extends StatefulWidget {
   final VenueModel venue;
-  final String timeSlot; // 'morning' or 'evening'
-  final String decoration; // 'ديكور1', 'ديكور2', 'ديكورة', 'خالي'
 
-  const VenueBookingScreen({
-    super.key,
-    required this.venue,
-    required this.timeSlot,
-    required this.decoration,
-  });
+  const VenueBookingScreen({super.key, required this.venue});
 
   @override
-  State<VenueBookingScreen> createState() => _VenueBookingScreenState();
+  State<VenueBookingScreen> createState() => _VenueDetailsScreenState();
 }
 
-class _VenueBookingScreenState extends State<VenueBookingScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _VenueDetailsScreenState extends State<VenueBookingScreen> {
+  GoogleMapController? _mapController;
+  final bool _useGoogleMaps = false; // Set to true when API key is configured
 
-  // Form controllers
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
+  // User selections
+  String? _selectedTimeSlot; // 'morning' or 'evening'
+  String? _selectedDecoration; // 'ديكور1', 'ديكور2', 'ديكورة', 'خالي'
 
-  // Selected date
-  DateTime? _selectedDate;
-
-  // Current displayed month
-  DateTime _displayedMonth = DateTime.now();
+  @override
+  void initState() {
+    super.initState();
+    // Request venue reviews when screen loads
+    context.read<ReviewBloc>().add(VenueReviewsRequested(widget.venue.id));
+  }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
+    _mapController?.dispose();
     super.dispose();
-  }
-
-  String get _timeSlotText {
-    if (widget.timeSlot == 'morning') {
-      return 'صباحي';
-    } else {
-      return 'مسائي';
-    }
-  }
-
-  double get _totalPrice {
-    final basePrice = widget.timeSlot == 'morning'
-        ? widget.venue.pricePerPerson
-        : widget.venue.pricePerPerson * 1.25;
-
-    // Add decoration cost (example logic)
-    double decorationCost = 0;
-    if (widget.decoration == 'ديكور1') {
-      decorationCost = 5000;
-    } else if (widget.decoration == 'ديكور2') {
-      decorationCost = 3000;
-    } else if (widget.decoration == 'ديكورة') {
-      decorationCost = 2000;
-    }
-
-    return (basePrice * widget.venue.capacity) + decorationCost;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'تأكيد الحجز',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+      backgroundColor: Colors.white,
+      body: CustomScrollView(
+        slivers: [
+          // App Bar with Image
+          _buildSliverAppBar(),
+
+          // Content
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Venue Header Card (Gold)
+                _buildVenueHeaderCard(),
+
+                const SizedBox(height: 60),
+
+                // المواقيت Section with radio buttons
+                _buildTimeSlotsSection(),
+
+                const SizedBox(height: 16),
+
+                // عدد الكراسي Section
+                _buildChairsSection(),
+
+                const SizedBox(height: 16),
+
+                // الديان Section with radio buttons
+                _buildDecorationSection(),
+
+                const SizedBox(height: 24),
+
+                // Location Section
+                _buildLocationSection(),
+
+                const SizedBox(height: 24),
+
+                // Reviews Section
+                _buildReviewsSection(),
+
+                const SizedBox(height: 24),
+
+                // Reserve Button
+                _buildReserveButton(),
+
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
-        ),
-        centerTitle: true,
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    );
+  }
+
+  Widget _buildSliverAppBar() {
+    return SliverAppBar(
+      expandedHeight: 250,
+      pinned: true,
+      backgroundColor: const Color(0xFFD4AF37),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
           children: [
-            const SizedBox(height: 16),
-
-            // Venue Image and Header Card
-            _buildVenueHeaderCard(),
-
-            const SizedBox(height: 24),
-
-            // Details Receipt Section
-            _buildDetailsSection(),
-
-            const SizedBox(height: 24),
-
-            // Calendar Section
-            _buildCalendarSection(),
-
-            const SizedBox(height: 24),
-
-            // Personal Information Form
-            _buildPersonalInfoSection(),
-
-            const SizedBox(height: 24),
-
-            // Confirm Booking Button
-            _buildConfirmButton(),
-
-            const SizedBox(height: 32),
+            SkeletonImage(
+              imageUrl: widget.venue.imageUrl,
+              fit: BoxFit.cover,
+              errorWidget: const Center(
+                child: Icon(Icons.villa, size: 80, color: Colors.white54),
+              ),
+            ),
+            // Gradient overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.3),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -128,107 +138,227 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
   Widget _buildVenueHeaderCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: const Color(0xFFD4AF37),
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
         children: [
-          // Venue Image
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: Image.network(
-              widget.venue.imageUrl,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 180,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.villa, size: 60, color: Colors.grey),
-                );
-              },
+          // Venue Name
+          Text(
+            widget.venue.name,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          // المواقيت label only (no stars)
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeSlotsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // صباحي option with radio button
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedTimeSlot = 'morning';
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _selectedTimeSlot == 'morning'
+                      ? const Color(0xFFD4AF37)
+                      : Colors.grey.shade200,
+                  width: _selectedTimeSlot == 'morning' ? 2 : 1,
+                ),
+              ),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  // Radio button
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _selectedTimeSlot == 'morning'
+                            ? const Color(0xFFD4AF37)
+                            : Colors.grey.shade400,
+                        width: 2,
+                      ),
+                    ),
+                    child: _selectedTimeSlot == 'morning'
+                        ? Center(
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFD4AF37),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Price and time info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'صباحي',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: _selectedTimeSlot == 'morning'
+                                ? const Color(0xFFD4AF37)
+                                : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            Text(
+                              'من 12 ظهراً الى 7 مساءاً',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              'تبدأ من ${widget.venue.pricePerPerson.toInt()} جنيه',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
-          // Venue Info
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              textDirection: TextDirection.rtl,
-              children: [
-                // Venue name and rating
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        widget.venue.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        textDirection: TextDirection.rtl,
+          const SizedBox(height: 12),
+
+          // مسائي option with radio button
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedTimeSlot = 'evening';
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _selectedTimeSlot == 'evening'
+                      ? const Color(0xFFD4AF37)
+                      : Colors.grey.shade200,
+                  width: _selectedTimeSlot == 'evening' ? 2 : 1,
+                ),
+              ),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  // Radio button
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _selectedTimeSlot == 'evening'
+                            ? const Color(0xFFD4AF37)
+                            : Colors.grey.shade400,
+                        width: 2,
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            widget.venue.rating.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                    ),
+                    child: _selectedTimeSlot == 'evening'
+                        ? Center(
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFD4AF37),
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.star,
-                            color: Color(0xFFFFB400),
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ],
+                          )
+                        : null,
                   ),
-                ),
 
-                const SizedBox(width: 16),
+                  const SizedBox(width: 16),
 
-                // Price
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_totalPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} جنيه',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFD4AF37),
-                      ),
+                  // Price and time info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'مسائي',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: _selectedTimeSlot == 'evening'
+                                ? const Color(0xFFD4AF37)
+                                : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            Text(
+                              'من 8 مساءاً الى 2 فجراً',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              'تبدأ من ${(widget.venue.pricePerPerson * 1.25).toInt()} جنيه',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'السعة : ${widget.venue.capacity} فرد',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -236,444 +366,346 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
     );
   }
 
-  Widget _buildDetailsSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+  Widget _buildChairsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          textDirection: TextDirection.rtl,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'عدد الكراسي',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'من ${widget.venue.capacity ~/ 2} الى ${widget.venue.capacity}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDecorationSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'البلان',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFD4AF37),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Radio buttons row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            textDirection: TextDirection.ltr,
+            children: [
+              _buildDecorationOption('خالي'),
+              const SizedBox(width: 16),
+              _buildDecorationOption('ديكورة'),
+              const SizedBox(width: 16),
+              _buildDecorationOption('ديكور2'),
+              const SizedBox(width: 16),
+              _buildDecorationOption('ديكور1'),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDecorationOption(String option) {
+    final isSelected = _selectedDecoration == option;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedDecoration = option;
+        });
+      },
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFFD4AF37)
+                    : Colors.grey.shade400,
+                width: 2,
+              ),
+            ),
+            child: isSelected
+                ? Center(
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD4AF37),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            option,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color: isSelected ? const Color(0xFFD4AF37) : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           const Text(
-            'التفاصيل',
+            'الموقع',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Color(0xFFD4AF37),
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Time slot detail
-          _buildDetailRow(
-            icon: Icons.wb_sunny_outlined,
-            label: 'الموعد',
-            value: _timeSlotText,
-          ),
-
           const SizedBox(height: 12),
 
-          // Capacity detail
-          _buildDetailRow(
-            icon: Icons.event_seat_outlined,
-            label: 'عدد الكراسي',
-            value: '${widget.venue.capacity}',
+          // Map Container
+          Container(
+            height: 180,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: _useGoogleMaps && widget.venue.latitude != null
+                  ? GoogleMap(
+                      initialCameraPosition: CameraPosition(
+                        target: LatLng(
+                          widget.venue.latitude!,
+                          widget.venue.longitude!,
+                        ),
+                        zoom: 14,
+                      ),
+                      onMapCreated: (controller) {
+                        _mapController = controller;
+                      },
+                      markers: {
+                        Marker(
+                          markerId: const MarkerId('venue_location'),
+                          position: LatLng(
+                            widget.venue.latitude!,
+                            widget.venue.longitude!,
+                          ),
+                        ),
+                      },
+                      zoomControlsEnabled: false,
+                      myLocationButtonEnabled: false,
+                    )
+                  : _buildMapPlaceholder(),
+            ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // Decoration detail
-          _buildDetailRow(
-            icon: Icons.palette_outlined,
-            label: 'البلان',
-            value: widget.decoration,
-          ),
+          // Address
+          if (widget.venue.address != null)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              textDirection: TextDirection.rtl,
+              children: [
+                Icon(Icons.location_on, color: Colors.grey.shade600, size: 18),
+                const SizedBox(width: 4),
+                Text(
+                  widget.venue.address!,
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      textDirection: TextDirection.rtl,
+  Widget _buildMapPlaceholder() {
+    return Stack(
       children: [
-        Row(
-          textDirection: TextDirection.rtl,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: const Color(0xFFD4AF37), size: 20),
+        Container(
+          color: const Color(0xFFF5F5F5),
+          child: Center(
+            child: Icon(
+              Icons.map_outlined,
+              size: 60,
+              color: Colors.grey.shade400,
             ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
-            ),
-          ],
+          ),
         ),
-        Text(
-          value,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+        Center(
+          child: Icon(Icons.location_on, size: 36, color: Colors.red.shade400),
+        ),
+        Positioned(
+          bottom: 10,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Text(
+              'تكامل خرائط جوجل غير متاح',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildCalendarSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Month/Year Header with navigation
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () {
-                  setState(() {
-                    _displayedMonth = DateTime(
-                      _displayedMonth.year,
-                      _displayedMonth.month + 1,
-                    );
-                  });
-                },
-                color: const Color(0xFFD4AF37),
-              ),
-              Text(
-                '${_getMonthName(_displayedMonth.month)} ${_displayedMonth.year}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () {
-                  setState(() {
-                    _displayedMonth = DateTime(
-                      _displayedMonth.year,
-                      _displayedMonth.month - 1,
-                    );
-                  });
-                },
-                color: const Color(0xFFD4AF37),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Weekday headers
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['SAT', 'FRI', 'THU', 'WED', 'TUE', 'MON', 'SUN']
-                .map(
-                  (day) => SizedBox(
-                    width: 40,
-                    child: Center(
-                      child: Text(
-                        day,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Calendar grid
-          _buildCalendarGrid(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCalendarGrid() {
-    final firstDayOfMonth = DateTime(
-      _displayedMonth.year,
-      _displayedMonth.month,
-      1,
-    );
-    final lastDayOfMonth = DateTime(
-      _displayedMonth.year,
-      _displayedMonth.month + 1,
-      0,
-    );
-
-    // Get weekday of first day (1 = Monday, 7 = Sunday)
-    // We want Sunday to be first, so adjust
-    int firstWeekday = firstDayOfMonth.weekday % 7; // Sunday = 0
-
-    final daysInMonth = lastDayOfMonth.day;
-
-    List<Widget> dayWidgets = [];
-
-    // Add empty spaces for days before the first day
-    for (int i = 0; i < firstWeekday; i++) {
-      dayWidgets.add(const SizedBox(width: 40, height: 40));
-    }
-
-    // Add day widgets
-    for (int day = 1; day <= daysInMonth; day++) {
-      final date = DateTime(_displayedMonth.year, _displayedMonth.month, day);
-      final isSelected =
-          _selectedDate != null &&
-          _selectedDate!.year == date.year &&
-          _selectedDate!.month == date.month &&
-          _selectedDate!.day == date.day;
-
-      final isToday =
-          DateTime.now().year == date.year &&
-          DateTime.now().month == date.month &&
-          DateTime.now().day == date.day;
-
-      dayWidgets.add(
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedDate = date;
-            });
-          },
-          child: Container(
-            width: 40,
-            height: 40,
-            margin: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFFD4AF37)
-                  : (isToday
-                        ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
-                        : Colors.transparent),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                day.toString(),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected
-                      ? Colors.white
-                      : (isToday ? const Color(0xFFD4AF37) : Colors.black87),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Arrange in rows of 7
-    List<Widget> rows = [];
-    for (int i = 0; i < dayWidgets.length; i += 7) {
-      rows.add(
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: dayWidgets.sublist(
-            i,
-            i + 7 > dayWidgets.length ? dayWidgets.length : i + 7,
-          ),
-        ),
-      );
-    }
-
-    return Column(children: rows);
-  }
-
-  String _getMonthName(int month) {
-    const monthNames = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return monthNames[month - 1];
-  }
-
-  Widget _buildPersonalInfoSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
+  Widget _buildReviewsSection() {
+    return BlocBuilder<ReviewBloc, ReviewState>(
+      builder: (context, state) {
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Text(
-              'المعلومات الشخصية',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFD4AF37),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Full Name Field
-            TextFormField(
-              controller: _nameController,
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-              decoration: InputDecoration(
-                labelText: 'الاسم الكامل',
-                labelStyle: const TextStyle(color: Color(0xFFD4AF37)),
-
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFD4AF37),
-                    width: 2,
+            // Header with rating
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                textDirection: TextDirection.ltr,
+                children: [
+                  // Overall rating from BLoC state or venue
+                  if (state is ReviewsLoaded)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          color: Color(0xFFFFB400),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          state.averageRating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${state.totalReviews})',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          color: Color(0xFFFFB400),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.venue.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${widget.venue.reviewCount})',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  const Spacer(),
+                  const Text(
+                    'آراء العملاء',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFD4AF37),
+                    ),
                   ),
-                ),
+                ],
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'الرجاء إدخال الاسم الكامل';
-                }
-                return null;
-              },
             ),
-
             const SizedBox(height: 16),
 
-            // Email Field
-            TextFormField(
-              controller: _emailController,
-              textDirection: TextDirection.ltr,
-              textAlign: TextAlign.left,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: 'البريد الإلكتروني',
-                labelStyle: const TextStyle(color: Color(0xFFD4AF37)),
+            // Reviews content based on state
+            if (state is ReviewsLoading)
+              _buildReviewsLoading()
+            else if (state is ReviewsLoaded)
+              ...state.reviews.map((review) => _buildReviewCard(review))
+            else if (state is ReviewsEmpty)
+              _buildReviewsEmpty(state.message)
+            else if (state is ReviewError)
+              _buildReviewsError(state.message)
+            else
+              _buildReviewsEmpty('جاري تحميل التقييمات...'),
+          ],
+        );
+      },
+    );
+  }
 
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFD4AF37),
-                    width: 2,
-                  ),
-                ),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'الرجاء إدخال البريد الإلكتروني';
-                }
-                if (!value.contains('@')) {
-                  return 'الرجاء إدخال بريد إلكتروني صحيح';
-                }
-                return null;
-              },
+  Widget _buildReviewsLoading() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
             ),
-
             const SizedBox(height: 16),
-
-            // Phone Field
-            TextFormField(
-              controller: _phoneController,
-              textDirection: TextDirection.ltr,
-              textAlign: TextAlign.left,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'رقم الهاتف',
-                labelStyle: const TextStyle(color: Color(0xFFD4AF37)),
-
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFD4AF37),
-                    width: 2,
-                  ),
-                ),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'الرجاء إدخال رقم الهاتف';
-                }
-                return null;
-              },
+            Text(
+              'جاري تحميل التقييمات...',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -681,7 +713,137 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
     );
   }
 
-  Widget _buildConfirmButton() {
+  Widget _buildReviewsEmpty(String message) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.star_border, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewsError(String message) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                context.read<ReviewBloc>().add(
+                  VenueReviewsRequested(widget.venue.id),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewCard(ReviewModel review) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Rating stars
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: List.generate(5, (index) {
+              return Icon(
+                index < review.rating ? Icons.star : Icons.star_border,
+                color: const Color(0xFFFFB400),
+                size: 18,
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+
+          // Review comment
+          Text(
+            review.comment,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+              height: 1.5,
+            ),
+            textDirection: TextDirection.ltr,
+            textAlign: TextAlign.right,
+          ),
+          const SizedBox(height: 12),
+
+          // User info
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            textDirection: TextDirection.rtl,
+            children: [
+              // User avatar
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFFD4AF37),
+                backgroundImage: review.userImageUrl != null
+                    ? NetworkImage(review.userImageUrl!)
+                    : null,
+                child: review.userImageUrl == null
+                    ? Text(
+                        review.userName[0],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 8),
+
+              // User name
+              Text(
+                review.userName,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFD4AF37),
+                ),
+                textDirection: TextDirection.rtl,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReserveButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
@@ -689,104 +851,43 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
         height: 56,
         child: ElevatedButton(
           onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              if (_selectedDate == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'الرجاء اختيار تاريخ الحجز',
-                      textAlign: TextAlign.center,
-                    ),
-                    backgroundColor: Colors.red,
+            // Validate selections
+            if (_selectedTimeSlot == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'الرجاء اختيار الموعد (صباحي أو مسائي)',
+                    textAlign: TextAlign.center,
                   ),
-                );
-                return;
-              }
-
-              // TODO: Create booking with BLoC and add to cart
-              // For now, show success message and navigate to cart
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => Dialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'تمت الإضافة إلى السلة بنجاح!',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'تم إضافة ${widget.venue.name} إلى السلة الخاصة بك.',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'بمكانك المتابعة لإتمام الحجز أو إضافة خدمات أخرى',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).pop(); // Close dialog
-                              Navigator.of(context).pop(); // Go back to details
-                              Navigator.of(
-                                context,
-                              ).pop(); // Go back to venues list
-
-                              // Navigate to cart screen
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const UserCartScreen(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFD4AF37),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text(
-                              'تم',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  backgroundColor: Colors.red,
                 ),
               );
+              return;
             }
+
+            if (_selectedDecoration == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'الرجاء اختيار نوع الديكور',
+                    textAlign: TextAlign.center,
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+
+            // TODO: Navigate to booking/reservation screen with selections
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'تم الاختيار: $_selectedTimeSlot - $_selectedDecoration',
+                  textAlign: TextAlign.center,
+                ),
+                backgroundColor: const Color(0xFFD4AF37),
+              ),
+            );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFD4AF37),
@@ -797,7 +898,7 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
             elevation: 0,
           ),
           child: const Text(
-            'أضف إلى السلة',
+            'احجز الآن',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),

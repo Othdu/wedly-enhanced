@@ -62,9 +62,10 @@ class _VenuesListScreenState extends State<VenuesListScreen> {
                         return VenueCard(
                           venue: venue,
                           onTap: () {
+                            // Navigate directly to booking screen
                             Navigator.pushNamed(
                               context,
-                              AppRouter.venueDetails,
+                              AppRouter.venueBooking,
                               arguments: {'venue': venue},
                             );
                           },
@@ -168,15 +169,9 @@ class _VenuesListScreenState extends State<VenuesListScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      Container(
-                        height: 16,
-                        color: Colors.white,
-                      ),
+                      Container(height: 16, color: Colors.white),
                       const SizedBox(height: 12),
-                      Container(
-                        height: 14,
-                        color: Colors.white,
-                      ),
+                      Container(height: 14, color: Colors.white),
                       const SizedBox(height: 16),
                       Container(
                         height: 40,
@@ -202,11 +197,7 @@ class _VenuesListScreenState extends State<VenuesListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red,
-          ),
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
           Text(
             message,
@@ -238,19 +229,12 @@ class _VenuesListScreenState extends State<VenuesListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.villa_outlined,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.villa_outlined, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'لا توجد قاعات متاحة حالياً',
             textDirection: TextDirection.rtl,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
         ],
       ),
