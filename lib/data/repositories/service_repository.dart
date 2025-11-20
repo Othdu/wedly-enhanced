@@ -68,6 +68,9 @@ class ServiceRepository {
       providerId: 'provider_4',
       rating: 4.9,
       reviewCount: 150,
+      hasOffer: true,
+      offerApproved: true,
+      discountPercentage: 20.0,
     ),
     const ServiceModel(
       id: '5',
@@ -92,6 +95,9 @@ class ServiceRepository {
       providerId: 'provider_6',
       rating: 4.8,
       reviewCount: 120,
+      hasOffer: true,
+      offerApproved: true,
+      discountPercentage: 15.0,
     ),
     const ServiceModel(
       id: '7',
@@ -104,6 +110,9 @@ class ServiceRepository {
       providerId: 'provider_7',
       rating: 4.6,
       reviewCount: 90,
+      hasOffer: true,
+      offerApproved: true,
+      discountPercentage: 25.0,
     ),
     const ServiceModel(
       id: '8',
@@ -166,6 +175,9 @@ class ServiceRepository {
       providerId: 'provider_12',
       rating: 4.9,
       reviewCount: 130,
+      hasOffer: true,
+      offerApproved: true,
+      discountPercentage: 30.0,
     ),
     // Additional Beauty services
     const ServiceModel(

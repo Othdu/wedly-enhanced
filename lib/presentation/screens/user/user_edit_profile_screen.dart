@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'dart:io';
+import '../../../core/constants/app_colors.dart';
 import '../../../logic/blocs/auth/auth_bloc.dart';
+import '../../../logic/blocs/auth/auth_event.dart';
 import '../../../logic/blocs/auth/auth_state.dart';
 import '../../widgets/profile_picture_widget.dart';
 
@@ -13,11 +15,15 @@ class UserEditProfileScreen extends StatefulWidget {
 }
 
 class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
   String? _currentProfileImageUrl;
+  File? _selectedImage;
+
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _cityController;
+  late TextEditingController _birthDateController;
+  String? _selectedGender;
 
   @override
   void initState() {
@@ -25,8 +31,9 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     _nameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
-    _cityController = TextEditingController();
+    _birthDateController = TextEditingController();
 
+    // Safely load user data from AuthBloc
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthAuthenticated) {
@@ -34,10 +41,10 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           _currentProfileImageUrl = authState.user.profileImageUrl;
           _nameController.text = authState.user.name;
           _emailController.text = authState.user.email;
-          // Phone and city would come from user model when available
-          _phoneController.text =
-              '+20 100 123 4567'; // TODO: Get from user model
-          _cityController.text = 'القاهرة'; // TODO: Get from user model
+          _phoneController.text = authState.user.phone ?? '';
+          // TODO: Add birthDate and gender fields to UserModel and load them here
+          _birthDateController.text = ''; // Will be populated from UserModel
+          _selectedGender = 'ذكر'; // Default value until gender is in UserModel
         });
       }
     });
@@ -48,202 +55,372 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _cityController.dispose();
+    _birthDateController.dispose();
     super.dispose();
   }
 
   void _onImageSelected(File image) {
-    // TODO: Implement image selection handling
     setState(() {
-      // Image selected but not yet saved
+      _selectedImage = image;
     });
+    // TODO: Upload image to backend and update user profile via AuthBloc
+    // Example: context.read<AuthBloc>().add(AuthUpdateProfileImage(image));
   }
 
-  void _saveChanges() {
-    // TODO: Implement profile update via AuthBloc
-    // Save profile image to AuthBloc if changed
-    // if (_selectedImage != null) {
-    //   context.read<AuthBloc>().add(
-    //         AuthProfileUpdated(
-    //           profileImagePath: _selectedImage!.path,
-    //         ),
-    //       );
-    // }
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: Color(0xFFD4AF37),
-                size: 60,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'تم تحديث البيانات بنجاح',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(); // Close dialog
-                    Navigator.of(context).pop(); // Go back to profile
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'حسناً',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
+  Future<void> _saveChanges() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      // Dispatch AuthUpdateProfile event to update user data
+      context.read<AuthBloc>().add(
+        AuthUpdateProfile(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          // TODO: Add birthDate and gender to AuthUpdateProfile event when they are added to UserModel
         ),
-      ),
-    );
-  }
+      );
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
-        children: [
-          // Gold Header with Title and Back Button
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 16,
-              bottom: 20,
-            ),
-            decoration: const BoxDecoration(
-              color: Color(0xFFD4AF37),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-            ),
-            child: Stack(
+      // Show success dialog
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Positioned(
-                  right: 16,
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: const Icon(
-                      Icons.arrow_back_ios,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                // Success Icon
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.gold,
+                    size: 40,
                   ),
                 ),
-                const Center(
-                  child: Text(
-                    'تعديل الملف الشخصي',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                const SizedBox(height: 20),
+                // Success Message
+                const Text(
+                  'تم تحديث البيانات بنجاح',
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                // OK Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(dialogContext).pop(); // Close dialog
+                      await Future.delayed(const Duration(milliseconds: 100));
+                      if (mounted && context.mounted) {
+                        Navigator.of(context).pop(); // Go back to profile
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'حسناً',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      );
+    }
+  }
 
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 32),
-                  // Profile Picture
-                  ProfilePictureWidget(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.gold,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+          ),
+          title: const Text(
+            'تعديل الملف الشخصي',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: Navigator.of(context).pop,
+          ),
+        ),
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                // Profile Picture with shadow
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.gold.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ProfilePictureWidget(
                     profileImageUrl: _currentProfileImageUrl,
                     isEditable: true,
                     onImageSelected: _onImageSelected,
                   ),
-                  const SizedBox(height: 40),
-
-                  // Profile Info Fields - Editable
+                ),
+                if (_selectedImage != null)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      children: [
-                        _buildEditableField(
-                          controller: _nameController,
-                          label: 'الاسم الكامل',
-                        ),
-                        const SizedBox(height: 20),
-                        _buildEditableField(
-                          controller: _emailController,
-                          label: 'البريد الإلكتروني',
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildEditableField(
-                          controller: _phoneController,
-                          label: 'رقم الهاتف',
-                          keyboardType: TextInputType.phone,
-                          textDirection:
-                              TextDirection.ltr, // Phone numbers should be LTR
-                        ),
-                        const SizedBox(height: 20),
-                        _buildEditableField(
-                          controller: _cityController,
-                          label: 'المدينة',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-
-                  // Save Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _saveChanges,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD4AF37),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'حفظ التعديلات',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'تم اختيار صورة جديدة',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.gold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
-                ],
-              ),
+                const SizedBox(height: 32),
+
+                // Profile Info Fields - Editable Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildEditableField(
+                        controller: _nameController,
+                        label: 'الاسم الكامل',
+                        keyboardType: TextInputType.name,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'الرجاء إدخال الاسم';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildEditableField(
+                        controller: _emailController,
+                        label: 'البريد الإلكتروني',
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'الرجاء إدخال البريد الإلكتروني';
+                          }
+                          if (!value.contains('@')) {
+                            return 'البريد الإلكتروني غير صحيح';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildEditableField(
+                        controller: _phoneController,
+                        label: 'رقم الهاتف',
+                        keyboardType: TextInputType.phone,
+                        textDirection: TextDirection.ltr,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'الرجاء إدخال رقم الهاتف';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+                      // Gender Dropdown
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'النوع',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.gold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: _selectedGender,
+                            decoration: InputDecoration(
+                              hintText: 'ذكر / أنثى',
+                              hintStyle: TextStyle(color: Colors.grey.shade400),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 16,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade200,
+                                  width: 1,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade200,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: AppColors.gold,
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              errorStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            items: const [
+                              DropdownMenuItem<String>(
+                                value: 'ذكر',
+                                child: Text('ذكر'),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'أنثى',
+                                child: Text('أنثى'),
+                              ),
+                            ],
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedGender = newValue;
+                              });
+                            },
+                            validator: (value) {
+                              // Optional field - no validation required
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Save Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _saveChanges,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'حفظ التعديلات',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -253,16 +430,18 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     required String label,
     TextInputType keyboardType = TextInputType.text,
     TextDirection? textDirection,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
+          textAlign: TextAlign.right,
           style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFFD4AF37),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.gold,
           ),
         ),
         const SizedBox(height: 8),
@@ -271,7 +450,14 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           keyboardType: keyboardType,
           textDirection: textDirection ?? TextDirection.rtl,
           textAlign: TextAlign.right,
+          validator: validator,
           decoration: InputDecoration(
+            hintText: '.........',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade300,
+              fontSize: 18,
+              letterSpacing: 3,
+            ),
             filled: true,
             fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(
@@ -280,22 +466,30 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
+              borderSide: const BorderSide(color: AppColors.gold, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
+            ),
+            errorStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+          style: const TextStyle(fontSize: 15, color: Colors.black87),
         ),
       ],
     );

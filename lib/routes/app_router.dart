@@ -20,6 +20,8 @@ import 'package:wedly/presentation/screens/provider/provider_add_service_screen.
 import 'package:wedly/presentation/screens/provider/provider_edit_service_screen.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 import 'package:wedly/presentation/screens/user/user_edit_profile_screen.dart';
+import 'package:wedly/presentation/screens/user/change_password_screen.dart';
+import 'package:wedly/presentation/screens/user/user_address_screen.dart';
 import 'package:wedly/presentation/screens/user/offers_list_screen.dart';
 import 'package:wedly/presentation/screens/user/notifications_list_screen.dart';
 import 'package:wedly/presentation/screens/user/venues_list_screen.dart';
@@ -48,6 +50,8 @@ class AppRouter {
   static const String roleSelector = '/role-selector';
   static const String userHome = '/user';
   static const String userEditProfile = '/user-edit-profile';
+  static const String userChangePassword = '/user-change-password';
+  static const String userAddress = '/user-address';
   static const String offersList = '/offers-list';
   static const String notificationsList = '/notifications-list';
   static const String venuesList = '/venues-list';
@@ -157,6 +161,10 @@ class AppRouter {
         );
       case userEditProfile:
         return MaterialPageRoute(builder: (_) => const UserEditProfileScreen());
+      case userChangePassword:
+        return MaterialPageRoute(builder: (_) => const ChangePasswordScreen());
+      case userAddress:
+        return MaterialPageRoute(builder: (_) => const UserAddressScreen());
       case offersList:
         return MaterialPageRoute(builder: (_) => const OffersListScreen());
       case notificationsList:

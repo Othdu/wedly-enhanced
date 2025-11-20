@@ -104,6 +104,18 @@ class AppStrings {
   static const String female = 'أنثى';
   static const String pleaseSelectGender = 'الرجاء اختيار الجنس';
 
+  // Address
+  static const String addressTitle = 'العنوان';
+  static const String city = 'المدينة';
+  static const String district = 'المنطقة';
+  static const String buildingNumber = 'رقم المبنى';
+  static const String editAddress = 'تعديل العنوان';
+  static const String confirmAndSave = 'تأكيد وحفظ';
+  static const String selectCity = 'اختر المدينة';
+  static const String selectDistrict = 'اختر المنطقة';
+  static const String enterBuildingNumber = 'أدخل رقم المبنى';
+  static const String addressSaved = 'تم حفظ العنوان بنجاح';
+
   // Common
   static const String loading = 'جاري التحميل...';
   static const String pleaseEnter = 'الرجاء إدخال';

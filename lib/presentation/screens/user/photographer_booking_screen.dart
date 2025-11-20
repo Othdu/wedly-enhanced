@@ -9,12 +9,11 @@ class PhotographerBookingScreen extends StatefulWidget {
   final ServiceModel? service;
   final OfferModel? offer;
 
-  const PhotographerBookingScreen({
-    super.key,
-    this.service,
-    this.offer,
-  }) : assert(service != null || offer != null,
-            'Either service or offer must be provided');
+  const PhotographerBookingScreen({super.key, this.service, this.offer})
+    : assert(
+        service != null || offer != null,
+        'Either service or offer must be provided',
+      );
 
   @override
   State<PhotographerBookingScreen> createState() =>
@@ -762,18 +761,32 @@ class _PhotographerBookingScreenState extends State<PhotographerBookingScreen> {
 
   Widget _buildPriceSummary() {
     // Get selected package and option price
-    double totalPrice = 0.0;
+    double originalPrice = 0.0;
+    double finalPrice = 0.0;
     String selectedPackageTitle = '';
     String selectedOptionTitle = '';
+    bool hasDiscount = false;
+    double? discountPercentage;
 
     if (_selectedPackage != null && _selectedOption != null) {
       final package = _packages[_selectedPackage]![0];
       final optionIndex = int.parse(_selectedOption!.split('-')[1]);
       final option = package['options'][optionIndex];
 
-      totalPrice = (option['price'] as int).toDouble();
+      originalPrice = (option['price'] as int).toDouble();
       selectedPackageTitle = _getPackageTitle(_selectedPackage!);
       selectedOptionTitle = option['size'];
+
+      // Check if service has an approved offer
+      if (widget.service != null &&
+          widget.service!.hasApprovedOffer &&
+          widget.service!.discountPercentage != null) {
+        hasDiscount = true;
+        discountPercentage = widget.service!.discountPercentage;
+        finalPrice = originalPrice * (1 - discountPercentage! / 100);
+      } else {
+        finalPrice = originalPrice;
+      }
     }
 
     return Container(
@@ -826,26 +839,54 @@ class _PhotographerBookingScreenState extends State<PhotographerBookingScreen> {
 
           const SizedBox(height: 8),
 
-          // Selected option
+          // Selected option with price
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   selectedOptionTitle,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                   textAlign: TextAlign.right,
                 ),
               ),
               Text(
-                '${totalPrice.toStringAsFixed(0)} جنيه',
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                '${originalPrice.toStringAsFixed(0)} جنيه',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: hasDiscount ? Colors.grey.shade500 : Colors.black87,
+                  decoration: hasDiscount ? TextDecoration.lineThrough : null,
+                ),
               ),
             ],
           ),
+
+          // Discount row (if applicable)
+          if (hasDiscount) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'خصم ${discountPercentage!.toInt()}%',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+                Text(
+                  '- ${(originalPrice - finalPrice).toStringAsFixed(0)} جنيه',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
 
           const SizedBox(height: 12),
           const Divider(thickness: 2),
@@ -864,7 +905,7 @@ class _PhotographerBookingScreenState extends State<PhotographerBookingScreen> {
                 ),
               ),
               Text(
-                '${totalPrice.toStringAsFixed(0)} جنيه',
+                '${finalPrice.toStringAsFixed(0)} جنيه',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

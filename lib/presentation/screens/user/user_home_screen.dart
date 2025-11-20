@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/widget_config_model.dart';
 import 'package:wedly/data/models/category_model.dart';
-import 'package:wedly/data/models/offer_model.dart';
+import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
@@ -342,18 +342,24 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       final visibleWidgets = state.layout!.visibleWidgets;
 
       for (final config in visibleWidgets) {
+        // Filter services with approved offers
+        final servicesWithOffers = state.services
+            .where((service) => service.hasApprovedOffer)
+            .toList();
+
         final widget = WidgetFactory.buildWidget(
           config: config,
           countdown: state.countdown,
-          offers: state.offers,
+          offers: servicesWithOffers,
           categories: state.categoriesWithDetails,
           services: state.services,
           onTap: (item) {
             // Handle tap based on item type
             if (item is CategoryModel) {
               _handleCategoryTap(context, item);
-            } else if (item is OfferModel) {
-              _handleOfferTap(context, item);
+            } else if (item is ServiceModel) {
+              // Handle service/offer tap (offers are services with hasApprovedOffer = true)
+              _handleServiceOfferTap(context, item);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -403,8 +409,12 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       }
     }
 
-    // Offers
-    if (state.offers.isNotEmpty) {
+    // Offers (services with approved offers)
+    final servicesWithOffers = state.services
+        .where((service) => service.hasApprovedOffer)
+        .toList();
+
+    if (servicesWithOffers.isNotEmpty) {
       final offersWidget = WidgetFactory.buildWidget(
         config: const WidgetConfigModel(
           id: 'offers_default',
@@ -413,9 +423,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           isVisible: true,
           order: 2,
         ),
-        offers: state.offers,
-        onTap: (offer) {
-          _handleOfferTap(context, offer);
+        offers: servicesWithOffers,
+        onTap: (service) {
+          _handleServiceOfferTap(context, service);
         },
         onSeeAllOffers: () {
           Navigator.pushNamed(context, AppRouter.offersList);
@@ -466,48 +476,74 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     }
   }
 
-  /// Handle offer tap navigation based on service type
-  void _handleOfferTap(BuildContext context, OfferModel offer) {
-    // Navigate to appropriate booking screen based on service type
-    switch (offer.serviceType.toLowerCase()) {
+  /// Handle service/offer tap navigation based on service category
+  void _handleServiceOfferTap(BuildContext context, ServiceModel service) {
+    // Navigate to appropriate booking screen based on service category
+    final category = service.category.toLowerCase();
+
+    String? routeName;
+
+    // Map categories to their booking routes
+    switch (category) {
       case 'decoration':
-        Navigator.pushNamed(
-          context,
-          AppRouter.decorationBooking,
-          arguments: {'offer': offer},
-        );
+        routeName = AppRouter.decorationBooking;
         break;
-      case 'wedding_dress':
+      case 'wedding dresses':
       case 'weddingdress':
-        Navigator.pushNamed(
-          context,
-          AppRouter.weddingDressBooking,
-          arguments: {'offer': offer},
-        );
+        routeName = AppRouter.weddingDressBooking;
         break;
+      case 'wedding organizers':
       case 'weddingplanner':
       case 'wedding_planner':
-        Navigator.pushNamed(
-          context,
-          AppRouter.weddingPlannerBooking,
-          arguments: {'offer': offer},
-        );
+        routeName = AppRouter.weddingPlannerBooking;
         break;
       case 'photography':
-      case 'catering':
+      case 'photographer':
+        routeName = AppRouter.photographerBooking;
+        break;
+      case 'entertainment':
+      case 'videography':
+      case 'videographer':
+        routeName = AppRouter.videographerBooking;
+        break;
       case 'beauty':
+      case 'makeup':
+      case 'makeupartist':
+      case 'makeup_artist':
+        routeName = AppRouter.makeupArtistBooking;
+        break;
+      case 'venues':
       case 'venue':
+      case 'قاعات':
+      case 'hall':
+        routeName = AppRouter.venueBooking;
+        break;
+      case 'cars':
+      case 'car':
+      case 'transportation':
+        routeName = AppRouter.carBooking;
+        break;
+      case 'catering':
+      case 'food':
       default:
-        // For other service types, show coming soon message
+        // Show coming soon message for unsupported service types
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'صفحة الحجز لخدمة ${offer.titleAr} قريباً',
+              'صفحة الحجز لخدمة ${service.name} قريباً',
               textDirection: TextDirection.rtl,
             ),
             backgroundColor: const Color(0xFFD4AF37),
           ),
         );
+        return;
     }
+
+    // Navigate to the booking screen with service data
+    Navigator.pushNamed(
+      context,
+      routeName,
+      arguments: {'service': service},
+    );
   }
 }

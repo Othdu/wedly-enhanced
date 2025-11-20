@@ -9,6 +9,8 @@ class ServiceModel extends Equatable {
   final String category;
   final bool isActive;
   final double? discountPercentage; // Optional discount percentage (0-100)
+  final bool hasOffer; // Whether this service has an active offer
+  final bool offerApproved; // Whether the offer is approved by admin
   final String providerId; // Provider who owns this service
   final List<String>? imageUrls; // Multiple images (API will upload)
   final double? morningPrice; // Price for morning time slot (صباحي)
@@ -30,6 +32,8 @@ class ServiceModel extends Equatable {
     required this.category,
     this.isActive = true,
     this.discountPercentage,
+    this.hasOffer = false,
+    this.offerApproved = false,
     required this.providerId,
     this.imageUrls,
     this.morningPrice,
@@ -53,6 +57,8 @@ class ServiceModel extends Equatable {
         category,
         isActive,
         discountPercentage,
+        hasOffer,
+        offerApproved,
         providerId,
         imageUrls,
         morningPrice,
@@ -75,6 +81,8 @@ class ServiceModel extends Equatable {
     String? category,
     bool? isActive,
     double? discountPercentage,
+    bool? hasOffer,
+    bool? offerApproved,
     String? providerId,
     List<String>? imageUrls,
     double? morningPrice,
@@ -96,6 +104,8 @@ class ServiceModel extends Equatable {
       category: category ?? this.category,
       isActive: isActive ?? this.isActive,
       discountPercentage: discountPercentage ?? this.discountPercentage,
+      hasOffer: hasOffer ?? this.hasOffer,
+      offerApproved: offerApproved ?? this.offerApproved,
       providerId: providerId ?? this.providerId,
       imageUrls: imageUrls ?? this.imageUrls,
       morningPrice: morningPrice ?? this.morningPrice,
@@ -123,6 +133,8 @@ class ServiceModel extends Equatable {
       discountPercentage: json['discount_percentage'] != null
           ? (json['discount_percentage'] as num).toDouble()
           : null,
+      hasOffer: json['has_offer'] as bool? ?? json['hasOffer'] as bool? ?? false,
+      offerApproved: json['offer_approved'] as bool? ?? json['offerApproved'] as bool? ?? false,
       providerId: json['provider_id'] as String? ?? json['providerId'] as String? ?? '',
       imageUrls: json['image_urls'] != null
           ? List<String>.from(json['image_urls'] as List)
@@ -161,6 +173,8 @@ class ServiceModel extends Equatable {
       'category': category,
       'is_active': isActive,
       'discount_percentage': discountPercentage,
+      'has_offer': hasOffer,
+      'offer_approved': offerApproved,
       'provider_id': providerId,
       'image_urls': imageUrls,
       'morning_price': morningPrice,
@@ -174,5 +188,17 @@ class ServiceModel extends Equatable {
       'review_count': reviewCount,
     };
   }
+
+  // Helper method to calculate discounted price
+  double? get finalPrice {
+    if (price == null) return null;
+    if (hasOffer && offerApproved && discountPercentage != null && discountPercentage! > 0) {
+      return price! * (1 - discountPercentage! / 100);
+    }
+    return price;
+  }
+
+  // Helper method to check if service has approved offer
+  bool get hasApprovedOffer => hasOffer && offerApproved;
 }
 

@@ -4,7 +4,10 @@ import 'package:wedly/core/constants/app_strings.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
+import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
+import 'package:wedly/logic/blocs/notification/notification_state.dart';
 import 'package:wedly/presentation/widgets/profile_picture_widget.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
@@ -91,15 +94,9 @@ class UserProfileScreen extends StatelessWidget {
                           icon: Icons.lock_outline,
                           title: AppStrings.changePassword,
                           onTap: () {
-                            // TODO: Navigate to change password screen
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'تغيير كلمة المرور - قريباً',
-                                  textDirection: TextDirection.rtl,
-                                ),
-                              ),
-                            );
+                            Navigator.of(
+                              context,
+                            ).pushNamed('/user-change-password');
                           },
                         ),
                         _buildMenuItem(
@@ -107,15 +104,9 @@ class UserProfileScreen extends StatelessWidget {
                           icon: Icons.location_on_outlined,
                           title: AppStrings.address,
                           onTap: () {
-                            // TODO: Navigate to address screen
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'العنوان - قريباً',
-                                  textDirection: TextDirection.rtl,
-                                ),
-                              ),
-                            );
+                            Navigator.of(
+                              context,
+                            ).pushNamed('/user-address');
                           },
                         ),
                       ],
@@ -128,19 +119,21 @@ class UserProfileScreen extends StatelessWidget {
                       context,
                       title: AppStrings.settings,
                       items: [
-                        _buildMenuItem(
-                          context,
-                          icon: Icons.notifications_outlined,
-                          title: AppStrings.notifications,
-                          onTap: () {
-                            // TODO: Navigate to notifications settings
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'الإشعارات - قريباً',
-                                  textDirection: TextDirection.rtl,
-                                ),
-                              ),
+                        BlocBuilder<NotificationBloc, NotificationState>(
+                          builder: (context, notificationState) {
+                            int unreadCount = 0;
+                            if (notificationState is NotificationLoaded) {
+                              unreadCount = notificationState.unreadCount;
+                            }
+
+                            return _buildMenuItem(
+                              context,
+                              icon: Icons.notifications_outlined,
+                              title: AppStrings.notifications,
+                              onTap: () {
+                                Navigator.pushNamed(context, AppRouter.notificationsList);
+                              },
+                              badge: unreadCount > 0 ? unreadCount : null,
                             );
                           },
                         ),
@@ -256,6 +249,7 @@ class UserProfileScreen extends StatelessWidget {
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
+    int? badge,
   }) {
     return InkWell(
       onTap: onTap,
@@ -270,10 +264,41 @@ class UserProfileScreen extends StatelessWidget {
         child: Row(
           children: [
             // Icon on the left (for RTL, this appears on left side)
-            Icon(
-              icon,
-              size: 24,
-              color: isDestructive ? Colors.red.shade600 : Colors.grey.shade700,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  icon,
+                  size: 24,
+                  color: isDestructive ? Colors.red.shade600 : Colors.grey.shade700,
+                ),
+                if (badge != null && badge > 0)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          badge > 9 ? '9+' : '$badge',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(width: 12),
             // Title

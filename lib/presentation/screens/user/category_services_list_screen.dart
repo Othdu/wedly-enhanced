@@ -15,10 +15,7 @@ import 'package:wedly/routes/app_router.dart';
 class CategoryServicesListScreen extends StatefulWidget {
   final CategoryModel category;
 
-  const CategoryServicesListScreen({
-    super.key,
-    required this.category,
-  });
+  const CategoryServicesListScreen({super.key, required this.category});
 
   @override
   State<CategoryServicesListScreen> createState() =>
@@ -114,14 +111,15 @@ class _CategoryServicesListScreenState
 
     // Check if service category matches
     final serviceMatches = photographerCategories.any(
-      (photographerCategory) => serviceCategory.contains(photographerCategory.toLowerCase()),
+      (photographerCategory) =>
+          serviceCategory.contains(photographerCategory.toLowerCase()),
     );
 
     // Check if current category matches
     final categoryMatches = photographerCategories.any(
       (photographerCategory) =>
-        currentCategoryName.contains(photographerCategory.toLowerCase()) ||
-        currentCategoryNameAr.contains(photographerCategory.toLowerCase()),
+          currentCategoryName.contains(photographerCategory.toLowerCase()) ||
+          currentCategoryNameAr.contains(photographerCategory.toLowerCase()),
     );
 
     return serviceMatches || categoryMatches;
@@ -146,14 +144,15 @@ class _CategoryServicesListScreenState
 
     // Check if service category matches
     final serviceMatches = videographerCategories.any(
-      (videographerCategory) => serviceCategory.contains(videographerCategory.toLowerCase()),
+      (videographerCategory) =>
+          serviceCategory.contains(videographerCategory.toLowerCase()),
     );
 
     // Check if current category matches
     final categoryMatches = videographerCategories.any(
       (videographerCategory) =>
-        currentCategoryName.contains(videographerCategory.toLowerCase()) ||
-        currentCategoryNameAr.contains(videographerCategory.toLowerCase()),
+          currentCategoryName.contains(videographerCategory.toLowerCase()) ||
+          currentCategoryNameAr.contains(videographerCategory.toLowerCase()),
     );
 
     return serviceMatches || categoryMatches;
@@ -163,20 +162,20 @@ class _CategoryServicesListScreenState
   bool _isMakeupArtistService(ServiceModel service) {
     // Check service category
     final serviceCategory = service.category.toLowerCase().trim();
-    
+
     // Check current category being viewed
     final currentCategoryName = widget.category.name.toLowerCase().trim();
     final currentCategoryNameAr = widget.category.nameAr.toLowerCase().trim();
-    
+
     // Direct check for exact matches first (most common cases)
-    if (serviceCategory == 'beauty' || 
+    if (serviceCategory == 'beauty' ||
         currentCategoryName == 'beauty' ||
         currentCategoryNameAr.contains('كوافير') ||
         currentCategoryNameAr.contains('ميكب') ||
         currentCategoryNameAr.contains('تجميل')) {
       return true;
     }
-    
+
     // List of makeup artist category identifiers
     final makeupArtistCategories = [
       'beauty',
@@ -188,29 +187,25 @@ class _CategoryServicesListScreenState
       'makeup',
       'hair',
     ];
-    
+
     // Check if service category exactly matches or contains any makeup category
-    final serviceMatches = makeupArtistCategories.any(
-      (makeupCategory) {
-        final lowerCategory = makeupCategory.toLowerCase().trim();
-        return serviceCategory == lowerCategory || 
-               serviceCategory.contains(lowerCategory) ||
-               lowerCategory.contains(serviceCategory);
-      },
-    );
-    
+    final serviceMatches = makeupArtistCategories.any((makeupCategory) {
+      final lowerCategory = makeupCategory.toLowerCase().trim();
+      return serviceCategory == lowerCategory ||
+          serviceCategory.contains(lowerCategory) ||
+          lowerCategory.contains(serviceCategory);
+    });
+
     // Check if current category matches
-    final categoryMatches = makeupArtistCategories.any(
-      (makeupCategory) {
-        final lowerCategory = makeupCategory.toLowerCase().trim();
-        return currentCategoryName == lowerCategory ||
-               currentCategoryName.contains(lowerCategory) ||
-               currentCategoryNameAr.contains(lowerCategory) ||
-               lowerCategory.contains(currentCategoryName) ||
-               lowerCategory.contains(currentCategoryNameAr);
-      },
-    );
-    
+    final categoryMatches = makeupArtistCategories.any((makeupCategory) {
+      final lowerCategory = makeupCategory.toLowerCase().trim();
+      return currentCategoryName == lowerCategory ||
+          currentCategoryName.contains(lowerCategory) ||
+          currentCategoryNameAr.contains(lowerCategory) ||
+          lowerCategory.contains(currentCategoryName) ||
+          lowerCategory.contains(currentCategoryNameAr);
+    });
+
     return serviceMatches || categoryMatches;
   }
 
@@ -236,26 +231,22 @@ class _CategoryServicesListScreenState
     ];
 
     // Check if service category matches
-    final serviceMatches = carCategories.any(
-      (carCategory) {
-        final lowerCategory = carCategory.toLowerCase().trim();
-        return serviceCategory == lowerCategory ||
-               serviceCategory.contains(lowerCategory) ||
-               lowerCategory.contains(serviceCategory);
-      },
-    );
+    final serviceMatches = carCategories.any((carCategory) {
+      final lowerCategory = carCategory.toLowerCase().trim();
+      return serviceCategory == lowerCategory ||
+          serviceCategory.contains(lowerCategory) ||
+          lowerCategory.contains(serviceCategory);
+    });
 
     // Check if current category matches
-    final categoryMatches = carCategories.any(
-      (carCategory) {
-        final lowerCategory = carCategory.toLowerCase().trim();
-        return currentCategoryName == lowerCategory ||
-               currentCategoryName.contains(lowerCategory) ||
-               currentCategoryNameAr.contains(lowerCategory) ||
-               lowerCategory.contains(currentCategoryName) ||
-               lowerCategory.contains(currentCategoryNameAr);
-      },
-    );
+    final categoryMatches = carCategories.any((carCategory) {
+      final lowerCategory = carCategory.toLowerCase().trim();
+      return currentCategoryName == lowerCategory ||
+          currentCategoryName.contains(lowerCategory) ||
+          currentCategoryNameAr.contains(lowerCategory) ||
+          lowerCategory.contains(currentCategoryName) ||
+          lowerCategory.contains(currentCategoryNameAr);
+    });
 
     return serviceMatches || categoryMatches;
   }
@@ -282,26 +273,22 @@ class _CategoryServicesListScreenState
     ];
 
     // Check if service category matches
-    final serviceMatches = weddingDressCategories.any(
-      (dressCategory) {
-        final lowerCategory = dressCategory.toLowerCase().trim();
-        return serviceCategory == lowerCategory ||
-               serviceCategory.contains(lowerCategory) ||
-               lowerCategory.contains(serviceCategory);
-      },
-    );
+    final serviceMatches = weddingDressCategories.any((dressCategory) {
+      final lowerCategory = dressCategory.toLowerCase().trim();
+      return serviceCategory == lowerCategory ||
+          serviceCategory.contains(lowerCategory) ||
+          lowerCategory.contains(serviceCategory);
+    });
 
     // Check if current category matches
-    final categoryMatches = weddingDressCategories.any(
-      (dressCategory) {
-        final lowerCategory = dressCategory.toLowerCase().trim();
-        return currentCategoryName == lowerCategory ||
-               currentCategoryName.contains(lowerCategory) ||
-               currentCategoryNameAr.contains(lowerCategory) ||
-               lowerCategory.contains(currentCategoryName) ||
-               lowerCategory.contains(currentCategoryNameAr);
-      },
-    );
+    final categoryMatches = weddingDressCategories.any((dressCategory) {
+      final lowerCategory = dressCategory.toLowerCase().trim();
+      return currentCategoryName == lowerCategory ||
+          currentCategoryName.contains(lowerCategory) ||
+          currentCategoryNameAr.contains(lowerCategory) ||
+          lowerCategory.contains(currentCategoryName) ||
+          lowerCategory.contains(currentCategoryNameAr);
+    });
 
     return serviceMatches || categoryMatches;
   }
@@ -328,26 +315,22 @@ class _CategoryServicesListScreenState
     ];
 
     // Check if service category matches
-    final serviceMatches = decorationCategories.any(
-      (decorCategory) {
-        final lowerCategory = decorCategory.toLowerCase().trim();
-        return serviceCategory == lowerCategory ||
-               serviceCategory.contains(lowerCategory) ||
-               lowerCategory.contains(serviceCategory);
-      },
-    );
+    final serviceMatches = decorationCategories.any((decorCategory) {
+      final lowerCategory = decorCategory.toLowerCase().trim();
+      return serviceCategory == lowerCategory ||
+          serviceCategory.contains(lowerCategory) ||
+          lowerCategory.contains(serviceCategory);
+    });
 
     // Check if current category matches
-    final categoryMatches = decorationCategories.any(
-      (decorCategory) {
-        final lowerCategory = decorCategory.toLowerCase().trim();
-        return currentCategoryName == lowerCategory ||
-               currentCategoryName.contains(lowerCategory) ||
-               currentCategoryNameAr.contains(lowerCategory) ||
-               lowerCategory.contains(currentCategoryName) ||
-               lowerCategory.contains(currentCategoryNameAr);
-      },
-    );
+    final categoryMatches = decorationCategories.any((decorCategory) {
+      final lowerCategory = decorCategory.toLowerCase().trim();
+      return currentCategoryName == lowerCategory ||
+          currentCategoryName.contains(lowerCategory) ||
+          currentCategoryNameAr.contains(lowerCategory) ||
+          lowerCategory.contains(currentCategoryName) ||
+          lowerCategory.contains(currentCategoryNameAr);
+    });
 
     return serviceMatches || categoryMatches;
   }
@@ -373,26 +356,22 @@ class _CategoryServicesListScreenState
     ];
 
     // Check if service category matches
-    final serviceMatches = weddingPlannerCategories.any(
-      (plannerCategory) {
-        final lowerCategory = plannerCategory.toLowerCase().trim();
-        return serviceCategory == lowerCategory ||
-               serviceCategory.contains(lowerCategory) ||
-               lowerCategory.contains(serviceCategory);
-      },
-    );
+    final serviceMatches = weddingPlannerCategories.any((plannerCategory) {
+      final lowerCategory = plannerCategory.toLowerCase().trim();
+      return serviceCategory == lowerCategory ||
+          serviceCategory.contains(lowerCategory) ||
+          lowerCategory.contains(serviceCategory);
+    });
 
     // Check if current category matches
-    final categoryMatches = weddingPlannerCategories.any(
-      (plannerCategory) {
-        final lowerCategory = plannerCategory.toLowerCase().trim();
-        return currentCategoryName == lowerCategory ||
-               currentCategoryName.contains(lowerCategory) ||
-               currentCategoryNameAr.contains(lowerCategory) ||
-               lowerCategory.contains(currentCategoryName) ||
-               lowerCategory.contains(currentCategoryNameAr);
-      },
-    );
+    final categoryMatches = weddingPlannerCategories.any((plannerCategory) {
+      final lowerCategory = plannerCategory.toLowerCase().trim();
+      return currentCategoryName == lowerCategory ||
+          currentCategoryName.contains(lowerCategory) ||
+          currentCategoryNameAr.contains(lowerCategory) ||
+          lowerCategory.contains(currentCategoryName) ||
+          lowerCategory.contains(currentCategoryNameAr);
+    });
 
     return serviceMatches || categoryMatches;
   }
@@ -548,15 +527,9 @@ class _CategoryServicesListScreenState
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      Container(
-                        height: 16,
-                        color: Colors.white,
-                      ),
+                      Container(height: 16, color: Colors.white),
                       const SizedBox(height: 12),
-                      Container(
-                        height: 14,
-                        color: Colors.white,
-                      ),
+                      Container(height: 14, color: Colors.white),
                       const SizedBox(height: 16),
                       Container(
                         height: 40,
@@ -582,11 +555,7 @@ class _CategoryServicesListScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red,
-          ),
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
           Text(
             message,
@@ -620,19 +589,12 @@ class _CategoryServicesListScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.inbox_outlined,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'لا توجد خدمات في هذا القسم حالياً',
             textDirection: TextDirection.rtl,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
         ],
       ),
