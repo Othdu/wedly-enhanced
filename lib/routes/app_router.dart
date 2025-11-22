@@ -39,6 +39,7 @@ import 'package:wedly/presentation/screens/user/weddingplanner_booking_screen.da
 import 'package:wedly/logic/blocs/service/service_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
+import 'package:wedly/presentation/screens/user/venue_details_screen.dart';
 
 class AppRouter {
   static const String login = '/login';
@@ -179,13 +180,9 @@ class AppRouter {
           ),
         );
       case termsAndConditions:
-        return MaterialPageRoute(
-          builder: (_) => const TermsConditionsScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const TermsConditionsScreen());
       case helpAndSupport:
-        return MaterialPageRoute(
-          builder: (_) => const HelpAndSupportScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const HelpAndSupportScreen());
       case venuesList:
         return MaterialPageRoute(
           builder: (_) => BlocProvider<VenueBloc>(
@@ -202,18 +199,22 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => BlocProvider<ReviewBloc>(
             create: (_) => getIt<ReviewBloc>(),
-            child: VenueBookingScreen(venue: venue),
+            child: VenueDetailsScreen(venue: venue),
           ),
         );
       case venueBooking:
         final args = settings.arguments as Map<String, dynamic>?;
         final venue = args?['venue'];
-        if (venue == null) {
+        final timeSlot = args?['timeSlot'] as String?;
+        final decoration = args?['decoration'] as String?;
+        if (venue == null || timeSlot == null || decoration == null) {
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
         return MaterialPageRoute(
           builder: (_) => VenueBookingScreen(
             venue: venue,
+            timeSlot: timeSlot,
+            decoration: decoration,
           ),
         );
       case categoryServices:

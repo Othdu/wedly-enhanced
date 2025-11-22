@@ -62,10 +62,10 @@ class _VenuesListScreenState extends State<VenuesListScreen> {
                         return VenueCard(
                           venue: venue,
                           onTap: () {
-                            // Navigate directly to booking screen
+                            // Navigate to venue details screen
                             Navigator.pushNamed(
                               context,
-                              AppRouter.venueBooking,
+                              AppRouter.venueDetails,
                               arguments: {'venue': venue},
                             );
                           },
