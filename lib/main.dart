@@ -8,6 +8,7 @@ import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/logic/blocs/booking/booking_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
+import 'package:wedly/logic/blocs/banner/banner_bloc.dart';
 import 'package:wedly/presentation/screens/splash/splash_screen.dart';
 import 'package:wedly/routes/app_router.dart';
 
@@ -41,6 +42,9 @@ class WedlyApp extends StatelessWidget {
         ),
         BlocProvider<ReviewBloc>(
           create: (context) => getIt<ReviewBloc>(),
+        ),
+        BlocProvider<BannerBloc>(
+          create: (context) => getIt<BannerBloc>(),
         ),
       ],
       child: MaterialApp(

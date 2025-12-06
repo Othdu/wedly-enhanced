@@ -14,8 +14,12 @@ import 'package:wedly/logic/blocs/cart/cart_event.dart';
 import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
 import 'package:wedly/logic/blocs/notification/notification_state.dart';
 import 'package:wedly/logic/blocs/notification/notification_event.dart';
+import 'package:wedly/logic/blocs/banner/banner_bloc.dart';
+import 'package:wedly/logic/blocs/banner/banner_state.dart';
+import 'package:wedly/logic/blocs/banner/banner_event.dart';
 import 'package:wedly/presentation/widgets/widget_factory.dart';
 import 'package:wedly/presentation/widgets/skeleton_loading.dart';
+import 'package:wedly/presentation/widgets/banners_carousel_widget.dart';
 import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
 import 'package:wedly/routes/app_router.dart';
 
@@ -49,6 +53,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     if (userId != null) {
       context.read<NotificationBloc>().add(NotificationsRequested(userId: userId));
     }
+
+    // Load banners
+    context.read<BannerBloc>().add(const BannersRequested());
   }
 
   @override
@@ -342,15 +349,38 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       final visibleWidgets = state.layout!.visibleWidgets;
 
       for (final config in visibleWidgets) {
-        // Filter services with approved offers
-        final servicesWithOffers = state.services
-            .where((service) => service.hasApprovedOffer)
-            .toList();
+        // Skip offers widget - we'll show banners instead
+        if (config.type == WidgetType.offers) {
+          // Show banners carousel instead of offers
+          widgets.add(
+            SliverToBoxAdapter(
+              child: BlocBuilder<BannerBloc, BannerState>(
+                builder: (context, bannerState) {
+                  if (bannerState is BannerLoaded && bannerState.banners.isNotEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: BannersCarouselWidget(
+                        banners: bannerState.banners,
+                        autoplay: true,
+                        autoplayDuration: const Duration(seconds: 4),
+                        showIndicators: true,
+                      ),
+                    );
+                  }
+                  // If no banners, return empty widget (section disappears)
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          );
+          continue; // Skip the old offers widget
+        }
 
+        // Handle all other widget types normally
         final widget = WidgetFactory.buildWidget(
           config: config,
           countdown: state.countdown,
-          offers: servicesWithOffers,
+          offers: null, // Don't pass offers anymore
           categories: state.categoriesWithDetails,
           services: state.services,
           onTap: (item) {
@@ -358,7 +388,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             if (item is CategoryModel) {
               _handleCategoryTap(context, item);
             } else if (item is ServiceModel) {
-              // Handle service/offer tap (offers are services with hasApprovedOffer = true)
               _handleServiceOfferTap(context, item);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -370,9 +399,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 ),
               );
             }
-          },
-          onSeeAllOffers: () {
-            Navigator.pushNamed(context, AppRouter.offersList);
           },
         );
 
@@ -409,32 +435,28 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       }
     }
 
-    // Offers (services with approved offers)
-    final servicesWithOffers = state.services
-        .where((service) => service.hasApprovedOffer)
-        .toList();
-
-    if (servicesWithOffers.isNotEmpty) {
-      final offersWidget = WidgetFactory.buildWidget(
-        config: const WidgetConfigModel(
-          id: 'offers_default',
-          type: WidgetType.offers,
-          titleAr: 'عروض الأسبوع',
-          isVisible: true,
-          order: 2,
+    // Banners Carousel (replacing offers)
+    widgets.add(
+      SliverToBoxAdapter(
+        child: BlocBuilder<BannerBloc, BannerState>(
+          builder: (context, bannerState) {
+            if (bannerState is BannerLoaded && bannerState.banners.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: BannersCarouselWidget(
+                  banners: bannerState.banners,
+                  autoplay: true,
+                  autoplayDuration: const Duration(seconds: 4),
+                  showIndicators: true,
+                ),
+              );
+            }
+            // If no banners, return empty widget (section disappears)
+            return const SizedBox.shrink();
+          },
         ),
-        offers: servicesWithOffers,
-        onTap: (service) {
-          _handleServiceOfferTap(context, service);
-        },
-        onSeeAllOffers: () {
-          Navigator.pushNamed(context, AppRouter.offersList);
-        },
-      );
-      if (offersWidget != null) {
-        widgets.add(SliverToBoxAdapter(child: offersWidget));
-      }
-    }
+      ),
+    );
 
     // Categories
     if (state.categoriesWithDetails.isNotEmpty) {
