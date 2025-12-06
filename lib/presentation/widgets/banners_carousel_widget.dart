@@ -223,11 +223,22 @@ class _BannersCarouselWidgetState extends State<BannersCarouselWidget> {
     try {
       final uri = Uri.parse(banner.link!);
 
-      // Try to launch the URL
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      // Try to launch the URL - first try external app mode
+      bool launched = false;
+
+      try {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (e) {
+        // If external app fails, try platform default mode
+        try {
+          launched = await launchUrl(uri);
+        } catch (e) {
+          launched = false;
+        }
+      }
 
       // If launch failed, show user-friendly message
       if (!launched && mounted) {
