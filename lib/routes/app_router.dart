@@ -19,6 +19,7 @@ import 'package:wedly/presentation/screens/provider/provider_navigation_wrapper.
 import 'package:wedly/presentation/screens/provider/provider_add_service_screen.dart';
 import 'package:wedly/presentation/screens/provider/provider_edit_service_screen.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
+import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
 import 'package:wedly/presentation/screens/user/user_edit_profile_screen.dart';
 import 'package:wedly/presentation/screens/user/change_password_screen.dart';
 import 'package:wedly/presentation/screens/user/user_address_screen.dart';
@@ -52,6 +53,7 @@ class AppRouter {
   static const String providerDocuments = '/provider-documents';
   static const String roleSelector = '/role-selector';
   static const String userHome = '/user';
+  static const String userCart = '/user-cart';
   static const String userEditProfile = '/user-edit-profile';
   static const String userChangePassword = '/user-change-password';
   static const String userAddress = '/user-address';
@@ -110,7 +112,12 @@ class AppRouter {
       case forgotPassword:
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
       case resetPassword:
-        return MaterialPageRoute(builder: (_) => const ResetPasswordScreen());
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => ResetPasswordScreen(
+            token: args?['token'],
+          ),
+        );
       case otpVerification:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
@@ -141,6 +148,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const RoleSelectorScreen());
       case userHome:
         return MaterialPageRoute(builder: (_) => const UserNavigationWrapper());
+      case userCart:
+        return MaterialPageRoute(builder: (_) => const UserCartScreen());
       case providerHome:
         return MaterialPageRoute(
           builder: (_) => const ProviderNavigationWrapper(),

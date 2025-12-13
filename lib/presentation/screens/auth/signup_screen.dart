@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/core/constants/app_colors.dart';
 import 'package:wedly/core/utils/enums.dart';
+import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/routes/app_router.dart';
 import 'package:wedly/presentation/screens/auth/login_screen.dart';
@@ -25,6 +28,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
   UserRole? _selectedRole;
   Gender? _selectedGender;
 
@@ -38,7 +42,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  void _handleSignUp(BuildContext context) {
+  void _handleSocialSignUp(BuildContext context, String provider) {
+    print('🔍 SIGNUP UI: User clicked $provider signup');
+    context.read<AuthBloc>().add(
+          AuthSocialLoginRequested(provider: provider),
+        );
+  }
+
+  Future<void> _handleSignUp(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       if (_selectedRole == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -52,30 +63,123 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
         return;
       }
-      if (_selectedGender == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'الرجاء اختيار الجنس',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
 
-      // Navigate to OTP verification
-      Navigator.of(context).pushNamed(
-        AppRouter.signupOtp,
-        arguments: {
-          'phoneOrEmail': _phoneController.text.isNotEmpty
-              ? _phoneController.text
-              : _emailController.text,
-          'userRole': _selectedRole!,
-        },
-      );
+      // Set loading state
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Call register API
+        final authRepository = getIt<AuthRepository>();
+        final result = await authRepository.register(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          phone: _phoneController.text.trim(),
+          role: _selectedRole!,
+        );
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (result['success'] == true) {
+          // Show success message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  result['message'] ?? 'تم إرسال كود التحقق إلى بريدك الإلكتروني',
+                  textDirection: TextDirection.rtl,
+                ),
+                backgroundColor: AppColors.gold,
+              ),
+            );
+
+            // Navigate to OTP verification screen with email
+            Navigator.of(context).pushNamed(
+              AppRouter.signupOtp,
+              arguments: {
+                'phoneOrEmail': _emailController.text.trim(),
+                'userRole': _selectedRole!,
+              },
+            );
+          }
+        } else {
+          // Show error message
+          if (mounted) {
+            _showErrorDialog(result['message'] ?? 'حدث خطأ أثناء التسجيل');
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          String errorMessage = 'حدث خطأ أثناء التسجيل. الرجاء المحاولة مرة أخرى';
+
+          // Extract error message from ApiException or other exceptions
+          final errorString = e.toString();
+
+          if (errorString.contains('No internet')) {
+            errorMessage = 'لا يوجد اتصال بالإنترنت. يرجى التحقق من الشبكة';
+          } else if (errorString.contains('timeout') || errorString.contains('Request timeout')) {
+            errorMessage = 'انتهت مهلة الطلب. يرجى المحاولة مرة أخرى';
+          } else if (errorString.contains('Server error')) {
+            errorMessage = 'خطأ في الخادم. يرجى المحاولة لاحقاً';
+          } else if (errorString.contains('ApiException:')) {
+            // Extract message after "ApiException: "
+            final parts = errorString.split('ApiException: ');
+            if (parts.length > 1) {
+              errorMessage = parts[1].split(' (Status:')[0];
+            }
+          }
+
+          debugPrint('Registration error: $e');
+          _showErrorDialog(errorMessage);
+        }
+      }
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'خطأ',
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            color: AppColors.gold,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message,
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'حسناً',
+              style: TextStyle(
+                color: AppColors.gold,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildRoleButton({
@@ -179,7 +283,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           }
         },
         builder: (context, state) {
-          final isLoading = state is AuthLoading;
+          final isLoading = _isLoading;
 
           return Stack(
             children: [
@@ -373,14 +477,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               const SizedBox(height: 16),
                               // Phone Field
                               TextFormField(
-  controller: _phoneController, // غيّر الاسم هنا (اختياري)
+  controller: _phoneController,
   decoration: InputDecoration(
-    hintText: 'اسم المستخدم',
+    hintText: 'رقم الهاتف',
     hintTextDirection: TextDirection.rtl,
     hintStyle: TextStyle(
       color: AppColors.textHint,
     ),
-    prefixIcon: const Icon(Icons.person_outline), // 👈 بدل أيقونة الهاتف
+    prefixIcon: const Icon(Icons.phone_outlined),
     filled: true,
     fillColor: AppColors.greyBackground,
     border: OutlineInputBorder(
@@ -411,11 +515,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     ),
   ),
   textDirection: TextDirection.rtl,
-  keyboardType: TextInputType.text, // 👈 هذا أهم تغيير
+  keyboardType: TextInputType.phone,
   enabled: !isLoading,
   validator: (value) {
     if (value == null || value.isEmpty) {
-      return 'الرجاء إدخال اسم المستخدم';
+      return 'الرجاء إدخال رقم الهاتف';
+    }
+    if (value.length < 10) {
+      return 'رقم الهاتف يجب أن يكون 10 أرقام على الأقل';
     }
     return null;
   },
@@ -562,25 +669,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                               const SizedBox(height: 16),
                               // Gender Selection
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildGenderButton(
-                                    label: 'ذكر',
-                                    gender: Gender.male,
-                                    isSelected: _selectedGender == Gender.male,
-                                    isEnabled: !isLoading,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  _buildGenderButton(
-                                    label: 'أنثى',
-                                    gender: Gender.female,
-                                    isSelected: _selectedGender == Gender.female,
-                                    isEnabled: !isLoading,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 32),
+                      
+                           
                               // Sign Up Button
                               SizedBox(
                                 height: 56,
@@ -604,7 +694,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                           ),
                                         )
                                       : Text(
-                                          'متابعة',
+                                          isLoading ? 'تحميل...' : 'متابعة',
                                           textDirection: TextDirection.rtl,
                                           style: const TextStyle(
                                             fontSize: 16,
@@ -632,9 +722,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   // Facebook Button
                                   _SocialLoginButton(
                                     imagePath: 'assets/images/facebook.png',
-                                    onPressed: () {
-                                      // TODO: Implement Facebook signup
-                                    },
+                                    onPressed: _isLoading
+                                        ? null
+                                        : () => _handleSocialSignUp(context, 'facebook'),
                                   ),
                                   const SizedBox(width: 16),
                                   // Apple Button - Only show on iOS
@@ -642,7 +732,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     _SocialLoginButton(
                                       imagePath: 'assets/images/apple.png',
                                       onPressed: () {
-                                        // TODO: Implement Apple signup
+                                        // TODO: Implement Apple signup (requires apple_sign_in package)
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'تسجيل الدخول بواسطة Apple قريباً',
+                                              textDirection: TextDirection.rtl,
+                                            ),
+                                          ),
+                                        );
                                       },
                                     ),
                                     const SizedBox(width: 16),
@@ -650,9 +748,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   // Google Button
                                   _SocialLoginButton(
                                     imagePath: 'assets/images/google.png',
-                                    onPressed: () {
-                                      // TODO: Implement Google signup
-                                    },
+                                    onPressed: _isLoading
+                                        ? null
+                                        : () => _handleSocialSignUp(context, 'google'),
                                   ),
                                 ],
                               ),
@@ -708,7 +806,7 @@ Row(
 
 class _SocialLoginButton extends StatelessWidget {
   final String imagePath;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _SocialLoginButton({
     required this.imagePath,
@@ -720,22 +818,25 @@ class _SocialLoginButton extends StatelessWidget {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.greyLight,
-            width: 1,
+      child: Opacity(
+        opacity: onPressed == null ? 0.5 : 1.0,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.greyLight,
+              width: 1,
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Image.asset(
-            imagePath,
-            fit: BoxFit.contain,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Image.asset(
+              imagePath,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),

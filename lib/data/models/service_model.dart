@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:equatable/equatable.dart';
 
 class ServiceModel extends Equatable {
@@ -16,12 +17,14 @@ class ServiceModel extends Equatable {
   final double? morningPrice; // Price for morning time slot (صباحي)
   final double? eveningPrice; // Price for evening time slot (مسائي)
   final int? chairCount; // Number of chairs for venue services
+  final String? city; // City where service is available
   final double? latitude; // Service location (from Google Maps)
   final double? longitude; // Service location (from Google Maps)
   final String? address; // Human-readable address
   final bool isPendingApproval; // For admin approval workflow
   final double? rating; // Average rating from users
   final int? reviewCount; // Number of reviews
+  final File? imageFile; // Image file for service creation (not persisted)
 
   const ServiceModel({
     required this.id,
@@ -39,12 +42,14 @@ class ServiceModel extends Equatable {
     this.morningPrice,
     this.eveningPrice,
     this.chairCount,
+    this.city,
     this.latitude,
     this.longitude,
     this.address,
     this.isPendingApproval = false,
     this.rating,
     this.reviewCount,
+    this.imageFile,
   });
 
   @override
@@ -64,12 +69,14 @@ class ServiceModel extends Equatable {
         morningPrice,
         eveningPrice,
         chairCount,
+        city,
         latitude,
         longitude,
         address,
         isPendingApproval,
         rating,
         reviewCount,
+        // Note: imageFile is intentionally excluded from props as it's transient
       ];
 
   ServiceModel copyWith({
@@ -88,12 +95,14 @@ class ServiceModel extends Equatable {
     double? morningPrice,
     double? eveningPrice,
     int? chairCount,
+    String? city,
     double? latitude,
     double? longitude,
     String? address,
     bool? isPendingApproval,
     double? rating,
     int? reviewCount,
+    File? imageFile,
   }) {
     return ServiceModel(
       id: id ?? this.id,
@@ -111,12 +120,14 @@ class ServiceModel extends Equatable {
       morningPrice: morningPrice ?? this.morningPrice,
       eveningPrice: eveningPrice ?? this.eveningPrice,
       chairCount: chairCount ?? this.chairCount,
+      city: city ?? this.city,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       address: address ?? this.address,
       isPendingApproval: isPendingApproval ?? this.isPendingApproval,
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
+      imageFile: imageFile ?? this.imageFile,
     );
   }
 
@@ -146,6 +157,7 @@ class ServiceModel extends Equatable {
           ? (json['evening_price'] as num).toDouble()
           : null,
       chairCount: json['chair_count'] as int?,
+      city: json['city'] as String?,
       latitude: json['latitude'] != null
           ? (json['latitude'] as num).toDouble()
           : null,
@@ -160,6 +172,7 @@ class ServiceModel extends Equatable {
           ? (json['rating'] as num).toDouble()
           : null,
       reviewCount: json['review_count'] as int?,
+      // imageFile is not included in JSON as it's only used for creation
     );
   }
 
@@ -180,12 +193,14 @@ class ServiceModel extends Equatable {
       'morning_price': morningPrice,
       'evening_price': eveningPrice,
       'chair_count': chairCount,
+      'city': city,
       'latitude': latitude,
       'longitude': longitude,
       'address': address,
       'is_pending_approval': isPendingApproval,
       'rating': rating,
       'review_count': reviewCount,
+      // imageFile is not serialized to JSON
     };
   }
 

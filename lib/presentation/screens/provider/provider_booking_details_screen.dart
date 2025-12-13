@@ -173,9 +173,15 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
   }
 
   void _handleRejection(BuildContext context) {
-    // TODO: API Integration - Send rejection request to backend
+    // Send rejection request to backend via BookingBloc
     // Endpoint: PUT /api/bookings/{bookingId}/reject
     // Body: { "status": "cancelled" }
+    context.read<BookingBloc>().add(
+      UpdateBookingStatus(
+        booking.id,
+        BookingStatus.cancelled,
+      ),
+    );
     _showConfirmDialog(context, false);
   }
 

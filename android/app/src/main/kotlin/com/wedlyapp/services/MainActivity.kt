@@ -1,4 +1,4 @@
-package com.example.wedly
+package com.wedlyapp.services
 
 import io.flutter.embedding.android.FlutterActivity
 

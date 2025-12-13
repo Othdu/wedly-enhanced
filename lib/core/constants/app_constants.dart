@@ -7,7 +7,7 @@ class AppConstants {
   static const String roleProvider = 'provider';
 
   // API Endpoints (for future use)
-  static const String baseUrl = 'https://api.wedly.com';
+  static const String baseUrl = 'https://api.wedlyinfo.com';
 
   // Storage Keys
   static const String keyUserRole = 'user_role';

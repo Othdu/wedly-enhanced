@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
 /// Car rental booking screen with detailed information
 /// Shows car details with interactive additions selection
@@ -843,19 +844,36 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
         child: ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              // Build additions text
-              final additionsText = _selectedAdditions.isEmpty
-                  ? ''
-                  : '\nالإضافات: ${_selectedAdditions.join('، ')}';
+              // Build additions list
+              final List<String> additionsList = _selectedAdditions.toList();
 
-              // TODO: Implement booking functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'تم حجز موعد في ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}$additionsText',
-                  ),
-                  duration: const Duration(seconds: 3),
-                  backgroundColor: const Color(0xFFD4AF37),
+              // Calculate total price
+              const double basePrice = 2500.0;
+              const Map<String, double> additionPrices = {
+                'تزيين فاخر للسيارة': 500.0,
+                'سائق إضافي احتياطي': 300.0,
+                'خدمة التصوير الفوتوغرافي': 800.0,
+                'باقة ورد داخل السيارة': 200.0,
+              };
+
+              double additionsTotal = 0.0;
+              for (final addition in _selectedAdditions) {
+                additionsTotal += additionPrices[addition] ?? 0.0;
+              }
+              final double totalPrice = basePrice + additionsTotal;
+
+              // Format date
+              final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
+
+              // Show success dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => BookingSuccessDialog(
+                  serviceName: widget.service.name,
+                  date: formattedDate,
+                  additions: additionsList.isNotEmpty ? additionsList : null,
+                  totalPrice: totalPrice,
                 ),
               );
             }
@@ -869,7 +887,7 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
             elevation: 0,
           ),
           child: const Text(
-            'تأكيد الحجز',
+            'إضافة إلى السلة',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),

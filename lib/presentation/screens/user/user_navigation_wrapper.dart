@@ -20,6 +20,12 @@ class UserNavigationWrapper extends StatefulWidget {
 
   @override
   State<UserNavigationWrapper> createState() => _UserNavigationWrapperState();
+
+  // Static method to navigate from child screens
+  static void navigateToTab(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_UserNavigationWrapperState>();
+    state?._navigateToTab(index);
+  }
 }
 
 class _UserNavigationWrapperState extends State<UserNavigationWrapper> {
@@ -37,6 +43,14 @@ class _UserNavigationWrapperState extends State<UserNavigationWrapper> {
       const UserBookingsScreen(),
       const UserProfileScreen(),
     ];
+  }
+
+  void _navigateToTab(int index) {
+    if (mounted) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   @override

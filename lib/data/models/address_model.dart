@@ -36,12 +36,21 @@ class AddressModel extends Equatable {
 
   // JSON serialization
   factory AddressModel.fromJson(Map<String, dynamic> json) {
+    // Handle is_default field - can be bool, int (0/1), or null
+    bool parseIsDefault(dynamic value) {
+      if (value == null) return false;
+      if (value is bool) return value;
+      if (value is int) return value == 1;
+      if (value is String) return value.toLowerCase() == 'true' || value == '1';
+      return false;
+    }
+
     return AddressModel(
-      id: json['id'] as String?,
-      city: json['city'] as String,
-      district: json['district'] as String,
-      buildingNumber: json['building_number'] as String,
-      isDefault: json['is_default'] as bool? ?? false,
+      id: json['id']?.toString(),
+      city: json['city']?.toString() ?? '',
+      district: json['district']?.toString() ?? '',
+      buildingNumber: json['building_number']?.toString() ?? json['buildingNumber']?.toString() ?? '',
+      isDefault: parseIsDefault(json['is_default'] ?? json['isDefault']),
     );
   }
 

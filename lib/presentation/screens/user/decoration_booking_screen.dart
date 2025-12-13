@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/offer_model.dart';
+import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
 /// Decoration booking screen with date selection and personal info
 /// Shows service details, allows date selection and collects user information
@@ -751,14 +752,20 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
         child: ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              // TODO: Implement booking functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'تم حجز موعد في ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
-                  ),
-                  duration: const Duration(seconds: 3),
-                  backgroundColor: const Color(0xFFD4AF37),
+              // Get total price
+              const double totalPrice = 8500.0;
+
+              // Format date
+              final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
+
+              // Show success dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => BookingSuccessDialog(
+                  serviceName: _title,
+                  date: formattedDate,
+                  totalPrice: totalPrice,
                 ),
               );
             }
@@ -772,7 +779,7 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
             elevation: 0,
           ),
           child: const Text(
-            'تأكيد الحجز',
+            'إضافة إلى السلة',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),

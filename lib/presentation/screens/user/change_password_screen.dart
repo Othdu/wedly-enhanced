@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../logic/blocs/auth/auth_bloc.dart';
+import '../../../logic/blocs/auth/auth_event.dart';
+import '../../../logic/blocs/auth/auth_state.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -90,9 +94,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         return;
       }
 
-      // TODO: Implement actual password change via API/AuthBloc
-      // For now, just show success dialog
-      _showSuccessDialog();
+      // Call AuthBloc to change password via API
+      context.read<AuthBloc>().add(
+        AuthChangePasswordRequested(
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+        ),
+      );
     }
   }
 
@@ -169,39 +177,54 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
-          ),
-          child: AppBar(
-            elevation: 0,
-            backgroundColor: AppColors.gold,
-            centerTitle: true,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthChangePasswordSuccess) {
+          _showSuccessDialog();
+        } else if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.message,
+                textDirection: TextDirection.rtl,
+              ),
+              backgroundColor: Colors.red,
             ),
-            title: const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text(
-                'تغيير كلمة المرور',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(70),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(24),
+              bottomRight: Radius.circular(24),
+            ),
+            child: AppBar(
+              elevation: 0,
+              backgroundColor: AppColors.gold,
+              centerTitle: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'تغيير كلمة المرور',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-
-      body: Form(
+        body: Form(
         key: _formKey,
         child: SingleChildScrollView(
           child: Padding(
@@ -360,6 +383,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wedly/data/models/widget_config_model.dart';
 import 'package:wedly/data/models/category_model.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
@@ -17,9 +16,10 @@ import 'package:wedly/logic/blocs/notification/notification_event.dart';
 import 'package:wedly/logic/blocs/banner/banner_bloc.dart';
 import 'package:wedly/logic/blocs/banner/banner_state.dart';
 import 'package:wedly/logic/blocs/banner/banner_event.dart';
-import 'package:wedly/presentation/widgets/widget_factory.dart';
 import 'package:wedly/presentation/widgets/skeleton_loading.dart';
 import 'package:wedly/presentation/widgets/banners_carousel_widget.dart';
+import 'package:wedly/presentation/widgets/countdown_timer_widget.dart';
+import 'package:wedly/presentation/widgets/categories_grid_widget.dart';
 import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
 import 'package:wedly/routes/app_router.dart';
 
@@ -68,36 +68,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             return SkeletonLoading.homeScreen();
           }
 
-          if (homeState is HomeError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(homeState.message, textDirection: TextDirection.rtl),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      final authState = context.read<AuthBloc>().state;
-                      String? userId;
-                      if (authState is AuthAuthenticated) {
-                        userId = authState.user.id;
-                      }
-                      context.read<HomeBloc>().add(
-                        HomeServicesRequested(userId: userId),
-                      );
-                    },
-                    child: const Text(
-                      'إعادة المحاولة',
-                      textDirection: TextDirection.rtl,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
           if (homeState is HomeLoaded) {
             return RefreshIndicator(
               onRefresh: () async {
@@ -115,8 +85,119 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   // Custom App Bar with user info
                   _buildAppBar(context),
 
-                  // Dynamic widgets based on API layout configuration
-                  ...(_buildDynamicWidgets(homeState)),
+                  // Countdown (only shows if user has booked venue)
+                  if (homeState.countdown != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: CountdownTimerWidget(
+                          countdown: homeState.countdown!,
+                          showWeeks: true,
+                          showDays: true,
+                          showHours: true,
+                          showSeconds: true,
+                        ),
+                      ),
+                    ),
+
+                  // Banners Section - HARDCODED STRUCTURE
+                  SliverToBoxAdapter(
+                    child: BlocBuilder<BannerBloc, BannerState>(
+                      builder: (context, bannerState) {
+                        if (bannerState is BannerLoaded && bannerState.banners.isNotEmpty) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Title: عروضنا
+                              const Padding(
+                                padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+                                child: Text(
+                                  'عروضنا',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    color: Color(0xFFD4AF37),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textDirection: TextDirection.rtl,
+                                ),
+                              ),
+                              // Banners Carousel
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: BannersCarouselWidget(
+                                  banners: bannerState.banners,
+                                  autoplay: true,
+                                  autoplayDuration: const Duration(seconds: 4),
+                                  showIndicators: true,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+
+                  // Categories Section - HARDCODED STRUCTURE (always visible)
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title: الخدمات
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+                          child: Text(
+                            'الخدمات',
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Color(0xFFD4AF37),
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textDirection: TextDirection.rtl,
+                          ),
+                        ),
+                        // Categories Grid or Empty State
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: homeState.categoriesWithDetails.isEmpty
+                              ? Container(
+                                  padding: const EdgeInsets.all(48),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.category_outlined,
+                                          size: 48,
+                                          color: Colors.grey[400],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'لا توجد فئات متاحة حالياً',
+                                          textDirection: TextDirection.rtl,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : CategoriesGridWidget(
+                                  categories: homeState.categoriesWithDetails,
+                                  onCategoryTap: (category) => _handleCategoryTap(context, category),
+                                  crossAxisCount: 2,
+                                  aspectRatio: 1.2,
+                                  spacing: 12.0,
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                   // Bottom padding
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -338,148 +419,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         );
       },
     );
-  }
-
-  /// Build widgets dynamically from API layout configuration
-  List<Widget> _buildDynamicWidgets(HomeLoaded state) {
-    final widgets = <Widget>[];
-
-    // If layout config is available from API, use it
-    if (state.layout != null) {
-      final visibleWidgets = state.layout!.visibleWidgets;
-
-      for (final config in visibleWidgets) {
-        // Skip offers widget - we'll show banners instead
-        if (config.type == WidgetType.offers) {
-          // Show banners carousel instead of offers
-          widgets.add(
-            SliverToBoxAdapter(
-              child: BlocBuilder<BannerBloc, BannerState>(
-                builder: (context, bannerState) {
-                  if (bannerState is BannerLoaded && bannerState.banners.isNotEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: BannersCarouselWidget(
-                        banners: bannerState.banners,
-                        autoplay: true,
-                        autoplayDuration: const Duration(seconds: 4),
-                        showIndicators: true,
-                      ),
-                    );
-                  }
-                  // If no banners, return empty widget (section disappears)
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-          );
-          continue; // Skip the old offers widget
-        }
-
-        // Handle all other widget types normally
-        final widget = WidgetFactory.buildWidget(
-          config: config,
-          countdown: state.countdown,
-          offers: null, // Don't pass offers anymore
-          categories: state.categoriesWithDetails,
-          services: state.services,
-          onTap: (item) {
-            // Handle tap based on item type
-            if (item is CategoryModel) {
-              _handleCategoryTap(context, item);
-            } else if (item is ServiceModel) {
-              _handleServiceOfferTap(context, item);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    item.toString(),
-                    textDirection: TextDirection.rtl,
-                  ),
-                ),
-              );
-            }
-          },
-        );
-
-        if (widget != null) {
-          widgets.add(SliverToBoxAdapter(child: widget));
-        }
-      }
-    } else {
-      // Fallback: Show default layout if no API config available
-      widgets.addAll(_buildDefaultLayout(state));
-    }
-
-    return widgets;
-  }
-
-  /// Fallback default layout when no API config is available
-  List<Widget> _buildDefaultLayout(HomeLoaded state) {
-    final widgets = <Widget>[];
-
-    // Countdown
-    if (state.countdown != null) {
-      final countdownWidget = WidgetFactory.buildWidget(
-        config: const WidgetConfigModel(
-          id: 'countdown_default',
-          type: WidgetType.countdown,
-          titleAr: 'العد التنازلي للفرح',
-          isVisible: true,
-          order: 1,
-        ),
-        countdown: state.countdown,
-      );
-      if (countdownWidget != null) {
-        widgets.add(SliverToBoxAdapter(child: countdownWidget));
-      }
-    }
-
-    // Banners Carousel (replacing offers)
-    widgets.add(
-      SliverToBoxAdapter(
-        child: BlocBuilder<BannerBloc, BannerState>(
-          builder: (context, bannerState) {
-            if (bannerState is BannerLoaded && bannerState.banners.isNotEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: BannersCarouselWidget(
-                  banners: bannerState.banners,
-                  autoplay: true,
-                  autoplayDuration: const Duration(seconds: 4),
-                  showIndicators: true,
-                ),
-              );
-            }
-            // If no banners, return empty widget (section disappears)
-            return const SizedBox.shrink();
-          },
-        ),
-      ),
-    );
-
-    // Categories
-    if (state.categoriesWithDetails.isNotEmpty) {
-      final categoriesWidget = WidgetFactory.buildWidget(
-        config: const WidgetConfigModel(
-          id: 'categories_default',
-          type: WidgetType.categories,
-          titleAr: 'الخدمات',
-          isVisible: true,
-          order: 3,
-        ),
-        categories: state.categoriesWithDetails,
-        onTap: (category) {
-          // Navigate based on category
-          _handleCategoryTap(context, category);
-        },
-      );
-      if (categoriesWidget != null) {
-        widgets.add(SliverToBoxAdapter(child: categoriesWidget));
-      }
-    }
-
-    return widgets;
   }
 
   /// Handle category tap navigation

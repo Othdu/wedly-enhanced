@@ -1,40 +1,36 @@
 import 'package:wedly/data/models/review_model.dart';
+import 'package:wedly/data/services/api_client.dart';
+import 'package:wedly/data/services/api_constants.dart';
 
 /// Repository for managing reviews for venues and services
-/// Currently uses mock data - ready for API integration
+///
+/// Supports both mock data and real API integration
+/// Switch between modes using useMockData flag
 class ReviewRepository {
-  // TODO: API Integration - Replace mock data with real API calls
-  // Base URL: /api/reviews
-  // GET /api/venues/:id/reviews - Fetch venue reviews
-  // GET /api/services/:id/reviews - Fetch service reviews
-  // POST /api/venues/:id/reviews - Submit venue review
-  // POST /api/services/:id/reviews - Submit service review
-  // PUT /api/reviews/:id - Update review
-  // DELETE /api/reviews/:id - Delete review
-  // GET /api/users/me/reviews - Fetch current user's reviews
+  final ApiClient? apiClient;
+  final bool useMockData;
+
+  ReviewRepository({this.apiClient, this.useMockData = true});
+
+  // ==================== PUBLIC METHODS ====================
 
   /// Fetch reviews for a specific venue
-  /// Network delay: 600ms (simulated)
   Future<List<ReviewModel>> getVenueReviews(String venueId) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    // TODO: API Integration - Replace with: dio.get('/api/venues/$venueId/reviews')
-    return _getMockReviewsForTarget(venueId, 'venue');
+    if (useMockData || apiClient == null) {
+      return _mockGetVenueReviews(venueId);
+    }
+    return _apiGetVenueReviews(venueId);
   }
 
   /// Fetch reviews for a specific service
-  /// Network delay: 600ms (simulated)
   Future<List<ReviewModel>> getServiceReviews(String serviceId) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    // TODO: API Integration - Replace with: dio.get('/api/services/$serviceId/reviews')
-    return _getMockReviewsForTarget(serviceId, 'service');
+    if (useMockData || apiClient == null) {
+      return _mockGetServiceReviews(serviceId);
+    }
+    return _apiGetServiceReviews(serviceId);
   }
 
   /// Submit a new review for a venue or service
-  /// Network delay: 800ms (simulated)
   Future<ReviewModel> submitReview({
     required String targetId,
     required String targetType,
@@ -44,10 +40,203 @@ class ReviewRepository {
     required double rating,
     required String comment,
   }) async {
-    // Simulate network delay
+    if (useMockData || apiClient == null) {
+      return _mockSubmitReview(
+        targetId: targetId,
+        targetType: targetType,
+        userId: userId,
+        userName: userName,
+        userImageUrl: userImageUrl,
+        rating: rating,
+        comment: comment,
+      );
+    }
+    return _apiSubmitReview(
+      targetId: targetId,
+      targetType: targetType,
+      userId: userId,
+      userName: userName,
+      userImageUrl: userImageUrl,
+      rating: rating,
+      comment: comment,
+    );
+  }
+
+  /// Update an existing review
+  Future<ReviewModel> updateReview({
+    required String reviewId,
+    required double rating,
+    required String comment,
+  }) async {
+    if (useMockData || apiClient == null) {
+      return _mockUpdateReview(
+        reviewId: reviewId,
+        rating: rating,
+        comment: comment,
+      );
+    }
+    return _apiUpdateReview(
+      reviewId: reviewId,
+      rating: rating,
+      comment: comment,
+    );
+  }
+
+  /// Delete a review
+  Future<void> deleteReview(String reviewId) async {
+    if (useMockData || apiClient == null) {
+      return _mockDeleteReview(reviewId);
+    }
+    return _apiDeleteReview(reviewId);
+  }
+
+  /// Fetch all reviews by current user
+  Future<List<ReviewModel>> getUserReviews(String userId) async {
+    if (useMockData || apiClient == null) {
+      return _mockGetUserReviews(userId);
+    }
+    return _apiGetUserReviews();
+  }
+
+  /// Calculate average rating from a list of reviews
+  double calculateAverageRating(List<ReviewModel> reviews) {
+    if (reviews.isEmpty) return 0.0;
+    final sum = reviews.fold<double>(0, (sum, review) => sum + review.rating);
+    return sum / reviews.length;
+  }
+
+  // ==================== API METHODS ====================
+
+  /// API: Get venue reviews
+  Future<List<ReviewModel>> _apiGetVenueReviews(String venueId) async {
+    final response = await apiClient!.get(
+      ApiConstants.getVenueReviews(venueId),
+    );
+    final responseData = response.data['data'] ?? response.data;
+    final reviewsList = responseData['reviews'] ?? responseData;
+
+    return (reviewsList as List)
+        .map((json) => ReviewModel.fromJson(json))
+        .toList();
+  }
+
+  /// API: Get service reviews
+  Future<List<ReviewModel>> _apiGetServiceReviews(String serviceId) async {
+    final response = await apiClient!.get(
+      ApiConstants.getServiceReviews(serviceId),
+    );
+    final responseData = response.data['data'] ?? response.data;
+    final reviewsList = responseData['reviews'] ?? responseData;
+
+    return (reviewsList as List)
+        .map((json) => ReviewModel.fromJson(json))
+        .toList();
+  }
+
+  /// API: Submit a review
+  Future<ReviewModel> _apiSubmitReview({
+    required String targetId,
+    required String targetType,
+    required String userId,
+    required String userName,
+    String? userImageUrl,
+    required double rating,
+    required String comment,
+  }) async {
+    // Validation
+    if (rating < 1 || rating > 5) {
+      throw Exception('التقييم يجب أن يكون بين 1 و 5 نجوم');
+    }
+    if (comment.trim().isEmpty) {
+      throw Exception('الرجاء كتابة تعليق');
+    }
+
+    final endpoint = targetType == 'venue'
+        ? ApiConstants.createVenueReview(targetId)
+        : ApiConstants.createServiceReview(targetId);
+
+    final response = await apiClient!.post(
+      endpoint,
+      data: {
+        'user_id': userId,
+        'user_name': userName,
+        'user_image_url': userImageUrl,
+        'rating': rating,
+        'comment': comment,
+      },
+    );
+
+    final responseData = response.data['data'] ?? response.data;
+    final reviewData = responseData['review'] ?? responseData;
+    return ReviewModel.fromJson(reviewData);
+  }
+
+  /// API: Update review
+  Future<ReviewModel> _apiUpdateReview({
+    required String reviewId,
+    required double rating,
+    required String comment,
+  }) async {
+    // Validation
+    if (rating < 1 || rating > 5) {
+      throw Exception('التقييم يجب أن يكون بين 1 و 5 نجوم');
+    }
+    if (comment.trim().isEmpty) {
+      throw Exception('الرجاء كتابة تعليق');
+    }
+
+    final response = await apiClient!.put(
+      ApiConstants.updateReview(reviewId),
+      data: {'rating': rating, 'comment': comment},
+    );
+
+    final responseData = response.data['data'] ?? response.data;
+    final reviewData = responseData['review'] ?? responseData;
+    return ReviewModel.fromJson(reviewData);
+  }
+
+  /// API: Delete review
+  Future<void> _apiDeleteReview(String reviewId) async {
+    await apiClient!.delete(ApiConstants.deleteReview(reviewId));
+  }
+
+  /// API: Get user reviews
+  Future<List<ReviewModel>> _apiGetUserReviews() async {
+    final response = await apiClient!.get(ApiConstants.userReviews);
+    final responseData = response.data['data'] ?? response.data;
+    final reviewsList = responseData['reviews'] ?? responseData;
+
+    return (reviewsList as List)
+        .map((json) => ReviewModel.fromJson(json))
+        .toList();
+  }
+
+  // ==================== MOCK METHODS ====================
+
+  /// Mock: Get venue reviews
+  Future<List<ReviewModel>> _mockGetVenueReviews(String venueId) async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    return _getMockReviewsForTarget(venueId, 'venue');
+  }
+
+  /// Mock: Get service reviews
+  Future<List<ReviewModel>> _mockGetServiceReviews(String serviceId) async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    return _getMockReviewsForTarget(serviceId, 'service');
+  }
+
+  /// Mock: Submit review
+  Future<ReviewModel> _mockSubmitReview({
+    required String targetId,
+    required String targetType,
+    required String userId,
+    required String userName,
+    String? userImageUrl,
+    required double rating,
+    required String comment,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // TODO: API Integration - Replace with: dio.post('/api/$targetType/$targetId/reviews')
     // Validation
     if (rating < 1 || rating > 5) {
       throw Exception('التقييم يجب أن يكون بين 1 و 5 نجوم');
@@ -71,17 +260,14 @@ class ReviewRepository {
     return newReview;
   }
 
-  /// Update an existing review
-  /// Network delay: 700ms (simulated)
-  Future<ReviewModel> updateReview({
+  /// Mock: Update review
+  Future<ReviewModel> _mockUpdateReview({
     required String reviewId,
     required double rating,
     required String comment,
   }) async {
-    // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 700));
 
-    // TODO: API Integration - Replace with: dio.put('/api/reviews/$reviewId')
     // Validation
     if (rating < 1 || rating > 5) {
       throw Exception('التقييم يجب أن يكون بين 1 و 5 نجوم');
@@ -96,19 +282,13 @@ class ReviewRepository {
       orElse: () => throw Exception('التقييم غير موجود'),
     );
 
-    return mockReview.copyWith(
-      rating: rating,
-      comment: comment,
-    );
+    return mockReview.copyWith(rating: rating, comment: comment);
   }
 
-  /// Delete a review
-  /// Network delay: 500ms (simulated)
-  Future<void> deleteReview(String reviewId) async {
-    // Simulate network delay
+  /// Mock: Delete review
+  Future<void> _mockDeleteReview(String reviewId) async {
     await Future.delayed(const Duration(milliseconds: 500));
 
-    // TODO: API Integration - Replace with: dio.delete('/api/reviews/$reviewId')
     // Simulate deletion (in real app, backend would handle this)
     final reviewExists = _allMockReviews.any((r) => r.id == reviewId);
     if (!reviewExists) {
@@ -117,27 +297,18 @@ class ReviewRepository {
     // In mock, we just verify it exists. Real API would delete it.
   }
 
-  /// Fetch all reviews by current user
-  /// Network delay: 600ms (simulated)
-  Future<List<ReviewModel>> getUserReviews(String userId) async {
-    // Simulate network delay
+  /// Mock: Get user reviews
+  Future<List<ReviewModel>> _mockGetUserReviews(String userId) async {
     await Future.delayed(const Duration(milliseconds: 600));
-
-    // TODO: API Integration - Replace with: dio.get('/api/users/me/reviews')
     return _allMockReviews.where((r) => r.userId == userId).toList();
-  }
-
-  /// Calculate average rating from a list of reviews
-  double calculateAverageRating(List<ReviewModel> reviews) {
-    if (reviews.isEmpty) return 0.0;
-    final sum = reviews.fold<double>(0, (sum, review) => sum + review.rating);
-    return sum / reviews.length;
   }
 
   /// Helper method to get mock reviews for a specific target
   List<ReviewModel> _getMockReviewsForTarget(String targetId, String type) {
     return _allMockReviews.where((r) => r.venueId == targetId).toList();
   }
+
+  // ==================== MOCK DATA ====================
 
   /// Mock reviews database
   /// In real app, this would come from backend API
@@ -150,7 +321,8 @@ class ReviewRepository {
       userName: 'مصطفى الشرقاوي',
       userImageUrl: 'https://i.pravatar.cc/150?img=12',
       rating: 5.0,
-      comment: 'تجربة ممتازة! التنظيم راائع والخدمة سريعة والموظفون محترمون جدًا',
+      comment:
+          'تجربة ممتازة! التنظيم راائع والخدمة سريعة والموظفون محترمون جدًا',
       createdAt: DateTime.now().subtract(const Duration(days: 5)),
     ),
     ReviewModel(
@@ -160,7 +332,8 @@ class ReviewRepository {
       userName: 'أحمد محمود',
       userImageUrl: 'https://i.pravatar.cc/150?img=33',
       rating: 5.0,
-      comment: 'القاعة رائعة والديكورات فخمة جداً. الإضاءة مثالية والصوتيات ممتازة',
+      comment:
+          'القاعة رائعة والديكورات فخمة جداً. الإضاءة مثالية والصوتيات ممتازة',
       createdAt: DateTime.now().subtract(const Duration(days: 12)),
     ),
     ReviewModel(

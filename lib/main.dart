@@ -10,14 +10,18 @@ import 'package:wedly/logic/blocs/booking/booking_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 import 'package:wedly/logic/blocs/banner/banner_bloc.dart';
 import 'package:wedly/presentation/screens/splash/splash_screen.dart';
+import 'package:wedly/presentation/widgets/auth_session_listener.dart';
 import 'package:wedly/routes/app_router.dart';
+
+/// Global navigator key for navigation from anywhere in the app
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Setup dependency injection
   await setupDependencyInjection();
-  
+
   runApp(const WedlyApp());
 }
 
@@ -47,24 +51,27 @@ class WedlyApp extends StatelessWidget {
           create: (context) => getIt<BannerBloc>(),
         ),
       ],
-      child: MaterialApp(
-        title: 'Wedly',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.light,
-        locale: const Locale('ar', 'SA'), // Arabic locale
-        supportedLocales: const [
-          Locale('ar', 'SA'),
-          Locale('en', 'US'),
-        ],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        home: const AppInitializer(),
-        onGenerateRoute: AppRouter.onGenerateRoute,
+      child: AuthSessionListener(
+        child: MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'Wedly',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.light,
+          locale: const Locale('ar', 'SA'), // Arabic locale
+          supportedLocales: const [
+            Locale('ar', 'SA'),
+            Locale('en', 'US'),
+          ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const AppInitializer(),
+          onGenerateRoute: AppRouter.onGenerateRoute,
+        ),
       ),
     );
   }

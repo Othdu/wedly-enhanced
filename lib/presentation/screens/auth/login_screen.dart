@@ -20,7 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
-  UserRole? _selectedRole;
 
   @override
   void dispose() {
@@ -31,68 +30,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      if (_selectedRole == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'الرجاء اختيار نوع الحساب',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
+      print('🔍 LOGIN UI: User clicked login');
       context.read<AuthBloc>().add(
             AuthLoginRequested(
               email: _usernameController.text.trim(),
               password: _passwordController.text,
-              role: _selectedRole!,
             ),
           );
     }
   }
 
-  Widget _buildRoleButton({
-    required String label,
-    required UserRole role,
-    required bool isSelected,
-    required bool isEnabled,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: isEnabled
-            ? () {
-                setState(() {
-                  _selectedRole = role;
-                });
-              }
-            : null,
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.gold : AppColors.greyBackground,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? AppColors.gold : Colors.transparent,
-              width: 2,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              textDirection: TextDirection.rtl,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? AppColors.white : AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  void _handleSocialLogin(BuildContext context, String provider) {
+    print('🔍 LOGIN UI: User clicked $provider login');
+    context.read<AuthBloc>().add(
+          AuthSocialLoginRequested(provider: provider),
+        );
   }
 
   @override
@@ -103,9 +55,14 @@ class _LoginScreenState extends State<LoginScreen> {
         listener: (context, state) {
           if (state is AuthAuthenticated) {
             final user = state.user;
+            print('🔍 LOGIN: User authenticated with role: ${user.role}');
+            print('🔍 LOGIN: Role comparison - user.role == UserRole.user: ${user.role == UserRole.user}');
+            print('🔍 LOGIN: Role comparison - user.role == UserRole.provider: ${user.role == UserRole.provider}');
             if (user.role == UserRole.user) {
+              print('✅ LOGIN: Navigating to User home');
               AppRouter.goToUserHome(context);
             } else {
+              print('✅ LOGIN: Navigating to Provider home');
               AppRouter.goToProviderHome(context);
             }
           } else if (state is AuthError) {
@@ -342,27 +299,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 24),
-                              // Role Selection
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildRoleButton(
-                                    label: 'عميل',
-                                    role: UserRole.user,
-                                    isSelected: _selectedRole == UserRole.user,
-                                    isEnabled: !isLoading,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  _buildRoleButton(
-                                    label: 'مزود خدمة',
-                                    role: UserRole.provider,
-                                    isSelected: _selectedRole == UserRole.provider,
-                                    isEnabled: !isLoading,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 32),
                               // Login Button
                               SizedBox(
                                 height: 56,
@@ -414,9 +351,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   // Facebook Button
                                   _SocialLoginButton(
                                     imagePath: 'assets/images/facebook.png',
-                                    onPressed: () {
-                                      // TODO: Implement Facebook login
-                                    },
+                                    onPressed: isLoading
+                                        ? null
+                                        : () => _handleSocialLogin(context, 'facebook'),
                                   ),
                                   const SizedBox(width: 16),
                                   // Apple Button - Only show on iOS
@@ -424,7 +361,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                     _SocialLoginButton(
                                       imagePath: 'assets/images/apple.png',
                                       onPressed: () {
-                                        // TODO: Implement Apple login
+                                        // TODO: Implement Apple login (requires apple_sign_in package)
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'تسجيل الدخول بواسطة Apple قريباً',
+                                              textDirection: TextDirection.rtl,
+                                            ),
+                                          ),
+                                        );
                                       },
                                     ),
                                     const SizedBox(width: 16),
@@ -432,9 +377,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   // Google Button
                                   _SocialLoginButton(
                                     imagePath: 'assets/images/google.png',
-                                    onPressed: () {
-                                      // TODO: Implement Google login
-                                    },
+                                    onPressed: isLoading
+                                        ? null
+                                        : () => _handleSocialLogin(context, 'google'),
                                   ),
                                 ],
                               ),
@@ -487,7 +432,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
 class _SocialLoginButton extends StatelessWidget {
   final String imagePath;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _SocialLoginButton({
     required this.imagePath,
@@ -499,22 +444,25 @@ class _SocialLoginButton extends StatelessWidget {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.greyLight,
-            width: 1,
+      child: Opacity(
+        opacity: onPressed == null ? 0.5 : 1.0,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.greyLight,
+              width: 1,
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Image.asset(
-            imagePath,
-            fit: BoxFit.contain,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Image.asset(
+              imagePath,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),

@@ -71,11 +71,12 @@ class ServiceStatusToggled extends ProviderServiceState {
 /// Error state
 class ProviderServiceError extends ProviderServiceState {
   final String message;
+  final dynamic error; // The actual error object for better error handling
 
-  const ProviderServiceError(this.message);
+  const ProviderServiceError(this.message, {this.error});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, error];
 }
 
 /// Empty state (no services found)

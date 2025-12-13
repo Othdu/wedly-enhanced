@@ -10,8 +10,10 @@ import 'package:wedly/data/repositories/offer_repository.dart';
 import 'package:wedly/data/repositories/notification_repository.dart';
 import 'package:wedly/data/repositories/address_repository.dart';
 import 'package:wedly/data/repositories/banner_repository.dart';
+import 'package:wedly/data/repositories/category_repository.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/token_manager.dart';
+import 'package:wedly/data/services/image_upload_service.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/service/service_bloc.dart';
@@ -29,7 +31,7 @@ final getIt = GetIt.instance;
 
 /// Set to true to use mock data, false to use real API
 /// Change this when backend is ready
-const bool _useMockData = true;
+const bool _useMockData = false;
 
 Future<void> setupDependencyInjection() async {
   // Core Services
@@ -45,6 +47,11 @@ Future<void> setupDependencyInjection() async {
   if (!_useMockData) {
     getIt.registerLazySingleton<ApiClient>(
       () => ApiClient(getIt<TokenManager>()),
+    );
+
+    // Image Upload Service (depends on ApiClient)
+    getIt.registerLazySingleton<ImageUploadService>(
+      () => ImageUploadService(getIt<ApiClient>()),
     );
   }
 
@@ -65,35 +72,63 @@ Future<void> setupDependencyInjection() async {
   );
 
   getIt.registerLazySingleton<BookingRepository>(
-    () => BookingRepository(),
+    () => BookingRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   getIt.registerLazySingleton<CartRepository>(
-    () => CartRepository(),
+    () => CartRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   getIt.registerLazySingleton<VenueRepository>(
-    () => VenueRepository(),
+    () => VenueRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   getIt.registerLazySingleton<ReviewRepository>(
-    () => ReviewRepository(),
+    () => ReviewRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   getIt.registerLazySingleton<OfferRepository>(
-    () => OfferRepository(),
+    () => OfferRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   getIt.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepository(),
+    () => NotificationRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   getIt.registerLazySingleton<AddressRepository>(
-    () => AddressRepository(),
+    () => AddressRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   getIt.registerLazySingleton<BannerRepository>(
     () => BannerRepository(),
+  );
+
+  getIt.registerLazySingleton<CategoryRepository>(
+    () => CategoryRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   // BLoCs - registered as factories for new instances

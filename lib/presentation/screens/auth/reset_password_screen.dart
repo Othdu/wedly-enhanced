@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/core/constants/app_colors.dart';
+import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/routes/app_router.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  final String? token;
+
+  const ResetPasswordScreen({super.key, this.token});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -15,6 +19,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,7 +28,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  void _resetPassword() {
+  Future<void> _resetPassword() async {
     if (_formKey.currentState!.validate()) {
       if (_newPasswordController.text != _confirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -38,79 +43,159 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         return;
       }
 
-      // Show success dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: AppColors.gold,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: AppColors.white,
-                    size: 50,
-                  ),
+      // Check if token exists
+      if (widget.token == null || widget.token!.isEmpty) {
+        _showErrorDialog('حدث خطأ. الرجاء البدء من جديد');
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final authRepository = getIt<AuthRepository>();
+        final result = await authRepository.resetPassword(
+          token: widget.token!,
+          password: _newPasswordController.text,
+        );
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (result['success'] == true) {
+          if (mounted) {
+            // Show success dialog
+            _showSuccessDialog();
+          }
+        } else {
+          if (mounted) {
+            _showErrorDialog(result['message'] ?? 'حدث خطأ أثناء إعادة تعيين كلمة المرور');
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          _showErrorDialog('حدث خطأ أثناء إعادة تعيين كلمة المرور. الرجاء المحاولة مرة أخرى');
+        }
+      }
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.gold,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  'كلمة المرور الجديدة تم حفظها بنجاح. يمكنك الآن تسجيل الدخول إلى حسابك واكتشاف القاعات والعروض بكل سهولة.',
-                  textAlign: TextAlign.center,
-                  textDirection: TextDirection.rtl,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textPrimary,
-                    height: 1.5,
-                  ),
+                child: const Icon(
+                  Icons.check,
+                  color: AppColors.white,
+                  size: 50,
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close dialog
-                      // Navigate to login
-                      Navigator.of(context).pushNamedAndRemoveUntil(
-                        AppRouter.login,
-                        (route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: AppColors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'كلمة المرور الجديدة تم حفظها بنجاح. يمكنك الآن تسجيل الدخول إلى حسابك واكتشاف القاعات والعروض بكل سهولة.',
+                textAlign: TextAlign.center,
+                textDirection: TextDirection.rtl,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textPrimary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    // Navigate to login
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      AppRouter.login,
+                      (route) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      'تسجيل الدخول الآن',
-                      textDirection: TextDirection.rtl,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  ),
+                  child: Text(
+                    'تسجيل الدخول الآن',
+                    textDirection: TextDirection.rtl,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'خطأ',
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            color: AppColors.gold,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message,
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'حسناً',
+              style: TextStyle(
+                color: AppColors.gold,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -196,6 +281,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         // New Password Field
                         TextFormField(
                           controller: _newPasswordController,
+                          enabled: !_isLoading,
                           decoration: InputDecoration(
                             hintText: 'كلمة المرور الجديدة',
                             hintTextDirection: TextDirection.rtl,
@@ -260,6 +346,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         // Confirm Password Field
                         TextFormField(
                           controller: _confirmPasswordController,
+                          enabled: !_isLoading,
                           decoration: InputDecoration(
                             hintText: 'تأكيد كلمة المرور',
                             hintTextDirection: TextDirection.rtl,
@@ -323,7 +410,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: _resetPassword,
+                            onPressed: _isLoading ? null : _resetPassword,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.gold,
                               foregroundColor: AppColors.white,
@@ -332,14 +419,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               ),
                               elevation: 0,
                             ),
-                            child: Text(
-                              'تأكيد',
-                              textDirection: TextDirection.rtl,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    'تأكيد',
+                                    textDirection: TextDirection.rtl,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],

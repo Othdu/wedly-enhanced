@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/offer_model.dart';
+import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
 /// Wedding planner booking screen with date selection and personal info
 /// Shows service details, allows date selection and collects user information
@@ -937,35 +938,60 @@ class _WeddingPlannerBookingScreenState
         child: ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              // Build additions text
-              final List<String> additionTexts = [];
+              // Build additions list
+              final List<String> additionsList = [];
               for (final additionKey in _selectedAdditions) {
                 final parts = additionKey.split('-');
                 if (parts.length == 2) {
                   final packageKey = parts[0];
                   final index = int.tryParse(parts[1]) ?? -1;
                   if (packageKey == 'additions' && index >= 0) {
-                    final items =
-                        _packages['additions']!['items'] as List<dynamic>;
+                    final items = _packages['additions']!['items'] as List<dynamic>;
                     if (index < items.length) {
-                      additionTexts.add(items[index] as String);
+                      additionsList.add(items[index] as String);
                     }
                   }
                 }
               }
 
-              final additionsText = additionTexts.isEmpty
-                  ? ''
-                  : '\nالإضافات: ${additionTexts.join('، ')}';
+              // Calculate total price
+              const double basePrice = 9000.0;
+              const Map<String, double> additionPrices = {
+                'ديكور خاص': 1500.0,
+                'خدمة ضيافة': 2000.0,
+                'جلسة تصوير قبل الحدث': 1000.0,
+                'تجهيز كوشة مخصصة': 1800.0,
+              };
 
-              // TODO: Implement booking functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'تم حجز موعد في ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}$additionsText',
-                  ),
-                  duration: const Duration(seconds: 3),
-                  backgroundColor: const Color(0xFFD4AF37),
+              double additionsTotal = 0.0;
+              for (final additionKey in _selectedAdditions) {
+                final parts = additionKey.split('-');
+                if (parts.length == 2) {
+                  final packageKey = parts[0];
+                  final index = int.tryParse(parts[1]) ?? -1;
+                  if (packageKey == 'additions' && index >= 0) {
+                    final items = _packages['additions']!['items'] as List<dynamic>;
+                    if (index < items.length) {
+                      final itemText = items[index] as String;
+                      additionsTotal += additionPrices[itemText] ?? 0.0;
+                    }
+                  }
+                }
+              }
+              final double totalPrice = basePrice + additionsTotal;
+
+              // Format date
+              final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
+
+              // Show success dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => BookingSuccessDialog(
+                  serviceName: _title,
+                  date: formattedDate,
+                  additions: additionsList.isNotEmpty ? additionsList : null,
+                  totalPrice: totalPrice,
                 ),
               );
             }
@@ -979,7 +1005,7 @@ class _WeddingPlannerBookingScreenState
             elevation: 0,
           ),
           child: const Text(
-            'تأكيد الحجز',
+            'إضافة إلى السلة',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),

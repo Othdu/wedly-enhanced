@@ -1,83 +1,132 @@
 import 'package:wedly/data/models/notification_model.dart';
+import 'package:wedly/data/services/api_client.dart';
+import 'package:wedly/data/services/api_constants.dart';
 
 /// Repository for managing notifications
 ///
-/// TODO: Replace mock data with real API calls when backend is ready
-/// API Endpoints needed:
-/// - GET /api/notifications?user_id={userId} - Get all notifications for user
-/// - PUT /api/notifications/{id}/mark-read - Mark notification as read
-/// - PUT /api/notifications/mark-all-read?user_id={userId} - Mark all as read
-/// - DELETE /api/notifications/{id} - Delete notification
-/// - GET /api/notifications/unread-count?user_id={userId} - Get unread count
+/// Supports both mock data and real API integration
+/// Switch between modes using useMockData flag
 class NotificationRepository {
-  // Network delay simulation (300ms)
-  static const _networkDelay = Duration(milliseconds: 300);
+  final ApiClient? apiClient;
+  final bool useMockData;
+
+  NotificationRepository({this.apiClient, this.useMockData = true});
+
+  // ==================== PUBLIC METHODS ====================
 
   /// Get all notifications for a user
-  ///
-  /// API Integration:
-  /// - Endpoint: GET /api/notifications?user_id={userId}
-  /// - Headers: Authorization: Bearer {token}
-  /// - Response: { "notifications": [...], "total": 10, "unread": 3 }
   Future<List<NotificationModel>> getNotifications(String userId) async {
-    await Future.delayed(_networkDelay);
+    if (useMockData || apiClient == null) {
+      return _mockGetNotifications(userId);
+    }
+    return _apiGetNotifications();
+  }
 
-    // TODO: Replace with API call
-    // final response = await dio.get('/api/notifications', queryParameters: {'user_id': userId});
-    // return (response.data['notifications'] as List).map((json) => NotificationModel.fromJson(json)).toList();
+  /// Get unread notifications count
+  Future<int> getUnreadCount(String userId) async {
+    if (useMockData || apiClient == null) {
+      return _mockGetUnreadCount(userId);
+    }
+    return _apiGetUnreadCount();
+  }
+
+  /// Mark a notification as read
+  Future<void> markAsRead(String notificationId) async {
+    if (useMockData || apiClient == null) {
+      return _mockMarkAsRead(notificationId);
+    }
+    return _apiMarkAsRead(notificationId);
+  }
+
+  /// Mark all notifications as read for a user
+  Future<void> markAllAsRead(String userId) async {
+    if (useMockData || apiClient == null) {
+      return _mockMarkAllAsRead(userId);
+    }
+    return _apiMarkAllAsRead();
+  }
+
+  /// Delete a notification
+  Future<void> deleteNotification(String notificationId) async {
+    if (useMockData || apiClient == null) {
+      return _mockDeleteNotification(notificationId);
+    }
+    return _apiDeleteNotification(notificationId);
+  }
+
+  // ==================== API METHODS ====================
+
+  /// API: Get all notifications
+  Future<List<NotificationModel>> _apiGetNotifications() async {
+    final response = await apiClient!.get(ApiConstants.notifications);
+    final responseData = response.data['data'] ?? response.data;
+    final notificationsList = responseData['notifications'] ?? responseData;
+
+    return (notificationsList as List)
+        .map((json) => NotificationModel.fromJson(json))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// API: Get unread notifications count
+  Future<int> _apiGetUnreadCount() async {
+    final response = await apiClient!.get(ApiConstants.unreadNotificationCount);
+    final responseData = response.data['data'] ?? response.data;
+    return responseData['count'] ?? 0;
+  }
+
+  /// API: Mark notification as read
+  Future<void> _apiMarkAsRead(String notificationId) async {
+    await apiClient!.put(ApiConstants.markNotificationAsRead(notificationId));
+  }
+
+  /// API: Mark all notifications as read
+  Future<void> _apiMarkAllAsRead() async {
+    await apiClient!.put(ApiConstants.markAllNotificationsAsRead);
+  }
+
+  /// API: Delete notification
+  Future<void> _apiDeleteNotification(String notificationId) async {
+    await apiClient!.delete(ApiConstants.deleteNotification(notificationId));
+  }
+
+  // ==================== MOCK METHODS ====================
+
+  /// Mock: Get all notifications
+  Future<List<NotificationModel>> _mockGetNotifications(String userId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // Sort by most recent first (newest to oldest)
-    final sortedNotifications = List<NotificationModel>.from(_mockNotifications);
+    final sortedNotifications = List<NotificationModel>.from(
+      _mockNotifications,
+    );
     sortedNotifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return sortedNotifications;
   }
 
-  /// Get unread notifications count
-  ///
-  /// API Integration:
-  /// - Endpoint: GET /api/notifications/unread-count?user_id={userId}
-  /// - Response: { "count": 3 }
-  Future<int> getUnreadCount(String userId) async {
-    await Future.delayed(_networkDelay);
-
-    // TODO: Replace with API call
-    // final response = await dio.get('/api/notifications/unread-count', queryParameters: {'user_id': userId});
-    // return response.data['count'] as int;
-
+  /// Mock: Get unread notifications count
+  Future<int> _mockGetUnreadCount(String userId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
     return _mockNotifications.where((n) => !n.isRead).length;
   }
 
-  /// Mark a notification as read
-  ///
-  /// API Integration:
-  /// - Endpoint: PUT /api/notifications/{id}/mark-read
-  /// - Headers: Authorization: Bearer {token}
-  /// - Response: { "success": true, "notification": {...} }
-  Future<void> markAsRead(String notificationId) async {
-    await Future.delayed(_networkDelay);
-
-    // TODO: Replace with API call
-    // await dio.put('/api/notifications/$notificationId/mark-read');
+  /// Mock: Mark notification as read
+  Future<void> _mockMarkAsRead(String notificationId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // Update mock data
     final index = _mockNotifications.indexWhere((n) => n.id == notificationId);
     if (index != -1) {
-      _mockNotifications[index] = _mockNotifications[index].copyWith(isRead: true);
+      _mockNotifications[index] = _mockNotifications[index].copyWith(
+        isRead: true,
+      );
     }
   }
 
-  /// Mark all notifications as read for a user
-  ///
-  /// API Integration:
-  /// - Endpoint: PUT /api/notifications/mark-all-read?user_id={userId}
-  /// - Headers: Authorization: Bearer {token}
-  /// - Response: { "success": true, "updated_count": 5 }
-  Future<void> markAllAsRead(String userId) async {
-    await Future.delayed(_networkDelay);
-
-    // TODO: Replace with API call
-    // await dio.put('/api/notifications/mark-all-read', queryParameters: {'user_id': userId});
+  /// Mock: Mark all notifications as read
+  Future<void> _mockMarkAllAsRead(String userId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // Update mock data
     _mockNotifications = _mockNotifications
@@ -85,21 +134,15 @@ class NotificationRepository {
         .toList();
   }
 
-  /// Delete a notification
-  ///
-  /// API Integration:
-  /// - Endpoint: DELETE /api/notifications/{id}
-  /// - Headers: Authorization: Bearer {token}
-  /// - Response: { "success": true }
-  Future<void> deleteNotification(String notificationId) async {
-    await Future.delayed(_networkDelay);
-
-    // TODO: Replace with API call
-    // await dio.delete('/api/notifications/$notificationId');
+  /// Mock: Delete notification
+  Future<void> _mockDeleteNotification(String notificationId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
 
     // Remove from mock data
     _mockNotifications.removeWhere((n) => n.id == notificationId);
   }
+
+  // ==================== MOCK DATA ====================
 
   // Mock data - sorted by most recent first
   static List<NotificationModel> _mockNotifications = [
@@ -107,7 +150,8 @@ class NotificationRepository {
     NotificationModel(
       id: 'notif_1',
       titleAr: 'التذكيرات',
-      messageAr: 'تبقى 5 أيام على موعد زفافك! تأكدي من تفاصيل المكياج والفساتين.',
+      messageAr:
+          'تبقى 5 أيام على موعد زفافك! تأكدي من تفاصيل المكياج والفساتين.',
       type: NotificationType.reminder,
       createdAt: DateTime.now().subtract(const Duration(minutes: 1)),
       isRead: false,

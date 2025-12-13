@@ -95,8 +95,6 @@ class WidgetFactory {
     List<CategoryModel>? categories,
     Function(dynamic)? onTap,
   ) {
-    if (categories == null || categories.isEmpty) return null;
-
     final settings = config.settings ?? {};
 
     return Column(
@@ -124,15 +122,40 @@ class WidgetFactory {
           ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: CategoriesGridWidget(
-            categories: categories,
-            onCategoryTap: onTap != null ? (category) => onTap(category) : null,
-            crossAxisCount: settings['columns'] as int? ?? 2,
-            aspectRatio: settings['aspectRatio'] as double? ?? 1.2,
-            spacing: settings['spacing'] as double? ?? 12.0,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-          ),
+          child: (categories == null || categories.isEmpty)
+              ? Container(
+                  padding: const EdgeInsets.all(48),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.category_outlined,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'لا توجد فئات متاحة حالياً',
+                          textDirection: TextDirection.rtl,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : CategoriesGridWidget(
+                  categories: categories,
+                  onCategoryTap: onTap != null ? (category) => onTap(category) : null,
+                  crossAxisCount: settings['columns'] as int? ?? 2,
+                  aspectRatio: settings['aspectRatio'] as double? ?? 1.2,
+                  spacing: settings['spacing'] as double? ?? 12.0,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                ),
         ),
       ],
     );

@@ -99,16 +99,6 @@ class UserProfileScreen extends StatelessWidget {
                             ).pushNamed('/user-change-password');
                           },
                         ),
-                        _buildMenuItem(
-                          context,
-                          icon: Icons.location_on_outlined,
-                          title: AppStrings.address,
-                          onTap: () {
-                            Navigator.of(
-                              context,
-                            ).pushNamed('/user-address');
-                          },
-                        ),
                       ],
                     ),
 

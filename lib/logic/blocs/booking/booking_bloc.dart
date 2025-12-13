@@ -29,7 +29,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingsLoaded(bookings));
       }
     } catch (e) {
-      emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}'));
+      emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}', error: e));
     }
   }
 
@@ -71,7 +71,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingsLoaded(bookings));
       }
     } catch (e) {
-      emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}'));
+      emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}', error: e));
     }
   }
 
@@ -84,12 +84,12 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       final booking = await bookingRepository.getBookingById(event.bookingId);
 
       if (booking == null) {
-        emit(const BookingError('لم يتم العثور على الحجز'));
+        emit(const BookingError('لم يتم العثور على الحجز', error: null));
       } else {
         emit(BookingDetailsLoaded(booking));
       }
     } catch (e) {
-      emit(BookingError('فشل تحميل تفاصيل الحجز: ${e.toString()}'));
+      emit(BookingError('فشل تحميل تفاصيل الحجز: ${e.toString()}', error: e));
     }
   }
 
@@ -120,7 +120,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
       emit(BookingStatusUpdated(updatedBooking, message));
     } catch (e) {
-      emit(BookingError('فشل تحديث حالة الحجز: ${e.toString()}'));
+      emit(BookingError('فشل تحديث حالة الحجز: ${e.toString()}', error: e));
     }
   }
 
@@ -137,7 +137,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingsLoaded(bookings));
       }
     } catch (e) {
-      emit(BookingError('فشل تحديث الحجوزات: ${e.toString()}'));
+      emit(BookingError('فشل تحديث الحجوزات: ${e.toString()}', error: e));
     }
   }
 }

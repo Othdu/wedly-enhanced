@@ -38,3 +38,91 @@ class AuthError extends AuthState {
   List<Object?> get props => [message];
 }
 
+class AuthRegistrationSuccess extends AuthState {
+  final String email;
+  final String message;
+
+  const AuthRegistrationSuccess({
+    required this.email,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [email, message];
+}
+
+class AuthOtpVerificationSuccess extends AuthState {
+  final UserModel user;
+
+  const AuthOtpVerificationSuccess(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}
+
+class AuthResendOtpSuccess extends AuthState {
+  final String message;
+
+  const AuthResendOtpSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class AuthForgotPasswordSuccess extends AuthState {
+  final String email;
+  final String message;
+
+  const AuthForgotPasswordSuccess({
+    required this.email,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [email, message];
+}
+
+class AuthResetPasswordSuccess extends AuthState {
+  final String message;
+
+  const AuthResetPasswordSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class AuthChangePasswordSuccess extends AuthState {
+  final String message;
+
+  const AuthChangePasswordSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class AuthProfileImageUpdateSuccess extends AuthState {
+  final UserModel user;
+  final String message;
+
+  const AuthProfileImageUpdateSuccess({
+    required this.user,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [user, message];
+}
+
+class AuthProfileUpdateSuccess extends AuthState {
+  final UserModel user;
+  final String message;
+
+  const AuthProfileUpdateSuccess({
+    required this.user,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [user, message];
+}
+

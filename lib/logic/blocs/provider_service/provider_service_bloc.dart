@@ -30,7 +30,7 @@ class ProviderServiceBloc extends Bloc<ProviderServiceEvent, ProviderServiceStat
         emit(ProviderServicesLoaded(services));
       }
     } catch (e) {
-      emit(ProviderServiceError('فشل تحميل الخدمات: ${e.toString()}'));
+      emit(ProviderServiceError('فشل تحميل الخدمات: ${e.toString()}', error: e));
     }
   }
 
@@ -43,7 +43,7 @@ class ProviderServiceBloc extends Bloc<ProviderServiceEvent, ProviderServiceStat
       final newService = await serviceRepository.addService(event.service);
       emit(ServiceAdded(newService, 'تم إضافة الخدمة بنجاح'));
     } catch (e) {
-      emit(ProviderServiceError('فشل إضافة الخدمة: ${e.toString()}'));
+      emit(ProviderServiceError('فشل إضافة الخدمة: ${e.toString()}', error: e));
     }
   }
 
@@ -56,7 +56,7 @@ class ProviderServiceBloc extends Bloc<ProviderServiceEvent, ProviderServiceStat
       final updatedService = await serviceRepository.updateService(event.service);
       emit(ServiceUpdated(updatedService, 'تم تعديل الخدمة بنجاح'));
     } catch (e) {
-      emit(ProviderServiceError('فشل تعديل الخدمة: ${e.toString()}'));
+      emit(ProviderServiceError('فشل تعديل الخدمة: ${e.toString()}', error: e));
     }
   }
 
@@ -68,7 +68,7 @@ class ProviderServiceBloc extends Bloc<ProviderServiceEvent, ProviderServiceStat
       await serviceRepository.deleteService(event.serviceId);
       emit(ServiceDeleted(event.serviceId, 'تم حذف الخدمة بنجاح'));
     } catch (e) {
-      emit(ProviderServiceError('فشل حذف الخدمة: ${e.toString()}'));
+      emit(ProviderServiceError('فشل حذف الخدمة: ${e.toString()}', error: e));
     }
   }
 
@@ -84,7 +84,7 @@ class ProviderServiceBloc extends Bloc<ProviderServiceEvent, ProviderServiceStat
         'الخدمة الآن $statusText',
       ));
     } catch (e) {
-      emit(ProviderServiceError('فشل تحديث حالة الخدمة: ${e.toString()}'));
+      emit(ProviderServiceError('فشل تحديث حالة الخدمة: ${e.toString()}', error: e));
     }
   }
 
@@ -101,7 +101,7 @@ class ProviderServiceBloc extends Bloc<ProviderServiceEvent, ProviderServiceStat
         emit(ProviderServicesLoaded(services));
       }
     } catch (e) {
-      emit(ProviderServiceError('فشل تحديث الخدمات: ${e.toString()}'));
+      emit(ProviderServiceError('فشل تحديث الخدمات: ${e.toString()}', error: e));
     }
   }
 }

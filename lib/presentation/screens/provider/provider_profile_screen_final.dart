@@ -216,20 +216,8 @@ class ProviderProfileScreen extends StatelessWidget {
                         ),
                         child: ProfilePictureWidget(
                           profileImageUrl: user.profileImageUrl,
-                          isEditable: true,
-                          onImageSelected: (image) {
-                            // TODO: Upload image and update profile via AuthBloc
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'قريباً: تحديث الصورة',
-                                  textDirection: ui.TextDirection.rtl,
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: AppColors.gold,
-                              ),
-                            );
-                          },
+                          isEditable: false,
+                          showEditIcon: false,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -395,11 +383,11 @@ class ProviderProfileScreen extends StatelessWidget {
           // Value (right side in RTL)
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   value,
-                  textAlign: TextAlign.right,
+                  textAlign: TextAlign.left ,
                   // Phone numbers are LTR, other text is RTL
                   textDirection: isPhoneNumber ? ui.TextDirection.ltr : ui.TextDirection.rtl,
                   style: const TextStyle(

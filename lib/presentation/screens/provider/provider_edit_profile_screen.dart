@@ -60,8 +60,10 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
     setState(() {
       _selectedImage = image;
     });
-    // TODO: Upload image to backend and update user profile via AuthBloc
-    // Example: context.read<AuthBloc>().add(AuthUpdateProfileImage(image));
+    // Upload image to backend and update user profile via AuthBloc
+    context.read<AuthBloc>().add(
+      AuthUpdateProfileImageRequested(imagePath: image.path),
+    );
   }
 
   Future<void> _saveChanges() async {
@@ -70,95 +72,130 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
       context.read<AuthBloc>().add(
         AuthUpdateProfile(
           name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
           phone: _phoneController.text.trim(),
           city: _selectedCity,
-        ),
-      );
-
-      // Show success dialog
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Success Icon
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppColors.gold,
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Success Message
-                const Text(
-                  'تم تحديث البيانات بنجاح',
-                  textAlign: TextAlign.center,
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                // OK Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(dialogContext).pop(); // Close dialog
-                      await Future.delayed(const Duration(milliseconds: 100));
-                      if (mounted && context.mounted) {
-                        Navigator.of(context).pop(); // Go back to profile
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'حسناً',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       );
     }
   }
 
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success Icon
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.gold,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Success Message
+              const Text(
+                'تم تحديث البيانات بنجاح',
+                textAlign: TextAlign.center,
+                textDirection: TextDirection.rtl,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 28),
+              // OK Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop(); // Close dialog
+                    await Future.delayed(const Duration(milliseconds: 100));
+                    if (mounted && context.mounted) {
+                      Navigator.of(context).pop(); // Go back to profile
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'حسناً',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: PreferredSize(
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        print('🎧 Provider Edit Screen BlocListener: Received state: ${state.runtimeType}');
+        if (state is AuthProfileUpdateSuccess) {
+          print('✅ Provider Edit Screen: Showing success dialog');
+          // Use post-frame callback to ensure dialog shows after build completes
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              print('💬 Actually showing dialog now...');
+              _showSuccessDialog();
+            }
+          });
+        } else if (state is AuthProfileImageUpdateSuccess) {
+          print('📸 Provider Edit Screen: Showing image update snackbar');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.message,
+                textDirection: TextDirection.rtl,
+              ),
+              backgroundColor: AppColors.gold,
+            ),
+          );
+        } else if (state is AuthError) {
+          print('❌ Provider Edit Screen: Showing error snackbar: ${state.message}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.message,
+                textDirection: TextDirection.rtl,
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70),
         child: AppBar(
           automaticallyImplyLeading: false,
@@ -267,19 +304,9 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      _buildEditableField(
+                      _buildReadOnlyField(
                         controller: _emailController,
                         label: 'البريد الإلكتروني',
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'الرجاء إدخال البريد الإلكتروني';
-                          }
-                          if (!value.contains('@')) {
-                            return 'البريد الإلكتروني غير صحيح';
-                          }
-                          return null;
-                        },
                       ),
                       const SizedBox(height: 20),
                       _buildEditableField(
@@ -297,7 +324,6 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                       const SizedBox(height: 20),
                       // City Dropdown
                       DropdownButtonFormField<String>(
-                        initialValue: _selectedCity,
                         decoration: InputDecoration(
                           labelText: 'المدينة',
                           labelStyle: TextStyle(color: Colors.grey.shade600),
@@ -316,6 +342,10 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                             borderSide: const BorderSide(color: AppColors.gold, width: 2),
                           ),
                         ),
+                        hint: const Text('اختر المدينة'),
+                        initialValue: _selectedCity != null && AppConstants.egyptianCities.contains(_selectedCity)
+                            ? _selectedCity
+                            : null,
                         items: AppConstants.egyptianCities.map((String city) {
                           return DropdownMenuItem<String>(
                             value: city,
@@ -369,6 +399,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -439,6 +470,53 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
           style: const TextStyle(
             fontSize: 15,
             color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReadOnlyField({
+    required TextEditingController controller,
+    required String label,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          label,
+          textAlign: TextAlign.right,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.gold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          readOnly: true,
+          textDirection: TextDirection.rtl,
+          textAlign: TextAlign.right,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: 15,
+            color: Colors.grey.shade600,
           ),
         ),
       ],

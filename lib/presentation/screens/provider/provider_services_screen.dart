@@ -8,6 +8,7 @@ import '../../../logic/blocs/provider_service/provider_service_event.dart';
 import '../../../logic/blocs/provider_service/provider_service_state.dart';
 import '../../../routes/app_router.dart';
 import '../../widgets/provider_service_card.dart';
+import '../../widgets/error_view.dart';
 
 class ProviderServicesScreen extends StatefulWidget {
   const ProviderServicesScreen({super.key});
@@ -101,39 +102,15 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
           }
 
           if (state is ProviderServiceError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red.shade300,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    state.message,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      if (_providerId != null) {
-                        context.read<ProviderServiceBloc>().add(
-                          FetchProviderServices(_providerId!),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('إعادة المحاولة'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
+            return ErrorView(
+              error: state.error,
+              onRetry: () {
+                if (_providerId != null) {
+                  context.read<ProviderServiceBloc>().add(
+                    FetchProviderServices(_providerId!),
+                  );
+                }
+              },
             );
           }
 

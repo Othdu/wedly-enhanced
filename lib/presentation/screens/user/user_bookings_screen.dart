@@ -9,6 +9,8 @@ import 'package:wedly/logic/blocs/booking/booking_bloc.dart';
 import 'package:wedly/logic/blocs/booking/booking_event.dart';
 import 'package:wedly/logic/blocs/booking/booking_state.dart';
 import 'package:wedly/data/models/booking_model.dart';
+import 'package:wedly/presentation/widgets/error_view.dart';
+import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 
 class UserBookingsScreen extends StatefulWidget {
   const UserBookingsScreen({super.key});
@@ -129,55 +131,121 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                   }
 
                   if (state is BookingError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(state.message, textAlign: TextAlign.center),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadBookings,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.gold,
-                            ),
-                            child: const Text('إعادة المحاولة'),
-                          ),
-                        ],
-                      ),
+                    return ErrorView(
+                      error: state.error,
+                      onRetry: _loadBookings,
                     );
                   }
 
                   if (state is BookingsEmpty) {
                     return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: 80,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'لا توجد حجوزات',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w600,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Empty state illustration
+                            Container(
+                              padding: const EdgeInsets.all(32),
+                              decoration: BoxDecoration(
+                                color: AppColors.gold.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.event_available_outlined,
+                                size: 80,
+                                color: AppColors.gold.withValues(alpha: 0.7),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'ابدأ باستكشاف الخدمات واحجز أول خدمة لك',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                        ],
+                            const SizedBox(height: 32),
+
+                            // Title
+                            const Text(
+                              'لا توجد حجوزات بعد',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Description
+                            Text(
+                              'ابدأ باستكشاف خدماتنا المميزة\nواحجز ما يناسب احتياجاتك',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.grey.shade600,
+                                height: 1.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Action Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  // Navigate to home/services tab (index 0)
+                                  UserNavigationWrapper.navigateToTab(context, 0);
+                                },
+                                icon: const Icon(Icons.search_rounded),
+                                label: const Text(
+                                  'استكشف الخدمات',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.gold,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Info box
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.blue.shade100,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Colors.blue.shade700,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'ستظهر جميع حجوزاتك هنا بمجرد إتمام أول حجز',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.blue.shade700,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }

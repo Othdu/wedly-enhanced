@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/core/constants/app_colors.dart';
+import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/routes/app_router.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -10,26 +12,107 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
-  void _sendCode() {
+  Future<void> _sendCode() async {
     if (_formKey.currentState!.validate()) {
-      // Navigate to OTP screen
-      Navigator.of(context).pushNamed(
-        AppRouter.otpVerification,
-        arguments: {
-          'phoneOrEmail': _phoneController.text,
-          'isForPasswordReset': true,
-        },
-      );
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final authRepository = getIt<AuthRepository>();
+        final result = await authRepository.forgotPassword(
+          email: _emailController.text.trim(),
+        );
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (result['success'] == true) {
+          if (mounted) {
+            // Show success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  result['message'] ?? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
+                  textDirection: TextDirection.rtl,
+                ),
+                backgroundColor: AppColors.gold,
+              ),
+            );
+
+            // Navigate to OTP verification screen
+            Navigator.of(context).pushNamed(
+              AppRouter.otpVerification,
+              arguments: {
+                'phoneOrEmail': _emailController.text.trim(),
+                'isForPasswordReset': true,
+              },
+            );
+          }
+        } else {
+          if (mounted) {
+            _showErrorDialog(result['message'] ?? 'حدث خطأ أثناء إرسال الكود');
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          _showErrorDialog('حدث خطأ أثناء إرسال الكود. الرجاء المحاولة مرة أخرى');
+        }
+      }
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'خطأ',
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            color: AppColors.gold,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message,
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'حسناً',
+              style: TextStyle(
+                color: AppColors.gold,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -102,7 +185,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const SizedBox(height: 32),
                         // Title
                         Text(
-                          'أدخل رقم هاتفك وسيُرسل لك كود تحقق لإعادة تعيين كلمة المرور الخاصة بك.',
+                          'أدخل بريدك الإلكتروني وسيُرسل لك كود تحقق لإعادة تعيين كلمة المرور الخاصة بك.',
                           textAlign: TextAlign.center,
                           textDirection: TextDirection.rtl,
                           style: const TextStyle(
@@ -112,16 +195,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
                         const SizedBox(height: 40),
-                        // Phone input
+                        // Email input
                         TextFormField(
-                          controller: _phoneController,
+                          controller: _emailController,
                           decoration: InputDecoration(
-                            hintText: 'رقم الهاتف',
+                            hintText: 'البريد الإلكتروني',
                             hintTextDirection: TextDirection.rtl,
                             hintStyle: TextStyle(
                               color: AppColors.textHint,
                             ),
-                            suffixIcon: const Icon(Icons.phone_outlined),
+                            suffixIcon: const Icon(Icons.email_outlined),
                             filled: true,
                             fillColor: AppColors.greyBackground,
                             border: OutlineInputBorder(
@@ -152,13 +235,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ),
                           ),
                           textDirection: TextDirection.rtl,
-                          keyboardType: TextInputType.phone,
+                          keyboardType: TextInputType.emailAddress,
+                          enabled: !_isLoading,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'الرجاء إدخال رقم الهاتف';
+                              return 'الرجاء إدخال البريد الإلكتروني';
                             }
-                            if (value.length < 10) {
-                              return 'رقم الهاتف غير صحيح';
+                            if (!value.contains('@')) {
+                              return 'البريد الإلكتروني غير صحيح';
                             }
                             return null;
                           },
@@ -169,7 +253,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: _sendCode,
+                            onPressed: _isLoading ? null : _sendCode,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.gold,
                               foregroundColor: AppColors.white,
@@ -178,14 +262,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                               elevation: 0,
                             ),
-                            child: Text(
-                              'إرسال الكود',
-                              textDirection: TextDirection.rtl,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    'إرسال الكود',
+                                    textDirection: TextDirection.rtl,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],

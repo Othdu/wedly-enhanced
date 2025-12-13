@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../logic/blocs/auth/auth_bloc.dart';
 import '../../../logic/blocs/auth/auth_event.dart';
 import '../../../logic/blocs/auth/auth_state.dart';
@@ -22,8 +23,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _birthDateController;
-  String? _selectedGender;
+  String? _selectedCity;
 
   @override
   void initState() {
@@ -31,7 +31,6 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     _nameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
-    _birthDateController = TextEditingController();
 
     // Safely load user data from AuthBloc
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -42,9 +41,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           _nameController.text = authState.user.name;
           _emailController.text = authState.user.email;
           _phoneController.text = authState.user.phone ?? '';
-          // TODO: Add birthDate and gender fields to UserModel and load them here
-          _birthDateController.text = ''; // Will be populated from UserModel
-          _selectedGender = 'ذكر'; // Default value until gender is in UserModel
+          _selectedCity = authState.user.city;
         });
       }
     });
@@ -55,7 +52,6 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _birthDateController.dispose();
     super.dispose();
   }
 
@@ -63,8 +59,10 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
     setState(() {
       _selectedImage = image;
     });
-    // TODO: Upload image to backend and update user profile via AuthBloc
-    // Example: context.read<AuthBloc>().add(AuthUpdateProfileImage(image));
+    // Upload image to backend and update user profile via AuthBloc
+    context.read<AuthBloc>().add(
+      AuthUpdateProfileImageRequested(imagePath: image.path),
+    );
   }
 
   Future<void> _saveChanges() async {
@@ -73,95 +71,125 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
       context.read<AuthBloc>().add(
         AuthUpdateProfile(
           name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
           phone: _phoneController.text.trim(),
-          // TODO: Add birthDate and gender to AuthUpdateProfile event when they are added to UserModel
-        ),
-      );
-
-      // Show success dialog
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Success Icon
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppColors.gold,
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Success Message
-                const Text(
-                  'تم تحديث البيانات بنجاح',
-                  textAlign: TextAlign.center,
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                // OK Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(dialogContext).pop(); // Close dialog
-                      await Future.delayed(const Duration(milliseconds: 100));
-                      if (mounted && context.mounted) {
-                        Navigator.of(context).pop(); // Go back to profile
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'حسناً',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          city: _selectedCity,
         ),
       );
     }
   }
 
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success Icon
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.gold,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Success Message
+              const Text(
+                'تم تحديث البيانات بنجاح',
+                textAlign: TextAlign.center,
+                textDirection: TextDirection.rtl,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 28),
+              // OK Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop(); // Close dialog
+                    await Future.delayed(const Duration(milliseconds: 100));
+                    if (mounted && context.mounted) {
+                      Navigator.of(context).pop(); // Go back to profile
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'حسناً',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: PreferredSize(
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthProfileUpdateSuccess) {
+          // Use post-frame callback to ensure dialog shows after build completes
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _showSuccessDialog();
+            }
+          });
+        } else if (state is AuthProfileImageUpdateSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.message,
+                textDirection: TextDirection.rtl,
+              ),
+              backgroundColor: AppColors.gold,
+            ),
+          );
+        } else if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.message,
+                textDirection: TextDirection.rtl,
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70),
         child: AppBar(
           automaticallyImplyLeading: false,
@@ -271,19 +299,9 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      _buildEditableField(
+                      _buildReadOnlyField(
                         controller: _emailController,
                         label: 'البريد الإلكتروني',
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'الرجاء إدخال البريد الإلكتروني';
-                          }
-                          if (!value.contains('@')) {
-                            return 'البريد الإلكتروني غير صحيح';
-                          }
-                          return null;
-                        },
                       ),
                       const SizedBox(height: 20),
                       _buildEditableField(
@@ -298,14 +316,13 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                           return null;
                         },
                       ),
-
                       const SizedBox(height: 20),
-                      // Gender Dropdown
+                      // City Dropdown
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'النوع',
+                            'المدينة',
                             textAlign: TextAlign.right,
                             style: TextStyle(
                               fontSize: 16,
@@ -315,9 +332,8 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            value: _selectedGender,
                             decoration: InputDecoration(
-                              hintText: 'ذكر / أنثى',
+                              hintText: 'اختر المدينة',
                               hintStyle: TextStyle(color: Colors.grey.shade400),
                               filled: true,
                               fillColor: Colors.white,
@@ -327,61 +343,46 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade200,
-                                  width: 1,
-                                ),
+                                borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade200,
-                                  width: 1,
-                                ),
+                                borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: AppColors.gold,
-                                  width: 2,
-                                ),
+                                borderSide: const BorderSide(color: AppColors.gold, width: 2),
                               ),
                               errorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
-                                  width: 1,
-                                ),
+                                borderSide: const BorderSide(color: Colors.red, width: 1),
                               ),
                               focusedErrorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
-                                  width: 2,
-                                ),
-                              ),
-                              errorStyle: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                borderSide: const BorderSide(color: Colors.red, width: 2),
                               ),
                             ),
-                            items: const [
-                              DropdownMenuItem<String>(
-                                value: 'ذكر',
-                                child: Text('ذكر'),
-                              ),
-                              DropdownMenuItem<String>(
-                                value: 'أنثى',
-                                child: Text('أنثى'),
-                              ),
-                            ],
+                            initialValue: _selectedCity != null && AppConstants.egyptianCities.contains(_selectedCity)
+                                ? _selectedCity
+                                : null,
+                            items: AppConstants.egyptianCities.map((String city) {
+                              return DropdownMenuItem<String>(
+                                value: city,
+                                child: Text(
+                                  city,
+                                  style: const TextStyle(fontSize: 15, color: Colors.black87),
+                                ),
+                              );
+                            }).toList(),
                             onChanged: (String? newValue) {
                               setState(() {
-                                _selectedGender = newValue;
+                                _selectedCity = newValue;
                               });
                             },
                             validator: (value) {
-                              // Optional field - no validation required
+                              if (value == null || value.isEmpty) {
+                                return 'الرجاء اختيار المدينة';
+                              }
                               return null;
                             },
                           ),
@@ -422,6 +423,7 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -490,6 +492,53 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
             ),
           ),
           style: const TextStyle(fontSize: 15, color: Colors.black87),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReadOnlyField({
+    required TextEditingController controller,
+    required String label,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          textAlign: TextAlign.right,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.gold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          readOnly: true,
+          textDirection: TextDirection.rtl,
+          textAlign: TextAlign.right,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: 15,
+            color: Colors.grey.shade600,
+          ),
         ),
       ],
     );

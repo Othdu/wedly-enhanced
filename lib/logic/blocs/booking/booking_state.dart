@@ -48,11 +48,12 @@ class BookingStatusUpdated extends BookingState {
 /// Error state
 class BookingError extends BookingState {
   final String message;
+  final dynamic error; // The actual error object for better error handling
 
-  const BookingError(this.message);
+  const BookingError(this.message, {this.error});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, error];
 }
 
 /// Empty state (no bookings found)

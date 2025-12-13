@@ -8,6 +8,7 @@ import '../../../logic/blocs/booking/booking_bloc.dart';
 import '../../../logic/blocs/booking/booking_event.dart';
 import '../../../logic/blocs/booking/booking_state.dart';
 import '../../widgets/booking_card_new.dart';
+import '../../widgets/error_view.dart';
 import 'provider_booking_details_screen.dart';
 
 class ProviderBookingsScreen extends StatefulWidget {
@@ -151,12 +152,21 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
                       }
 
                       if (state is BookingError) {
-                        return _buildError(state.message);
+                        return ErrorView(
+                          error: state.error,
+                          onRetry: () => _fetchBookingsByStatus(
+                            _statusForIndex(_currentTabIndex),
+                          ),
+                        );
+                      }
+
+                      if (state is BookingsEmpty) {
+                        return _buildEmpty(_currentTabIndex);
                       }
 
                       if (state is BookingsLoaded) {
                         final bookings = state.bookings;
-                        if (bookings.isEmpty) return _buildEmpty();
+                        if (bookings.isEmpty) return _buildEmpty(_currentTabIndex);
 
                         return RefreshIndicator(
                           onRefresh: () async => _fetchBookingsByStatus(
@@ -218,37 +228,117 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
 
   // ---------------- REUSABLE WIDGETS ----------------
 
-  Widget _buildError(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: Theme.of(context).textTheme.bodyLarge,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildEmpty(int tabIndex) {
+    // Different messages for each tab
+    String title;
+    String description;
+    IconData icon;
 
-  Widget _buildEmpty() {
+    switch (tabIndex) {
+      case 0: // Pending
+        title = 'لا توجد حجوزات جديدة';
+        description = 'لم يتم استلام أي حجوزات جديدة بعد';
+        icon = Icons.pending_actions_outlined;
+        break;
+      case 1: // Confirmed
+        title = 'لا توجد حجوزات مؤكدة';
+        description = 'لم تقم بتأكيد أي حجوزات حتى الآن';
+        icon = Icons.event_available_outlined;
+        break;
+      case 2: // Cancelled
+        title = 'لا توجد حجوزات مرفوضة';
+        description = 'لم تقم برفض أي حجوزات';
+        icon = Icons.event_busy_outlined;
+        break;
+      default:
+        title = 'لا توجد حجوزات';
+        description = '';
+        icon = Icons.event_note_outlined;
+    }
+
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.event_busy, size: 80, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
-            'لا توجد حجوزات',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: Colors.grey.shade600),
-          ),
-        ],
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Empty state illustration
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 80,
+                color: AppColors.gold.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Title
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+
+            // Description
+            Text(
+              description,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+
+            // Info box
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.blue.shade100,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      tabIndex == 0
+                          ? 'ستظهر هنا الحجوزات الجديدة التي تحتاج للمراجعة'
+                          : tabIndex == 1
+                              ? 'الحجوزات التي قمت بتأكيدها ستظهر هنا'
+                              : 'الحجوزات المرفوضة ستظهر في هذه القائمة',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blue.shade700,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

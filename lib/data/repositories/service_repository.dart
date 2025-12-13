@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/category_model.dart';
 import 'package:wedly/data/models/countdown_model.dart';
@@ -388,9 +390,24 @@ class ServiceRepository {
 
   /// API implementation: Get all services
   Future<List<ServiceModel>> _apiGetServices() async {
-    final response = await _apiClient!.get(ApiConstants.services);
-    final List<dynamic> data = response.data['services'] ?? response.data;
-    return data.map((json) => ServiceModel.fromJson(json)).toList();
+    try {
+      final response = await _apiClient!.get(ApiConstants.services);
+      final responseData = response.data['data'] ?? response.data;
+      final List<dynamic> data = responseData['services'] ?? responseData;
+      final services = data.map((json) => ServiceModel.fromJson(json)).toList();
+
+      // Fallback to mock data if API returns empty results
+      if (services.isEmpty) {
+        print('⚠️ API returned empty services, falling back to mock data');
+        return _mockGetServices();
+      }
+
+      return services;
+    } catch (e) {
+      print('⚠️ API Error in getServices: $e');
+      print('📦 Falling back to mock data');
+      return _mockGetServices();
+    }
   }
 
   /// Get service by ID
@@ -416,9 +433,10 @@ class ServiceRepository {
   Future<ServiceModel?> _apiGetServiceById(String id) async {
     try {
       final response = await _apiClient!.get(
-        ApiConstants.serviceById(int.parse(id)),
+        ApiConstants.serviceById(id),
       );
-      return ServiceModel.fromJson(response.data['service'] ?? response.data);
+      final responseData = response.data['data'] ?? response.data;
+      return ServiceModel.fromJson(responseData['service'] ?? responseData);
     } catch (e) {
       return null;
     }
@@ -443,11 +461,26 @@ class ServiceRepository {
 
   /// API implementation: Get services by category
   Future<List<ServiceModel>> _apiGetServicesByCategory(String category) async {
-    final response = await _apiClient!.get(
-      ApiConstants.servicesByCategory(category),
-    );
-    final List<dynamic> data = response.data['services'] ?? response.data;
-    return data.map((json) => ServiceModel.fromJson(json)).toList();
+    try {
+      final response = await _apiClient!.get(
+        ApiConstants.servicesByCategory(category),
+      );
+      final responseData = response.data['data'] ?? response.data;
+      final List<dynamic> data = responseData['services'] ?? responseData;
+      final services = data.map((json) => ServiceModel.fromJson(json)).toList();
+
+      // Fallback to mock data if API returns empty results
+      if (services.isEmpty) {
+        print('⚠️ API returned empty services for category $category, falling back to mock data');
+        return _mockGetServicesByCategory(category);
+      }
+
+      return services;
+    } catch (e) {
+      print('⚠️ API Error in getServicesByCategory($category): $e');
+      print('📦 Falling back to mock data');
+      return _mockGetServicesByCategory(category);
+    }
   }
 
   /// Get all unique categories
@@ -495,7 +528,8 @@ class ServiceRepository {
     final response = await _apiClient!.get(
       ApiConstants.providerServices(providerId),
     );
-    final List<dynamic> data = response.data['services'] ?? response.data;
+    final responseData = response.data['data'] ?? response.data;
+    final List<dynamic> data = responseData['services'] ?? responseData;
     return data.map((json) => ServiceModel.fromJson(json)).toList();
   }
 
@@ -518,13 +552,108 @@ class ServiceRepository {
     return newService;
   }
 
-  /// API implementation: Add service
+  /// API implementation: Add service with multipart/form-data
   Future<ServiceModel> _apiAddService(ServiceModel service) async {
+    // Create FormData with all service fields
+    final formData = FormData.fromMap({
+      'name': service.name,
+      'description': service.description,
+      'price': service.price?.toString() ?? '0',
+      'category': service.category,
+
+      // Add image file if provided
+      if (service.imageFile != null)
+        'image': await MultipartFile.fromFile(
+          service.imageFile!.path,
+          filename: service.imageFile!.path.split(Platform.pathSeparator).last,
+        ),
+
+      // Optional venue-specific fields
+      if (service.chairCount != null)
+        'chair_count': service.chairCount.toString(),
+      if (service.city != null)
+        'city': service.city,
+      if (service.morningPrice != null)
+        'morning_price': service.morningPrice.toString(),
+      if (service.eveningPrice != null)
+        'evening_price': service.eveningPrice.toString(),
+      if (service.latitude != null)
+        'latitude': service.latitude.toString(),
+      if (service.longitude != null)
+        'longitude': service.longitude.toString(),
+      if (service.address != null)
+        'address': service.address,
+
+      'is_active': service.isActive.toString(),
+
+      // Offer fields
+      if (service.hasOffer)
+        'discount_percentage': service.discountPercentage?.toString() ?? '0',
+    });
+
     final response = await _apiClient!.post(
       ApiConstants.services,
-      data: service.toJson(),
+      data: formData,
     );
-    return ServiceModel.fromJson(response.data['service'] ?? response.data);
+
+    final responseData = response.data['data'] ?? response.data;
+    return ServiceModel.fromJson(responseData['service'] ?? responseData);
+  }
+
+  /// Add dynamic section to a service (Provider only)
+  Future<Map<String, dynamic>> addDynamicSection({
+    required String serviceId,
+    required String title,
+    required String description,
+    required String selectionType, // 'single' or 'multiple'
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      return {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'title': title,
+        'description': description,
+        'selectionType': selectionType,
+      };
+    }
+
+    final response = await _apiClient!.post(
+      '/api/services/$serviceId/dynamic-sections',
+      data: {
+        'title': title,
+        'description': description,
+        'selection_type': selectionType,
+      },
+    );
+    final responseData = response.data['data'] ?? response.data;
+    return responseData['section'] ?? responseData;
+  }
+
+  /// Add option to a dynamic section (Provider only)
+  Future<Map<String, dynamic>> addDynamicSectionOption({
+    required String serviceId,
+    required String sectionId,
+    required String text,
+    required String price,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      return {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'text': text,
+        'price': price,
+      };
+    }
+
+    final response = await _apiClient!.post(
+      '/api/services/$serviceId/dynamic-sections/$sectionId/options',
+      data: {
+        'text': text,
+        'price': price,
+      },
+    );
+    final responseData = response.data['data'] ?? response.data;
+    return responseData['option'] ?? responseData;
   }
 
   /// Update an existing service (Provider only)
@@ -692,9 +821,24 @@ class ServiceRepository {
 
   /// API implementation: Get categories with details
   Future<List<CategoryModel>> _apiGetCategoriesWithDetails() async {
-    final response = await _apiClient!.get(ApiConstants.categories);
-    final List<dynamic> data = response.data['categories'] ?? response.data;
-    return data.map((json) => CategoryModel.fromJson(json)).toList();
+    try {
+      final response = await _apiClient!.get(ApiConstants.categories);
+      final responseData = response.data['data'] ?? response.data;
+      final List<dynamic> data = responseData['categories'] ?? responseData;
+      final categories = data.map((json) => CategoryModel.fromJson(json)).toList();
+
+      // Fallback to mock data if API returns empty results
+      if (categories.isEmpty) {
+        print('⚠️ API returned empty categories, falling back to mock data');
+        return _mockGetCategoriesWithDetails();
+      }
+
+      return categories;
+    } catch (e) {
+      print('⚠️ API Error in getCategoriesWithDetails: $e');
+      print('📦 Falling back to mock data');
+      return _mockGetCategoriesWithDetails();
+    }
   }
 
   /// Get user's wedding countdown
@@ -710,13 +854,9 @@ class ServiceRepository {
   Future<CountdownModel?> _mockGetUserCountdown(String userId) async {
     await Future.delayed(const Duration(milliseconds: 200));
 
-    // Return a mock countdown (6 months from now)
-    return CountdownModel(
-      userId: userId,
-      weddingDate: DateTime.now().add(const Duration(days: 175)),
-      titleAr: 'العد التنازلي للفرح',
-      title: 'Wedding Countdown',
-    );
+    // Return null by default - countdown only shows after user books a venue
+    // The API will return the actual countdown when a venue is booked
+    return null;
   }
 
   /// API implementation: Get user countdown
@@ -729,6 +869,8 @@ class ServiceRepository {
         response.data['countdown'] ?? response.data,
       );
     } catch (e) {
+      print('⚠️ API Error in getUserCountdown: $e');
+      print('📦 Falling back to no countdown (null)');
       return null;
     }
   }
@@ -894,7 +1036,13 @@ class ServiceRepository {
 
   /// API implementation: Get home layout
   Future<HomeLayoutModel> _apiGetHomeLayout(String screenName) async {
-    final response = await _apiClient!.get(ApiConstants.homeLayout(screenName));
-    return HomeLayoutModel.fromJson(response.data['layout'] ?? response.data);
+    try {
+      final response = await _apiClient!.get(ApiConstants.homeLayout(screenName));
+      return HomeLayoutModel.fromJson(response.data['layout'] ?? response.data);
+    } catch (e) {
+      print('⚠️ API Error in getHomeLayout: $e');
+      print('📦 Falling back to mock layout');
+      return _mockGetHomeLayout(screenName);
+    }
   }
 }

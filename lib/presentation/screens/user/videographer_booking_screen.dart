@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
 /// Videographer booking screen with detailed package information
 /// Shows service details with interactive additions selection
@@ -907,32 +908,54 @@ class _VideographerBookingScreenState extends State<VideographerBookingScreen> {
         child: ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              // Build additions text
-              String additionsText = '';
+              // Build additions list
+              final List<String> additionsList = [];
               if (_selectedAdditions.isNotEmpty) {
-                final additions = _selectedAdditions
-                    .map((key) {
-                      final parts = key.split('-');
-                      final packageKey = parts[0];
-                      final index = int.parse(parts[1]);
-                      final items =
-                          _packages[packageKey]!['items'] as List<dynamic>;
-                      return items[index].toString();
-                    })
-                    .toList()
-                    .join('\n• ');
-                additionsText = '\n\nالإضافات المحددة:\n• $additions';
+                additionsList.addAll(_selectedAdditions.map((key) {
+                  final parts = key.split('-');
+                  final packageKey = parts[0];
+                  final index = int.parse(parts[1]);
+                  final items = _packages[packageKey]!['items'] as List<dynamic>;
+                  return items[index].toString();
+                }));
               }
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'تم حجز موعد في ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}$additionsText',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  duration: const Duration(seconds: 4),
-                  backgroundColor: const Color(0xFFD4AF37),
-                  behavior: SnackBarBehavior.floating,
+              // Calculate total price
+              const double basePrice = 4500.0;
+              const Map<String, double> additionPrices = {
+                'تصوير درون (جوي)': 800.0,
+                'لقطة بطيئة (Slow Motion Shots)': 500.0,
+                'جلسة خاصة قبل او بعد الفرح': 1000.0,
+                'تعديل لوني احترافي (Color Grading)': 600.0,
+              };
+
+              double additionsTotal = 0.0;
+              for (final addition in _selectedAdditions) {
+                final parts = addition.split('-');
+                if (parts.length == 2) {
+                  final packageKey = parts[0];
+                  final index = int.parse(parts[1]);
+                  if (packageKey == 'additions') {
+                    final items = _packages['additions']!['items'] as List<dynamic>;
+                    final additionText = items[index].toString();
+                    additionsTotal += additionPrices[additionText] ?? 0.0;
+                  }
+                }
+              }
+              final double totalPrice = basePrice + additionsTotal;
+
+              // Format date
+              final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
+
+              // Show success dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => BookingSuccessDialog(
+                  serviceName: widget.service.name,
+                  date: formattedDate,
+                  additions: additionsList.isNotEmpty ? additionsList : null,
+                  totalPrice: totalPrice,
                 ),
               );
             }
@@ -946,7 +969,7 @@ class _VideographerBookingScreenState extends State<VideographerBookingScreen> {
             elevation: 0,
           ),
           child: const Text(
-            'تأكيد الحجز',
+            'إضافة إلى السلة',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),

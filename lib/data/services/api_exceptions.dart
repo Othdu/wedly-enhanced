@@ -21,7 +21,8 @@ class ApiException implements Exception {
 class NoInternetException extends ApiException {
   NoInternetException()
       : super(
-          message: 'No internet connection. Please check your network.',
+          message: 'لا يوجد اتصال بالإنترنت. الرجاء التحقق من الشبكة.\n'
+              'No internet connection. Please check your network.',
           statusCode: 0,
         );
 }
@@ -30,7 +31,8 @@ class NoInternetException extends ApiException {
 class TimeoutException extends ApiException {
   TimeoutException()
       : super(
-          message: 'Request timeout. Please try again.',
+          message: 'انتهت مهلة الطلب. الرجاء المحاولة مرة أخرى.\n'
+              'Request timeout. Please try again.',
           statusCode: 408,
         );
 }
@@ -39,7 +41,9 @@ class TimeoutException extends ApiException {
 class ServerException extends ApiException {
   ServerException({String? message, int? statusCode})
       : super(
-          message: message ?? 'Server error occurred. Please try again later.',
+          message: message ??
+              'خطأ في الخادم. الرجاء المحاولة لاحقاً.\n'
+                  'Server error occurred. Please try again later.',
           statusCode: statusCode ?? 500,
         );
 }
@@ -48,7 +52,9 @@ class ServerException extends ApiException {
 class ClientException extends ApiException {
   ClientException({String? message, int? statusCode, dynamic data})
       : super(
-          message: message ?? 'Client error occurred.',
+          message: message ??
+              'خطأ في الطلب.\n'
+                  'Client error occurred.',
           statusCode: statusCode ?? 400,
           data: data,
         );
@@ -58,7 +64,9 @@ class ClientException extends ApiException {
 class UnauthorizedException extends ApiException {
   UnauthorizedException({String? message})
       : super(
-          message: message ?? 'Unauthorized. Please login again.',
+          message: message ??
+              'غير مصرح. الرجاء تسجيل الدخول مرة أخرى.\n'
+                  'Unauthorized. Please login again.',
           statusCode: 401,
         );
 }
@@ -67,7 +75,9 @@ class UnauthorizedException extends ApiException {
 class ForbiddenException extends ApiException {
   ForbiddenException({String? message})
       : super(
-          message: message ?? 'Access forbidden.',
+          message: message ??
+              'الوصول محظور.\n'
+                  'Access forbidden.',
           statusCode: 403,
         );
 }
@@ -76,7 +86,9 @@ class ForbiddenException extends ApiException {
 class NotFoundException extends ApiException {
   NotFoundException({String? message})
       : super(
-          message: message ?? 'Resource not found.',
+          message: message ??
+              'العنصر غير موجود.\n'
+                  'Resource not found.',
           statusCode: 404,
         );
 }
@@ -87,7 +99,9 @@ class ValidationException extends ApiException {
 
   ValidationException({String? message, this.errors})
       : super(
-          message: message ?? 'Validation error.',
+          message: message ??
+              'خطأ في التحقق من البيانات.\n'
+                  'Validation error.',
           statusCode: 422,
           data: errors,
         );
@@ -97,6 +111,56 @@ class ValidationException extends ApiException {
 class UnknownException extends ApiException {
   UnknownException({String? message})
       : super(
-          message: message ?? 'An unexpected error occurred.',
+          message: message ??
+              'حدث خطأ غير متوقع.\n'
+                  'An unexpected error occurred.',
+        );
+}
+
+/// Exception thrown when refresh token expires (session truly expired)
+/// This triggers logout flow in the app
+class SessionExpiredException extends ApiException {
+  SessionExpiredException({String? message})
+      : super(
+          message: message ?? 'جلستك انتهت. يرجى تسجيل الدخول مرة أخرى.',
+          statusCode: 401,
+        );
+}
+
+/// Exception thrown when SSL/TLS certificate validation fails
+/// This indicates a security issue with the server's certificate
+class SslCertificateException extends ApiException {
+  SslCertificateException({String? message})
+      : super(
+          message: message ??
+              'خطأ في الاتصال الآمن. الرجاء التواصل مع الدعم الفني.\n'
+                  'SSL certificate error. Please contact support.',
+          statusCode: 0,
+        );
+}
+
+/// Exception thrown when there's a TLS handshake error
+/// This indicates the server's SSL configuration is invalid or incompatible
+class TlsHandshakeException extends ApiException {
+  TlsHandshakeException({String? message})
+      : super(
+          message: message ??
+              'فشل الاتصال الآمن بالخادم. قد تكون هناك مشكلة في إعدادات الأمان.\n'
+                  'الرجاء المحاولة لاحقاً أو التواصل مع الدعم الفني.\n\n'
+                  'Secure connection failed. There may be a server security configuration issue.\n'
+                  'Please try again later or contact support.',
+          statusCode: 0,
+        );
+}
+
+/// Exception thrown when network connection fails
+/// Different from NoInternetException - this is when connection attempt fails
+class ConnectionException extends ApiException {
+  ConnectionException({String? message})
+      : super(
+          message: message ??
+              'فشل الاتصال بالخادم. الرجاء التحقق من اتصالك بالإنترنت.\n'
+                  'Connection to server failed. Please check your internet connection.',
+          statusCode: 0,
         );
 }

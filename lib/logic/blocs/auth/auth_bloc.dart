@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/core/utils/error_handler.dart';
 import 'package:wedly/data/repositories/auth_repository.dart';
+import 'package:wedly/data/services/social_auth_service.dart';
 import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 
@@ -12,6 +14,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
     on<AuthRoleChanged>(_onAuthRoleChanged);
     on<AuthUpdateProfile>(_onAuthUpdateProfile);
+    on<AuthRegisterRequested>(_onAuthRegisterRequested);
+    on<AuthOtpVerificationRequested>(_onAuthOtpVerificationRequested);
+    on<AuthResendOtpRequested>(_onAuthResendOtpRequested);
+    on<AuthForgotPasswordRequested>(_onAuthForgotPasswordRequested);
+    on<AuthResetPasswordRequested>(_onAuthResetPasswordRequested);
+    on<AuthSessionExpired>(_onAuthSessionExpired);
+    on<AuthChangePasswordRequested>(_onAuthChangePasswordRequested);
+    on<AuthUpdateProfileImageRequested>(_onAuthUpdateProfileImageRequested);
+    on<AuthSocialLoginRequested>(_onAuthSocialLoginRequested);
+
+    // Listen to session expiry events from repository
+    authRepository.sessionExpiredStream.listen((_) {
+      add(const AuthSessionExpired());
+    });
 
     // Check initial auth status
     add(const AuthStatusChecked());
@@ -42,7 +58,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(AuthAuthenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'login')));
     }
   }
 
@@ -55,7 +71,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await authRepository.logout();
       emit(const AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'logout')));
     }
   }
 
@@ -77,18 +93,225 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final currentState = state;
     if (currentState is! AuthAuthenticated) return;
 
-    // Update the user with new data
-    final updatedUser = currentState.user.copyWith(
-      name: event.name,
-      email: event.email,
-      profileImageUrl: event.profileImageUrl,
-      phone: event.phone,
-      city: event.city,
-    );
+    print('🔄 AuthBloc: Starting profile update...');
+    emit(const AuthLoading());
+    try {
+      // Call repository to update profile via API
+      final updatedUser = await authRepository.updateProfile(
+        name: event.name,
+        phone: event.phone,
+        city: event.city,
+        profileImageUrl: event.profileImageUrl,
+      );
 
-    // TODO: Call authRepository.updateProfile(updatedUser) when API is ready
-    // For now, just emit the updated state
-    emit(AuthAuthenticated(updatedUser));
+      print('✅ AuthBloc: Profile update successful, emitting AuthProfileUpdateSuccess');
+      // Emit success state with updated user
+      emit(AuthProfileUpdateSuccess(
+        user: updatedUser,
+        message: 'تم تحديث البيانات بنجاح',
+      ));
+      print('✅ AuthBloc: Emitting AuthAuthenticated with updated user');
+      // Emit the updated authenticated state
+      emit(AuthAuthenticated(updatedUser));
+      print('✅ AuthBloc: All states emitted successfully');
+    } catch (e) {
+      print('❌ AuthBloc: Profile update failed: $e');
+      // If update fails, emit error but keep current state
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'profile_update')));
+      // Re-emit current authenticated state after error
+      emit(currentState);
+    }
+  }
+
+  Future<void> _onAuthRegisterRequested(
+    AuthRegisterRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final result = await authRepository.register(
+        name: event.name,
+        email: event.email,
+        password: event.password,
+        phone: event.phone,
+        role: event.role,
+      );
+      emit(AuthRegistrationSuccess(
+        email: result['email'],
+        message: result['message'] ?? 'تم إرسال كود التحقق إلى بريدك الإلكتروني',
+      ));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'registration')));
+    }
+  }
+
+  Future<void> _onAuthOtpVerificationRequested(
+    AuthOtpVerificationRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final user = await authRepository.verifyOtp(
+        email: event.email,
+        otp: event.otp,
+      );
+      emit(AuthOtpVerificationSuccess(user));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'otp_verification')));
+    }
+  }
+
+  Future<void> _onAuthResendOtpRequested(
+    AuthResendOtpRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      final result = await authRepository.resendOtp(
+        email: event.email,
+      );
+      emit(AuthResendOtpSuccess(
+        result['message'] ?? 'تم إعادة إرسال الكود',
+      ));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'resend_otp')));
+    }
+  }
+
+  Future<void> _onAuthForgotPasswordRequested(
+    AuthForgotPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final result = await authRepository.forgotPassword(
+        email: event.email,
+      );
+      emit(AuthForgotPasswordSuccess(
+        email: result['email'],
+        message: result['message'] ?? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
+      ));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'forgot_password')));
+    }
+  }
+
+  Future<void> _onAuthResetPasswordRequested(
+    AuthResetPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final result = await authRepository.resetPassword(
+        token: event.token,
+        password: event.password,
+      );
+      emit(AuthResetPasswordSuccess(
+        result['message'] ?? 'تم تغيير كلمة المرور بنجاح',
+      ));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'reset_password')));
+    }
+  }
+
+  /// Handle session expiry (triggered by ApiClient via AuthRepository callback)
+  Future<void> _onAuthSessionExpired(
+    AuthSessionExpired event,
+    Emitter<AuthState> emit,
+  ) async {
+    print('🚨 AuthBloc: Session expired, logging out');
+    // Directly emit unauthenticated state
+    // No API call needed - already handled by ApiClient
+    emit(const AuthUnauthenticated());
+  }
+
+  Future<void> _onAuthChangePasswordRequested(
+    AuthChangePasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    emit(const AuthLoading());
+    try {
+      final result = await authRepository.changePassword(
+        currentPassword: event.currentPassword,
+        newPassword: event.newPassword,
+      );
+      emit(AuthChangePasswordSuccess(
+        result['message'] ?? 'تم تغيير كلمة المرور بنجاح',
+      ));
+      // Re-emit authenticated state after success
+      emit(currentState);
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'change_password')));
+      // Re-emit current authenticated state after error
+      emit(currentState);
+    }
+  }
+
+  Future<void> _onAuthUpdateProfileImageRequested(
+    AuthUpdateProfileImageRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    emit(const AuthLoading());
+    try {
+      // Upload image and get URL
+      final imageUrl = await authRepository.uploadProfileImage(event.imagePath);
+
+      // Update user profile with new image URL
+      final updatedUser = await authRepository.updateProfile(
+        profileImageUrl: imageUrl,
+      );
+
+      emit(AuthProfileImageUpdateSuccess(
+        user: updatedUser,
+        message: 'تم تحديث الصورة بنجاح',
+      ));
+      // Emit updated authenticated state
+      emit(AuthAuthenticated(updatedUser));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'profile_image_update')));
+      // Re-emit current authenticated state after error
+      emit(currentState);
+    }
+  }
+
+  Future<void> _onAuthSocialLoginRequested(
+    AuthSocialLoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final socialAuthService = SocialAuthService();
+      Map<String, dynamic> socialData;
+
+      if (event.provider == 'google') {
+        socialData = await socialAuthService.signInWithGoogle();
+      } else if (event.provider == 'facebook') {
+        socialData = await socialAuthService.signInWithFacebook();
+      } else {
+        throw Exception('مزود غير مدعوم');
+      }
+
+      // Login with backend using the social data
+      final user = await authRepository.socialLogin(
+        provider: socialData['provider'],
+        email: socialData['email'],
+        name: socialData['name'],
+        providerId: socialData['provider_id'],
+        profileImageUrl: socialData['profile_image_url'],
+        firebaseToken: socialData['firebase_token'],
+        accessToken: socialData['access_token'],
+        idToken: socialData['id_token'],
+      );
+
+      emit(AuthAuthenticated(user));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'social_login')));
+    }
   }
 }
 

@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/offer_model.dart';
+import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
 /// Photographer booking screen with package-based pricing
 /// User selects one package, then one option within that package
@@ -943,20 +945,26 @@ class _PhotographerBookingScreenState extends State<PhotographerBookingScreen> {
         child: ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              // Build booking summary text
+              // Build booking summary data
               final packageTitle = _getPackageTitle(_selectedPackage!);
               final package = _packages[_selectedPackage]![0];
               final optionIndex = int.parse(_selectedOption!.split('-')[1]);
               final option = package['options'][optionIndex];
+              final price = (option['price'] as int).toDouble();
 
-              // TODO: Implement booking functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'تم حجز موعد في ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}\nالباقة: $packageTitle\nالخيار: ${option['size']}',
-                  ),
-                  duration: const Duration(seconds: 3),
-                  backgroundColor: const Color(0xFFD4AF37),
+              // Format date
+              final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
+
+              // Show success dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => BookingSuccessDialog(
+                  serviceName: _title,
+                  date: formattedDate,
+                  packageName: packageTitle,
+                  selectedOption: option['size'],
+                  totalPrice: price,
                 ),
               );
             }
@@ -970,7 +978,7 @@ class _PhotographerBookingScreenState extends State<PhotographerBookingScreen> {
             elevation: 0,
           ),
           child: const Text(
-            'تأكيد الحجز',
+            'إضافة إلى السلة',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
