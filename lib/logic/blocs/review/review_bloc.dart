@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/repositories/review_repository.dart';
+import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/review/review_event.dart';
 import 'package:wedly/logic/blocs/review/review_state.dart';
 
@@ -7,8 +9,12 @@ import 'package:wedly/logic/blocs/review/review_state.dart';
 /// Handles fetching, submitting, updating, and deleting reviews
 class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
   final ReviewRepository reviewRepository;
+  final AuthBloc authBloc;
 
-  ReviewBloc({required this.reviewRepository}) : super(const ReviewInitial()) {
+  ReviewBloc({
+    required this.reviewRepository,
+    required this.authBloc,
+  }) : super(const ReviewInitial()) {
     // Register event handlers
     on<VenueReviewsRequested>(_onVenueReviewsRequested);
     on<ServiceReviewsRequested>(_onServiceReviewsRequested);
@@ -88,13 +94,20 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
     try {
       emit(const ReviewSubmitting());
 
-      // TODO: Get user info from AuthBloc instead of hardcoding
+      // Get user info from AuthBloc
+      final authState = authBloc.state;
+      if (authState is! AuthAuthenticated) {
+        emit(const ReviewError(message: 'يجب تسجيل الدخول لإضافة تقييم'));
+        return;
+      }
+
+      final user = authState.user;
       final review = await reviewRepository.submitReview(
         targetId: event.targetId,
         targetType: event.targetType,
-        userId: 'current_user_id', // TODO: Get from AuthBloc
-        userName: 'المستخدم الحالي', // TODO: Get from AuthBloc
-        userImageUrl: null, // TODO: Get from AuthBloc
+        userId: user.id,
+        userName: user.name,
+        userImageUrl: user.profileImageUrl,
         rating: event.rating,
         comment: event.comment,
       );
@@ -220,8 +233,14 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
     try {
       emit(const ReviewsLoading());
 
-      // TODO: Get user ID from AuthBloc
-      final reviews = await reviewRepository.getUserReviews('current_user_id');
+      // Get user ID from AuthBloc
+      final authState = authBloc.state;
+      if (authState is! AuthAuthenticated) {
+        emit(const ReviewError(message: 'يجب تسجيل الدخول لعرض التقييمات'));
+        return;
+      }
+
+      final reviews = await reviewRepository.getUserReviews(authState.user.id);
 
       if (reviews.isEmpty) {
         emit(const ReviewsEmpty(

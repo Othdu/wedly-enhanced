@@ -118,7 +118,6 @@ class CartRepository {
           time: 'الساعة 8:00 مساءً',
           servicePrice: 12000,
           photographerPrice: 0,
-          serviceCharge: 100,
           addedAt: DateTime.now().subtract(const Duration(hours: 2)),
         ),
         CartItemModel(
@@ -128,7 +127,6 @@ class CartRepository {
           time: 'الساعة 5:00 مساءً',
           servicePrice: 9000,
           photographerPrice: 0,
-          serviceCharge: 100,
           addedAt: DateTime.now().subtract(const Duration(hours: 1)),
         ),
       ]);
@@ -165,9 +163,15 @@ class CartRepository {
         return [];
       }
 
-      return cartItemsList
-          .map((json) => CartItemModel.fromJson(json as Map<String, dynamic>))
+      final items = cartItemsList
+          .map((json) {
+            final item = CartItemModel.fromJson(json as Map<String, dynamic>);
+            print('📦 Cart item loaded - ID: ${item.id}, Service: ${item.service.name}');
+            return item;
+          })
           .toList();
+      print('✅ Total cart items loaded: ${items.length}');
+      return items;
     } catch (e) {
       print('❌ Error in _apiGetCartItems: $e');
       rethrow;
@@ -184,7 +188,16 @@ class CartRepository {
 
   /// API: Remove item from cart
   Future<void> _apiRemoveFromCart(String itemId) async {
-    await apiClient!.delete(ApiConstants.removeFromCart(itemId));
+    try {
+      print('🗑️ Attempting to delete cart item with ID: $itemId');
+      final endpoint = ApiConstants.removeFromCart(itemId);
+      print('🌐 DELETE endpoint: $endpoint');
+      await apiClient!.delete(endpoint);
+      print('✅ Successfully deleted cart item: $itemId');
+    } catch (e) {
+      print('❌ Error deleting cart item $itemId: $e');
+      rethrow;
+    }
   }
 
   /// API: Clear cart

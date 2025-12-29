@@ -12,6 +12,7 @@ class ApiConstants {
   // Auth Endpoints
   static const String login = '/api/auth/login';
   static const String register = '/api/auth/register';
+  static const String registerProvider = '/api/auth/register-provider';
   static const String verifyOtp = '/api/auth/verify-otp';
   static const String resendOtp = '/api/auth/resend-otp';
   static const String forgotPassword = '/api/auth/forgot-password';
@@ -19,7 +20,8 @@ class ApiConstants {
   static const String refreshToken = '/api/auth/refresh';
   static const String logout = '/api/auth/logout';
   static const String getCurrentUser = '/api/auth/me';
-  static const String socialLogin = '/api/auth/social-login';
+  static const String googleLogin = '/api/auth/google-login';
+  static const String socialLogin = '/api/auth/google-login'; // Kept for backward compatibility
 
   // User Endpoints
   static const String userProfile = '/api/users/profile';
@@ -39,14 +41,52 @@ class ApiConstants {
       '/api/services/providers/$providerId/services';
   static String toggleServiceStatus(dynamic id) => '/api/services/$id/toggle-status';
   static String getServicePackages(dynamic id) => '/api/services/$id/packages';
+
+  // Dynamic Sections Endpoints (per API spec)
   static String getServiceDynamicSections(dynamic id) => '/api/services/$id/dynamic-sections';
-  static String getDynamicSectionOptions(String id) => '/api/services/$id/dynamic-sections/options';
-  static String createDynamicSectionOption(String id) => '/api/services/$id/dynamic-sections/options'; // POST
-  static String updateDynamicSectionOption(String serviceId, String optionId) =>
-      '/api/services/$serviceId/dynamic-sections/options/$optionId'; // PUT
-  static String deleteDynamicSectionOption(String serviceId, String optionId) =>
-      '/api/services/$serviceId/dynamic-sections/options/$optionId'; // DELETE
-  static String getServiceAvailableDates(dynamic id) => '/api/services/$id/available-dates';
+  static String createDynamicSection(String serviceId) => '/api/services/$serviceId/dynamic-sections'; // POST
+  static String updateDynamicSection(String serviceId, String sectionId) =>
+      '/api/services/$serviceId/dynamic-sections/$sectionId'; // PUT
+  static String deleteDynamicSection(String serviceId, String sectionId) =>
+      '/api/services/$serviceId/dynamic-sections/$sectionId'; // DELETE
+  static String createSectionOption(String serviceId, String sectionId) =>
+      '/api/services/$serviceId/dynamic-sections/$sectionId/options'; // POST
+  static String updateSectionOption(String serviceId, String sectionId, String optionId) =>
+      '/api/services/$serviceId/dynamic-sections/$sectionId/options/$optionId'; // PUT
+  static String deleteSectionOption(String serviceId, String sectionId, String optionId) =>
+      '/api/services/$serviceId/dynamic-sections/$sectionId/options/$optionId'; // DELETE
+
+  // Service Available Dates (calendar view) - requires month param (YYYY-MM format)
+  static String getServiceAvailableDates(dynamic id, String month, {String? timeSlot}) =>
+      '/api/services/$id/available-dates?month=$month${timeSlot != null ? '&time_slot=$timeSlot' : ''}';
+
+  // Services with filters - GET /api/services with query params
+  static String servicesWithFilters({
+    String? category,
+    String? city,
+    double? minPrice,
+    double? maxPrice,
+    double? rating,
+    bool? hasOffer,
+    int? page,
+    int? limit,
+    String? sort,
+  }) {
+    final params = <String, String>{};
+    if (category != null) params['category'] = category;
+    if (city != null) params['city'] = city;
+    if (minPrice != null) params['min_price'] = minPrice.toString();
+    if (maxPrice != null) params['max_price'] = maxPrice.toString();
+    if (rating != null) params['rating'] = rating.toString();
+    if (hasOffer != null) params['has_offer'] = hasOffer.toString();
+    if (page != null) params['page'] = page.toString();
+    if (limit != null) params['limit'] = limit.toString();
+    if (sort != null) params['sort'] = sort;
+
+    final queryString = params.entries.map((e) => '${e.key}=${e.value}').join('&');
+    return '/api/services${queryString.isNotEmpty ? '?$queryString' : ''}';
+  }
+
   static String homeLayout(String screenName) => '/api/layout/$screenName';
   static String userCountdown(String userId) => '/api/user/$userId/countdown';
 
@@ -100,6 +140,9 @@ class ApiConstants {
   static const String createVenue = '/api/venues'; // POST
   static String venueById(String id) => '/api/venues/$id';
   static String updateVenue(String id) => '/api/venues/$id'; // PUT
+  // Venue Available Dates (calendar view) - requires month param (YYYY-MM format)
+  static String getVenueAvailableDates(dynamic id, String month, {String? timeSlot}) =>
+      '/api/venues/$id/available-dates?month=$month${timeSlot != null ? '&time_slot=$timeSlot' : ''}';
 
   // Address Endpoints
   static const String addressCities = '/api/addresses/cities';
@@ -112,6 +155,16 @@ class ApiConstants {
   static const String adminUsers = '/api/users/admin/users';
   static String adminUserById(String id) => '/api/users/admin/users/$id';
   static String updateUserActivation(String id) => '/api/users/admin/users/$id/activation';
+
+  // Banner Endpoints
+  static const String banners = '/api/banners'; // GET - Get all active banners (public)
+  static const String adminBanners = '/api/banners/admin'; // GET - Get all banners (admin only)
+  static const String createBanner = '/api/banners'; // POST - Create a new banner
+  static String bannerById(String id) => '/api/banners/$id'; // GET - Get banner by ID
+  static String updateBanner(String id) => '/api/banners/$id'; // PUT - Update a banner
+  static String deleteBanner(String id) => '/api/banners/$id'; // DELETE - Delete a banner
+  static String updateBannerImage(String id) => '/api/banners/$id/image'; // PUT - Update banner image
+  static String toggleBannerVisibility(String id) => '/api/banners/$id/toggle-visibility'; // PATCH - Toggle banner visibility
 
   // Headers
   static const String contentType = 'application/json';

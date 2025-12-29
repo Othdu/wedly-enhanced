@@ -3,14 +3,14 @@ import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
-/// Wedding dress booking screen with date selection and personal info
+/// Decoration booking screen with date selection and personal info
 /// Shows service details, allows date selection and collects user information
 /// Can accept either a service or an offer
-class WeddingDressBookingScreen extends StatefulWidget {
+class DecorationBookingScreen extends StatefulWidget {
   final ServiceModel? service;
   final OfferModel? offer;
 
-  const WeddingDressBookingScreen({
+  const DecorationBookingScreen({
     super.key,
     this.service,
     this.offer,
@@ -18,11 +18,11 @@ class WeddingDressBookingScreen extends StatefulWidget {
             'Either service or offer must be provided');
 
   @override
-  State<WeddingDressBookingScreen> createState() =>
-      _WeddingDressBookingScreenState();
+  State<DecorationBookingScreen> createState() =>
+      _DecorationBookingScreenState();
 }
 
-class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
+class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -56,45 +56,48 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
     super.dispose();
   }
 
-  // Static package data for wedding dress
+  // Static package data for decoration
   static const Map<String, Map<String, dynamic>> _packages = {
     'details': {
       'title': 'تفاصيل الباقة',
       'items': [
-        'نوع الخدمة : تأجير أو تصميم فساتين زفاف',
-        'الخدمات المتاحة : فساتين - شيفون - تول - تطريز يدوي',
+        'نوع الخدمة: ديكور قاعة الفرح',
+        'الخدمات المتاحة: ديكور - زينة - إضاءة',
       ],
     },
     'styles': {
-      'title': 'الأنواع المتاحة',
+      'title': 'قاعة البدرام',
       'items': [
-        'فساتين الأميرات',
-        'فساتين حورية البحر',
-        'فساتين مستقيمة (Sheath)',
-        'فساتين خصر عالي (Empire)',
-        'فساتين قصيرة',
+        'نوع القاعة: قاعة مكيفة مع ديكور فاخر',
+        'السعة: تتسع لعدد كبير من الضيوف',
       ],
     },
     'components': {
       'title': 'المكونات',
       'items': [
-        'فستان الزفاف كامل',
-        'طرحة مطابقة للتصميم',
-        'إكسسوارات بسيطة (حسب الباقة)',
+        'ديكور كامل للمنصة',
+        'تنسيق الكراسي والطاولات',
+        'إضاءة احترافية',
+        'ورد طبيعي + تنسيق إضافي',
+        'خلفية مصممة (Backdrop)',
+        'ديكور طاولات',
+        'ضيافة بسيطة (اختياري)',
       ],
     },
     'price': {
       'title': 'السعر',
       'items': [
-        'السعر يبدأ من 5,000 جنيه',
-        'يشمل: تعديل المقاس + تنظيف قبل التسليم',
+        'السعر يبدأ من 8500 جنيه',
+        'يشمل: تركيب + نقل + فك',
+        'الإضافات: إضاءة ليزر / كشافات / حروف ضوئية',
       ],
     },
     'timing': {
       'title': 'الوقت والتجهيز',
       'items': [
-        'مدة التجهيز: 7 - 3 أيام حسب نوع التصميم',
-        'مدة الحجز: أسبوع إلى أسبوعين قبل الموعد',
+        'وقت التنفيذ: 3 - 5 ساعات',
+        'مدة الحجز: حسب موعد القاعة',
+        'الحجز المسبق: قبل الموعد بـ 3 أيام على الأقل',
       ],
     },
   };
@@ -105,7 +108,7 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: CustomScrollView(
         slivers: [
-          // App Bar with wedding dress image
+          // App Bar with decoration image
           _buildSliverAppBar(context),
 
           // Content
@@ -115,8 +118,8 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
               children: [
                 const SizedBox(height: 16),
 
-                // Wedding dress name badge
-                _buildWeddingDressBadge(),
+                // Decoration name badge
+                _buildDecorationBadge(),
 
                 const SizedBox(height: 24),
 
@@ -169,11 +172,7 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   color: Colors.grey.shade300,
-                  child: const Icon(
-                    Icons.checkroom,
-                    size: 80,
-                    color: Colors.grey,
-                  ),
+                  child: const Icon(Icons.celebration, size: 80, color: Colors.grey),
                 );
               },
             ),
@@ -196,7 +195,7 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
     );
   }
 
-  Widget _buildWeddingDressBadge() {
+  Widget _buildDecorationBadge() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
@@ -684,9 +683,7 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
   }
 
   Widget _buildPriceSummary() {
-    // TODO: Replace with actual prices from API
-    const double basePrice = 5000.0;
-    final double totalPrice = basePrice;
+    const double totalPrice = 8500.0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -714,7 +711,7 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
               fontWeight: FontWeight.bold,
               color: Color(0xFFD4AF37),
             ),
-            textAlign: TextAlign.left,
+            textAlign: TextAlign.right,
           ),
           const SizedBox(height: 16),
 
@@ -723,7 +720,7 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'السعر الإجمالي',
+                'الإجمالي',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -755,7 +752,7 @@ class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               // Get total price
-              const double totalPrice = 5000.0;
+              const double totalPrice = 8500.0;
 
               // Format date
               final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';

@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:wedly/core/utils/app_logger.dart';
 import 'api_constants.dart';
 import 'api_exceptions.dart';
 import 'token_manager.dart';
@@ -27,6 +29,7 @@ class ApiClient {
 
   ApiClient(this._tokenManager) : _dio = Dio() {
     _configureDio();
+    _configureSsl();
     _addInterceptors();
   }
 
@@ -41,16 +44,26 @@ class ApiClient {
         'Accept': ApiConstants.accept,
       },
     );
+  }
 
-    // DEVELOPMENT ONLY: Disable SSL certificate verification for IP addresses
-    // WARNING: Remove this in production!
-    _dio.httpClientAdapter = IOHttpClientAdapter(
-      createHttpClient: () {
+  /// Configure SSL settings for development with IP-based server
+  /// WARNING: This bypasses SSL verification for debug builds only
+  void _configureSsl() {
+    // Only bypass SSL verification in debug mode
+    if (kDebugMode) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
         final client = HttpClient();
-        client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+        client.badCertificateCallback = (X509Certificate cert, String host, int port) {
+          // Allow connections to our API server IP
+          if (host == '64.226.96.53') {
+            AppLogger.warning('Bypassing SSL certificate check for $host (debug mode)', tag: 'ApiClient');
+            return true;
+          }
+          return false;
+        };
         return client;
-      },
-    );
+      };
+    }
   }
 
   /// Add interceptors for logging and token handling
@@ -72,7 +85,13 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // Add access token to headers
+          // CRITICAL: Skip adding Authorization header for refresh requests
+          // The refresh token is sent in the body, not the header
+          if (options.extra['isRefreshRequest'] == true) {
+            return handler.next(options);
+          }
+
+          // Add access token to headers for all other requests
           final token = await _tokenManager.getAccessToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -87,6 +106,22 @@ class ApiClient {
 
           // Handle 401 Unauthorized - attempt token refresh
           if (error.response?.statusCode == 401) {
+            // CRITICAL FIX: Don't try to refresh tokens for auth endpoints
+            // These endpoints are for logging in, not for authenticated requests
+            final path = error.requestOptions.path;
+            final isAuthEndpoint = path.contains('/auth/login') ||
+                path.contains('/auth/register') ||
+                path.contains('/auth/social-login') ||
+                path.contains('/auth/verify-otp') ||
+                path.contains('/auth/forgot-password') ||
+                path.contains('/auth/reset-password');
+
+            if (isAuthEndpoint) {
+              // Don't attempt token refresh for auth endpoints
+              // Just pass the error through normally
+              return handler.next(error);
+            }
+
             // If already refreshing, queue this request
             if (_isRefreshing) {
               _pendingRequests.add((error: error, handler: handler));
@@ -112,6 +147,8 @@ class ApiClient {
               onSessionExpired?.call();
               // Reject all queued requests
               _rejectQueuedRequests();
+              // Return the original error to trigger proper error handling
+              return handler.next(error);
             }
           }
           return handler.next(error);
@@ -125,10 +162,15 @@ class ApiClient {
   Future<bool> _refreshToken() async {
     try {
       final refreshToken = await _tokenManager.getRefreshToken();
+      AppLogger.auth('Attempting token refresh...');
+      AppLogger.debug('Refresh token available: ${refreshToken != null}', tag: 'ApiClient');
+
       if (refreshToken == null) {
-        // No refresh token = session expired
+        AppLogger.error('No refresh token found - session expired', tag: 'ApiClient');
         return false;
       }
+
+      AppLogger.token('Using refresh token', tokenPreview: refreshToken);
 
       final response = await _dio.post(
         ApiConstants.refreshToken,
@@ -147,8 +189,10 @@ class ApiClient {
       if (response.statusCode == 200) {
         final data = response.data['data'] ?? response.data;
         final newAccessToken = data['access_token'];
-        // API doesn't return new refresh_token, keep existing one
         final newRefreshToken = data['refresh_token'] ?? refreshToken;
+
+        AppLogger.success('Token refresh successful', tag: 'ApiClient');
+        AppLogger.debug('New access token received: ${newAccessToken != null}', tag: 'ApiClient');
 
         await _tokenManager.saveTokens(
           accessToken: newAccessToken,
@@ -156,10 +200,13 @@ class ApiClient {
         );
         return true;
       }
+      AppLogger.error('Token refresh failed - status code: ${response.statusCode}', tag: 'ApiClient');
       return false;
     } catch (e) {
-      // Any error during refresh = session expired
-      print('Token refresh failed: $e');
+      AppLogger.error('Token refresh failed', tag: 'ApiClient', error: e);
+      if (e is DioException && e.response != null) {
+        AppLogger.response('Refresh error response', tag: 'ApiClient', statusCode: e.response?.statusCode);
+      }
       return false;
     }
   }
@@ -171,7 +218,7 @@ class ApiClient {
       requestOptions.headers['Authorization'] = 'Bearer $token';
       return await _dio.fetch(requestOptions);
     } catch (e) {
-      print('Retry request failed: $e');
+      AppLogger.error('Retry request failed', tag: 'ApiClient', error: e);
       return null;
     }
   }

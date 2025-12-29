@@ -736,7 +736,6 @@ class _VideographerBookingScreenState extends State<VideographerBookingScreen> {
   }
 
   Widget _buildPriceSummary() {
-    // TODO: Replace with actual prices from API
     const double basePrice = 4500.0;
     const Map<String, double> additionPrices = {
       'تصوير درون (جوي)': 800.0,

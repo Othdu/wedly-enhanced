@@ -18,10 +18,16 @@ class BookingModel extends Equatable {
   final PaymentStatus paymentStatus;
   final String? notes;
   final String? specialRequests;
+  final String? serviceCategory; // Category of the service (e.g., 'venue', 'photography', etc.)
   final String eventType;
   final int guestCount;
   final String eventLocation;
   final double? discountPercentage; // Optional discount percentage from service
+  final bool hasReviewed; // Whether the user has already reviewed this booking
+  final String? reviewId; // The ID of the user's review if hasReviewed is true
+  final double? reviewRating; // The rating of the user's review if hasReviewed is true
+  final String? reviewComment; // The comment of the user's review if hasReviewed is true
+  final String serviceType; // 'service' or 'venue' - determines which review endpoint to use
 
   const BookingModel({
     required this.id,
@@ -40,10 +46,16 @@ class BookingModel extends Equatable {
     required this.paymentStatus,
     this.notes,
     this.specialRequests,
+    this.serviceCategory,
     required this.eventType,
     required this.guestCount,
     required this.eventLocation,
     this.discountPercentage,
+    this.hasReviewed = false,
+    this.reviewId,
+    this.reviewRating,
+    this.reviewComment,
+    this.serviceType = 'service',
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -68,12 +80,20 @@ class BookingModel extends Equatable {
       ),
       notes: json['notes'] as String?,
       specialRequests: json['specialRequests'] as String?,
+      serviceCategory: json['serviceCategory'] as String?,
       eventType: json['eventType'] as String,
       guestCount: json['guestCount'] as int,
       eventLocation: json['eventLocation'] as String,
       discountPercentage: json['discountPercentage'] != null
           ? (json['discountPercentage'] as num).toDouble()
           : null,
+      hasReviewed: json['hasReviewed'] as bool? ?? false,
+      reviewId: json['reviewId'] as String?,
+      reviewRating: json['reviewRating'] != null
+          ? (json['reviewRating'] as num).toDouble()
+          : null,
+      reviewComment: json['reviewComment'] as String?,
+      serviceType: json['serviceType'] as String? ?? 'service',
     );
   }
 
@@ -95,10 +115,16 @@ class BookingModel extends Equatable {
       'paymentStatus': paymentStatus.toString().split('.').last,
       'notes': notes,
       'specialRequests': specialRequests,
+      'serviceCategory': serviceCategory,
       'eventType': eventType,
       'guestCount': guestCount,
       'eventLocation': eventLocation,
       'discountPercentage': discountPercentage,
+      'hasReviewed': hasReviewed,
+      'reviewId': reviewId,
+      'reviewRating': reviewRating,
+      'reviewComment': reviewComment,
+      'serviceType': serviceType,
     };
   }
 
@@ -119,10 +145,16 @@ class BookingModel extends Equatable {
     PaymentStatus? paymentStatus,
     String? notes,
     String? specialRequests,
+    String? serviceCategory,
     String? eventType,
     int? guestCount,
     String? eventLocation,
     double? discountPercentage,
+    bool? hasReviewed,
+    String? reviewId,
+    double? reviewRating,
+    String? reviewComment,
+    String? serviceType,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -141,11 +173,23 @@ class BookingModel extends Equatable {
       paymentStatus: paymentStatus ?? this.paymentStatus,
       notes: notes ?? this.notes,
       specialRequests: specialRequests ?? this.specialRequests,
+      serviceCategory: serviceCategory ?? this.serviceCategory,
       eventType: eventType ?? this.eventType,
       guestCount: guestCount ?? this.guestCount,
       eventLocation: eventLocation ?? this.eventLocation,
       discountPercentage: discountPercentage ?? this.discountPercentage,
+      hasReviewed: hasReviewed ?? this.hasReviewed,
+      reviewId: reviewId ?? this.reviewId,
+      reviewRating: reviewRating ?? this.reviewRating,
+      reviewComment: reviewComment ?? this.reviewComment,
+      serviceType: serviceType ?? this.serviceType,
     );
+  }
+
+  /// Helper method to determine if this booking is for a venue
+  /// Returns 'venue' if serviceCategory is 'venue', otherwise returns 'service'
+  String get reviewTargetType {
+    return serviceCategory?.toLowerCase() == 'venue' ? 'venue' : serviceType;
   }
 
   @override
@@ -166,9 +210,15 @@ class BookingModel extends Equatable {
         paymentStatus,
         notes,
         specialRequests,
+        serviceCategory,
         eventType,
         guestCount,
         eventLocation,
         discountPercentage,
+        hasReviewed,
+        reviewId,
+        reviewRating,
+        reviewComment,
+        serviceType,
       ];
 }

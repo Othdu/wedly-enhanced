@@ -3,11 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/venue_model.dart';
 import 'package:wedly/data/models/review_model.dart';
 import 'package:wedly/presentation/widgets/skeleton_image.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_event.dart';
 import 'package:wedly/logic/blocs/review/review_state.dart';
 import 'package:wedly/routes/app_router.dart';
+import 'package:wedly/core/utils/city_translator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Venue details screen matching the screenshot design
 /// Shows venue image, name, features, pricing, location, and reviews
@@ -21,8 +24,7 @@ class VenueDetailsScreen extends StatefulWidget {
 }
 
 class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
-  GoogleMapController? _mapController;
-  final bool _useGoogleMaps = false; // Set to true when API key is configured
+  final MapController _mapController = MapController();
 
   // User selections
   String? _selectedTimeSlot; // 'morning' or 'evening'
@@ -37,8 +39,57 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
 
   @override
   void dispose() {
-    _mapController?.dispose();
+    _mapController.dispose();
     super.dispose();
+  }
+
+  /// Open location in external maps app (Google Maps, Apple Maps, etc.)
+  Future<void> _openInMaps() async {
+    if (widget.venue.latitude == null || widget.venue.longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('الموقع غير متوفر', textAlign: TextAlign.center),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final lat = widget.venue.latitude!;
+    final lng = widget.venue.longitude!;
+    final label = Uri.encodeComponent(widget.venue.name);
+
+    // Try Google Maps first, then fallback to generic geo URI
+    final googleMapsUrl = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+    );
+    final geoUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng($label)');
+
+    try {
+      if (await canLaunchUrl(googleMapsUrl)) {
+        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(geoUrl)) {
+        await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('لا يمكن فتح الخريطة', textAlign: TextAlign.center),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('حدث خطأ أثناء فتح الخريطة', textAlign: TextAlign.center),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -169,7 +220,17 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // صباحي option with radio button
+          const Text(
+            'المواقيت المتاحة',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFD4AF37),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // صباحي option - selectable
           GestureDetector(
             onTap: () {
               setState(() {
@@ -191,36 +252,14 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
               child: Row(
                 textDirection: TextDirection.rtl,
                 children: [
-                  // Radio button
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _selectedTimeSlot == 'morning'
-                            ? const Color(0xFFD4AF37)
-                            : Colors.grey.shade400,
-                        width: 2,
-                      ),
-                    ),
-                    child: _selectedTimeSlot == 'morning'
-                        ? Center(
-                            child: Container(
-                              width: 10,
-                              height: 10,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFD4AF37),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          )
-                        : null,
+                  Icon(
+                    Icons.wb_sunny_outlined,
+                    color: _selectedTimeSlot == 'morning'
+                        ? const Color(0xFFD4AF37)
+                        : Colors.grey.shade600,
+                    size: 22,
                   ),
-
                   const SizedBox(width: 16),
-
-                  // Price and time info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,7 +288,9 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                             ),
                             const Spacer(),
                             Text(
-                              'تبدأ من ${widget.venue.pricePerPerson.toInt()} جنيه',
+                              widget.venue.morningPrice != null
+                                  ? 'تبدأ من ${widget.venue.morningPrice!.toInt()} جنيه'
+                                  : 'السعر غير متاح', // TODO: Backend should provide morning_price in API
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Colors.black87,
@@ -267,7 +308,7 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
 
           const SizedBox(height: 12),
 
-          // مسائي option with radio button
+          // مسائي option - selectable
           GestureDetector(
             onTap: () {
               setState(() {
@@ -289,36 +330,14 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
               child: Row(
                 textDirection: TextDirection.rtl,
                 children: [
-                  // Radio button
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _selectedTimeSlot == 'evening'
-                            ? const Color(0xFFD4AF37)
-                            : Colors.grey.shade400,
-                        width: 2,
-                      ),
-                    ),
-                    child: _selectedTimeSlot == 'evening'
-                        ? Center(
-                            child: Container(
-                              width: 10,
-                              height: 10,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFD4AF37),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          )
-                        : null,
+                  Icon(
+                    Icons.nightlight_outlined,
+                    color: _selectedTimeSlot == 'evening'
+                        ? const Color(0xFFD4AF37)
+                        : Colors.grey.shade600,
+                    size: 22,
                   ),
-
                   const SizedBox(width: 16),
-
-                  // Price and time info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,7 +366,9 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                             ),
                             const Spacer(),
                             Text(
-                              'تبدأ من ${(widget.venue.pricePerPerson * 1.25).toInt()} جنيه',
+                              widget.venue.eveningPrice != null
+                                  ? 'تبدأ من ${widget.venue.eveningPrice!.toInt()} جنيه'
+                                  : 'السعر غير متاح', // TODO: Backend should provide evening_price in API
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Colors.black87,
@@ -412,35 +433,43 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'البلان',
+            'خطط الديكور المتاحة',
             style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
               color: Color(0xFFD4AF37),
             ),
           ),
           const SizedBox(height: 12),
 
-          // Radio buttons row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            textDirection: TextDirection.ltr,
-            children: [
-              _buildDecorationOption('خالي'),
-              const SizedBox(width: 16),
-              _buildDecorationOption('ديكورة'),
-              const SizedBox(width: 16),
-              _buildDecorationOption('ديكور2'),
-              const SizedBox(width: 16),
-              _buildDecorationOption('ديكور1'),
-            ],
+          // Decoration options display
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200, width: 1),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              textDirection: TextDirection.rtl,
+              children: [
+                _buildDecorationBadge('ديكور1'),
+                const SizedBox(width: 22),
+                _buildDecorationBadge('ديكور2'),
+                const SizedBox(width: 22),
+                _buildDecorationBadge('ديكورة'),
+                const SizedBox(width: 22),
+                _buildDecorationBadge('خالي'),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDecorationOption(String option) {
+  Widget _buildDecorationBadge(String option) {
     final isSelected = _selectedDecoration == option;
 
     return GestureDetector(
@@ -449,43 +478,28 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
           _selectedDecoration = option;
         });
       },
-      child: Row(
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isSelected
-                    ? const Color(0xFFD4AF37)
-                    : Colors.grey.shade400,
-                width: 2,
-              ),
-            ),
-            child: isSelected
-                ? Center(
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFD4AF37),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  )
-                : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFD4AF37)
+              : const Color(0xFFD4AF37).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFD4AF37)
+                : const Color(0xFFD4AF37).withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
           ),
-          const SizedBox(width: 6),
-          Text(
-            option,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected ? const Color(0xFFD4AF37) : Colors.black87,
-            ),
+        ),
+        child: Text(
+          option,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFFD4AF37),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -494,7 +508,7 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'الموقع',
@@ -506,40 +520,103 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Map Container
-          Container(
-            height: 180,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: _useGoogleMaps && widget.venue.latitude != null
-                  ? GoogleMap(
-                      initialCameraPosition: CameraPosition(
-                        target: LatLng(
-                          widget.venue.latitude!,
-                          widget.venue.longitude!,
-                        ),
-                        zoom: 14,
-                      ),
-                      onMapCreated: (controller) {
-                        _mapController = controller;
-                      },
-                      markers: {
-                        Marker(
-                          markerId: const MarkerId('venue_location'),
-                          position: LatLng(
-                            widget.venue.latitude!,
-                            widget.venue.longitude!,
+          // Map Container - Tappable to open in external maps
+          GestureDetector(
+            onTap: _openInMaps,
+            child: Stack(
+              children: [
+                Container(
+                  height: 250,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: widget.venue.latitude != null && widget.venue.longitude != null
+                        ? FlutterMap(
+                            mapController: _mapController,
+                            options: MapOptions(
+                              initialCenter: LatLng(
+                                widget.venue.latitude!,
+                                widget.venue.longitude!,
+                              ),
+                              initialZoom: 14.0,
+                              minZoom: 5.0,
+                              maxZoom: 18.0,
+                              interactionOptions: const InteractionOptions(
+                                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                              ),
+                              onTap: (_, __) => _openInMaps(),
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.wedly.app',
+                                tileProvider: NetworkTileProvider(),
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: LatLng(
+                                      widget.venue.latitude!,
+                                      widget.venue.longitude!,
+                                    ),
+                                    width: 40,
+                                    height: 40,
+                                    child: const Icon(
+                                      Icons.location_on,
+                                      size: 40,
+                                      color: Color(0xFFD4AF37),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )
+                        : _buildMapPlaceholder(),
+                  ),
+                ),
+                // "Open in Maps" button overlay
+                if (widget.venue.latitude != null && widget.venue.longitude != null)
+                  Positioned(
+                    bottom: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                      },
-                      zoomControlsEnabled: false,
-                      myLocationButtonEnabled: false,
-                    )
-                  : _buildMapPlaceholder(),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.open_in_new,
+                            size: 16,
+                            color: Color(0xFFD4AF37),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'فتح في الخريطة',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFD4AF37),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
 
@@ -553,9 +630,12 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
               children: [
                 Icon(Icons.location_on, color: Colors.grey.shade600, size: 18),
                 const SizedBox(width: 4),
-                Text(
-                  widget.venue.address!,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                Expanded(
+                  child: Text(
+                    CityTranslator.translate(widget.venue.address!),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                    textAlign: TextAlign.right,
+                  ),
                 ),
               ],
             ),
@@ -586,7 +666,7 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
           right: 0,
           child: Center(
             child: Text(
-              'تكامل خرائط جوجل غير متاح',
+              'الموقع غير متوفر',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ),
@@ -734,30 +814,28 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
   }
 
   Widget _buildReviewsError(String message) {
+    // Show a friendly "no reviews yet" message instead of error
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Center(
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
-            const SizedBox(height: 16),
+            Icon(Icons.rate_review_outlined, size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
             Text(
-              message,
+              'لا توجد تقييمات بعد',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                context.read<ReviewBloc>().add(
-                  VenueReviewsRequested(widget.venue.id),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD4AF37),
-                foregroundColor: Colors.white,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
               ),
-              child: const Text('إعادة المحاولة'),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'كن أول من يقيم هذه القاعة',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
             ),
           ],
         ),

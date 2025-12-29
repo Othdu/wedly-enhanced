@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/core/utils/app_logger.dart';
 import 'package:wedly/core/utils/error_handler.dart';
 import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/data/services/social_auth_service.dart';
@@ -93,7 +94,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final currentState = state;
     if (currentState is! AuthAuthenticated) return;
 
-    print('🔄 AuthBloc: Starting profile update...');
+    AppLogger.debug('Starting profile update...', tag: 'AuthBloc');
     emit(const AuthLoading());
     try {
       // Call repository to update profile via API
@@ -104,18 +105,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         profileImageUrl: event.profileImageUrl,
       );
 
-      print('✅ AuthBloc: Profile update successful, emitting AuthProfileUpdateSuccess');
+      AppLogger.success('Profile update successful', tag: 'AuthBloc');
       // Emit success state with updated user
       emit(AuthProfileUpdateSuccess(
         user: updatedUser,
         message: 'تم تحديث البيانات بنجاح',
       ));
-      print('✅ AuthBloc: Emitting AuthAuthenticated with updated user');
       // Emit the updated authenticated state
       emit(AuthAuthenticated(updatedUser));
-      print('✅ AuthBloc: All states emitted successfully');
     } catch (e) {
-      print('❌ AuthBloc: Profile update failed: $e');
+      AppLogger.error('Profile update failed', tag: 'AuthBloc', error: e);
       // If update fails, emit error but keep current state
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'profile_update')));
       // Re-emit current authenticated state after error
@@ -149,14 +148,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthOtpVerificationRequested event,
     Emitter<AuthState> emit,
   ) async {
+    AppLogger.auth('Starting OTP verification...');
     emit(const AuthLoading());
     try {
       final user = await authRepository.verifyOtp(
         email: event.email,
         otp: event.otp,
+        name: event.name,
+        password: event.password,
+        phone: event.phone,
+        role: event.role,
       );
+
+      AppLogger.success('OTP verified successfully', tag: 'AuthBloc');
+      AppLogger.debug('User: ${user.name}, ${user.email}, ${user.role}', tag: 'AuthBloc');
+
+      // Emit success state for UI navigation
       emit(AuthOtpVerificationSuccess(user));
+
+      // CRITICAL: Also emit AuthAuthenticated so all screens get updated user data
+      // This ensures profile and other screens show correct data immediately
+      emit(AuthAuthenticated(user));
     } catch (e) {
+      AppLogger.error('OTP verification failed', tag: 'AuthBloc', error: e);
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'otp_verification')));
     }
   }
@@ -202,9 +216,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
     try {
       final result = await authRepository.resetPassword(
-        token: event.token,
+        email: event.email,
+        otp: event.otp,
         password: event.password,
-      );
+      );  
       emit(AuthResetPasswordSuccess(
         result['message'] ?? 'تم تغيير كلمة المرور بنجاح',
       ));
@@ -218,7 +233,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthSessionExpired event,
     Emitter<AuthState> emit,
   ) async {
-    print('🚨 AuthBloc: Session expired, logging out');
+    AppLogger.warning('Session expired, logging out', tag: 'AuthBloc');
     // Directly emit unauthenticated state
     // No API call needed - already handled by ApiClient
     emit(const AuthUnauthenticated());
@@ -296,14 +311,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         throw Exception('مزود غير مدعوم');
       }
 
-      // Login with backend using the social data
+      // Send social login data to backend
       final user = await authRepository.socialLogin(
         provider: socialData['provider'],
         email: socialData['email'],
         name: socialData['name'],
         providerId: socialData['provider_id'],
         profileImageUrl: socialData['profile_image_url'],
-        firebaseToken: socialData['firebase_token'],
         accessToken: socialData['access_token'],
         idToken: socialData['id_token'],
       );

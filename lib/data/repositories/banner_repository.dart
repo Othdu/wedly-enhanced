@@ -1,14 +1,20 @@
+import 'package:dio/dio.dart';
 import 'package:wedly/data/models/banner_model.dart';
+import 'package:wedly/data/services/api_client.dart';
+import 'package:wedly/data/services/api_constants.dart';
+import 'package:wedly/data/services/api_exceptions.dart';
 
 /// Repository for managing promotional banners
-/// TODO: API Integration - Replace mock data with real API calls
 ///
-/// Required API Endpoints:
+/// API Endpoints:
 /// - GET /api/banners - Get all active banners (ordered by 'order' field)
+/// - GET /api/banners/admin - Get all banners (admin only)
 /// - GET /api/banners/:id - Get banner by ID
-/// - POST /api/admin/banners - Create new banner (admin only)
-/// - PUT /api/admin/banners/:id - Update banner (admin only)
-/// - DELETE /api/admin/banners/:id - Delete banner (admin only)
+/// - POST /api/banners - Create new banner (admin only)
+/// - PUT /api/banners/:id - Update banner (admin only)
+/// - DELETE /api/banners/:id - Delete banner (admin only)
+/// - PUT /api/banners/:id/image - Update banner image (admin only)
+/// - PATCH /api/banners/:id/toggle-visibility - Toggle banner visibility (admin only)
 ///
 /// Expected Response Format:
 /// {
@@ -26,108 +32,340 @@ import 'package:wedly/data/models/banner_model.dart';
 ///   ]
 /// }
 class BannerRepository {
-  /// Simulated network delay
-  static const _networkDelay = Duration(milliseconds: 600);
+  final ApiClient? _apiClient;
+  final bool useMockData;
 
-  /// Mock banners data
-  /// TODO: Replace with API call: GET /api/banners
-  /// NOTE: These are placeholder links - admin will provide real links via dashboard
-  final List<BannerModel> _mockBanners = [
-    BannerModel(
-      id: '1',
-      imageUrl: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200&h=400&fit=crop',
-      link: null, // Admin will add real link
-      titleAr: 'عروض حفلات الشتاء',
-      title: 'Winter Wedding Packages',
-      order: 1,
-      isActive: true,
-    ),
-    BannerModel(
-      id: '2',
-      imageUrl: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=1200&h=400&fit=crop',
-      link: 'https://youtu.be/iFKXqPz3rCY?si=GScmOi81UuCN9l32', // Admin will add real link
-      titleAr: 'خصم 40% على التصوير',
-      title: '40% Off Photography',
-      order: 2,
-      isActive: true,
-    ),
-    BannerModel(
-      id: '3',
-      imageUrl: 'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=1200&h=400&fit=crop',
-      link: "https://www.instagram.com/", // No link - just promotional image
-      titleAr: 'أحدث تصاميم فساتين الزفاف',
-      title: 'New Wedding Dress Collection',
-      order: 3,
-      isActive: true,
-    ),
-    BannerModel(
-      id: '4',
-      imageUrl: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=1200&h=400&fit=crop',
-      link: null, // Admin will add real link
-      titleAr: 'احجز القاعة واحصل على خصم 20%',
-      title: 'Book Venue & Get 20% Off',
-      order: 4,
-      isActive: true,
-    ),
-  ];
+  BannerRepository({ApiClient? apiClient, this.useMockData = true})
+      : _apiClient = apiClient;
 
-  /// Get all active banners, sorted by order
-  /// TODO: Replace with API call: GET /api/banners
+  /// Mock implementation: Get all active banners
+  Future<List<BannerModel>> _mockGetBanners() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    final now = DateTime.now();
+    return [
+      BannerModel(
+        id: '1',
+        imageUrl: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
+        link: null,
+        isActive: true,
+        expirationDate: now.add(const Duration(days: 30)),
+      ),
+      BannerModel(
+        id: '2',
+        imageUrl: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
+        link: null,
+        isActive: true,
+        expirationDate: now.add(const Duration(days: 45)),
+      ),
+      BannerModel(
+        id: '3',
+        imageUrl: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
+        link: null,
+        isActive: true,
+        expirationDate: now.add(const Duration(days: 60)),
+      ),
+    ];
+  }
+
+  /// Get all active banners
+  /// Public endpoint - no authentication required
+  /// Returns only active, non-expired banners
   Future<List<BannerModel>> getBanners() async {
-    await Future.delayed(_networkDelay);
+    if (useMockData) {
+      return _mockGetBanners();
+    }
 
-    // Filter only active banners and sort by order
-    final activeBanners = _mockBanners
-        .where((banner) => banner.isActive)
-        .toList()
-      ..sort((a, b) => a.order.compareTo(b.order));
+    try {
+      print('🌐 BannerRepository: Fetching banners from ${ApiConstants.banners}');
+      final response = await _apiClient!.get(ApiConstants.banners);
 
-    return activeBanners;
+      print('📦 BannerRepository: Response received');
+      print('📦 Response type: ${response.data.runtimeType}');
+      print('📦 Response data: ${response.data}');
+
+      // API Response format: { "success": true, "message": "...", "data": { "banners": [...] } }
+      if (response.data is Map) {
+        final data = response.data['data'];
+        print('📦 Data field type: ${data.runtimeType}');
+        print('📦 Data content: $data');
+
+        if (data is Map && data['banners'] is List) {
+          final bannersList = (data['banners'] as List)
+              .map((json) => BannerModel.fromJson(json))
+              .toList();
+          print('✅ BannerRepository: Parsed ${bannersList.length} banners');
+          return bannersList;
+        } else {
+          print('⚠️ BannerRepository: Data does not contain banners array');
+          print('⚠️ Data keys: ${data is Map ? data.keys : "Not a map"}');
+        }
+      } else {
+        print('⚠️ BannerRepository: Response is not a Map');
+      }
+
+      print('⚠️ BannerRepository: Returning empty list');
+      return [];
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      print('❌ BannerRepository: Exception: $e');
+      throw ApiException(message: 'فشل تحميل العروض: $e');
+    }
+  }
+
+  /// Get all banners (admin only) - includes inactive banners
+  Future<List<BannerModel>> getAllBanners() async {
+    if (useMockData) {
+      return _mockGetBanners(); // Return same mock data for simplicity
+    }
+
+    try {
+      print('🔐 BannerRepository: Fetching ALL banners (admin) from ${ApiConstants.adminBanners}');
+      final response = await _apiClient!.get(ApiConstants.adminBanners);
+
+      print('📦 Admin response: ${response.data}');
+      print('📦 Admin response type: ${response.data.runtimeType}');
+
+      // Same parsing logic as getBanners - might have nested structure
+      if (response.data is Map) {
+        final data = response.data['data'];
+        print('📦 Admin data field: $data');
+        print('📦 Admin data type: ${data.runtimeType}');
+
+        if (data is Map && data['banners'] is List) {
+          final bannersList = (data['banners'] as List)
+              .map((json) => BannerModel.fromJson(json))
+              .toList();
+          print('✅ Admin endpoint: Found ${bannersList.length} total banners');
+          for (var banner in bannersList) {
+            print('  - ID: ${banner.id}, Active: ${banner.isActive}, Expires: ${banner.expirationDate}, Image: ${banner.imageUrl}');
+          }
+          return bannersList;
+        } else if (data is List) {
+          // Fallback: data might be directly a list
+          final bannersList = (data as List)
+              .map((json) => BannerModel.fromJson(json))
+              .toList();
+          print('✅ Admin endpoint (direct list): Found ${bannersList.length} total banners');
+          for (var banner in bannersList) {
+            print('  - ID: ${banner.id}, Active: ${banner.isActive}, Expires: ${banner.expirationDate}, Image: ${banner.imageUrl}');
+          }
+          return bannersList;
+        }
+      }
+
+      print('⚠️ Admin endpoint: Could not parse response, returning empty list');
+      return [];
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      print('❌ Admin endpoint exception: $e');
+      throw ApiException(message: 'فشل تحميل جميع العروض: $e');
+    }
   }
 
   /// Get banner by ID
-  /// TODO: Replace with API call: GET /api/banners/:id
   Future<BannerModel?> getBannerById(String bannerId) async {
-    await Future.delayed(_networkDelay);
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      final banners = await _mockGetBanners();
+      try {
+        return banners.firstWhere((b) => b.id == bannerId);
+      } catch (e) {
+        return null;
+      }
+    }
 
     try {
-      return _mockBanners.firstWhere((banner) => banner.id == bannerId);
-    } catch (e) {
+      final response = await _apiClient!.get(ApiConstants.bannerById(bannerId));
+
+      final data = response.data is Map
+          ? (response.data['data'] ?? response.data['banner'] ?? response.data)
+          : response.data;
+
+      if (data is Map<String, dynamic>) {
+        return BannerModel.fromJson(data);
+      }
+
       return null;
+    } on NotFoundException {
+      return null;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(message: 'فشل تحميل العرض: $e');
     }
   }
 
   /// Create new banner (admin only)
-  /// TODO: Replace with API call: POST /api/admin/banners
-  Future<bool> createBanner(BannerModel banner) async {
-    await Future.delayed(_networkDelay);
+  /// Returns the created banner
+  Future<BannerModel> createBanner({
+    required String imageUrl,
+    String? link,
+    bool isActive = true,
+    DateTime? expirationDate,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      return BannerModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        imageUrl: imageUrl,
+        link: link,
+        isActive: isActive,
+        expirationDate: expirationDate,
+      );
+    }
 
-    // Mock implementation - just add to list
-    _mockBanners.add(banner);
-    return true;
+    try {
+      final response = await _apiClient!.post(
+        ApiConstants.createBanner,
+        data: {
+          'image_url': imageUrl,
+          if (link != null) 'link': link,
+          'is_active': isActive,
+          if (expirationDate != null) 'expiration_date': expirationDate.toIso8601String(),
+        },
+      );
+
+      final data = response.data is Map
+          ? (response.data['data'] ?? response.data['banner'] ?? response.data)
+          : response.data;
+
+      return BannerModel.fromJson(data);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(message: 'فشل إنشاء العرض: $e');
+    }
   }
 
   /// Update existing banner (admin only)
-  /// TODO: Replace with API call: PUT /api/admin/banners/:id
-  Future<bool> updateBanner(BannerModel banner) async {
-    await Future.delayed(_networkDelay);
-
-    // Mock implementation - find and replace
-    final index = _mockBanners.indexWhere((b) => b.id == banner.id);
-    if (index != -1) {
-      _mockBanners[index] = banner;
-      return true;
+  /// Returns the updated banner
+  Future<BannerModel> updateBanner({
+    required String bannerId,
+    String? imageUrl,
+    String? link,
+    bool? isActive,
+    DateTime? expirationDate,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      final banners = await _mockGetBanners();
+      try {
+        final existing = banners.firstWhere((b) => b.id == bannerId);
+        return existing.copyWith(
+          imageUrl: imageUrl,
+          link: link,
+          isActive: isActive,
+          expirationDate: expirationDate,
+        );
+      } catch (e) {
+        throw ApiException(message: 'Banner not found');
+      }
     }
-    return false;
+
+    try {
+      final response = await _apiClient!.put(
+        ApiConstants.updateBanner(bannerId),
+        data: {
+          if (imageUrl != null) 'image_url': imageUrl,
+          if (link != null) 'link': link,
+          if (isActive != null) 'is_active': isActive,
+          if (expirationDate != null) 'expiration_date': expirationDate.toIso8601String(),
+        },
+      );
+
+      final data = response.data is Map
+          ? (response.data['data'] ?? response.data['banner'] ?? response.data)
+          : response.data;
+
+      return BannerModel.fromJson(data);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(message: 'فشل تحديث العرض: $e');
+    }
   }
 
   /// Delete banner (admin only)
-  /// TODO: Replace with API call: DELETE /api/admin/banners/:id
-  Future<bool> deleteBanner(String bannerId) async {
-    await Future.delayed(_networkDelay);
+  Future<void> deleteBanner(String bannerId) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      return; // Mock deletion
+    }
 
-    // Mock implementation - remove from list
-    _mockBanners.removeWhere((banner) => banner.id == bannerId);
-    return true;
+    try {
+      await _apiClient!.delete(ApiConstants.deleteBanner(bannerId));
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(message: 'فشل حذف العرض: $e');
+    }
+  }
+
+  /// Update banner image (admin only)
+  /// Accepts FormData with image file
+  Future<BannerModel> updateBannerImage({
+    required String bannerId,
+    required FormData formData,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      final banners = await _mockGetBanners();
+      try {
+        return banners.firstWhere((b) => b.id == bannerId);
+      } catch (e) {
+        throw ApiException(message: 'Banner not found');
+      }
+    }
+
+    try {
+      final response = await _apiClient!.put(
+        ApiConstants.updateBannerImage(bannerId),
+        data: formData,
+      );
+
+      final data = response.data is Map
+          ? (response.data['data'] ?? response.data['banner'] ?? response.data)
+          : response.data;
+
+      return BannerModel.fromJson(data);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(message: 'فشل تحديث صورة العرض: $e');
+    }
+  }
+
+  /// Toggle banner visibility (admin only)
+  /// Switches between active and inactive
+  Future<BannerModel> toggleBannerVisibility(String bannerId) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      final banners = await _mockGetBanners();
+      try {
+        final existing = banners.firstWhere((b) => b.id == bannerId);
+        return existing.copyWith(isActive: !existing.isActive);
+      } catch (e) {
+        throw ApiException(message: 'Banner not found');
+      }
+    }
+
+    try {
+      final response = await _apiClient!.patch(
+        ApiConstants.toggleBannerVisibility(bannerId),
+      );
+
+      final data = response.data is Map
+          ? (response.data['data'] ?? response.data['banner'] ?? response.data)
+          : response.data;
+
+      return BannerModel.fromJson(data);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(message: 'فشل تبديل حالة العرض: $e');
+    }
   }
 }

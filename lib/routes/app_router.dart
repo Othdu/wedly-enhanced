@@ -9,8 +9,6 @@ import 'package:wedly/logic/blocs/venue/venue_bloc.dart';
 import 'package:wedly/presentation/screens/auth/login_screen.dart';
 import 'package:wedly/presentation/screens/auth/signup_screen.dart';
 import 'package:wedly/presentation/screens/auth/forgot_password_screen.dart';
-import 'package:wedly/presentation/screens/auth/reset_password_screen.dart';
-import 'package:wedly/presentation/screens/auth/otp_verification_screen.dart';
 import 'package:wedly/presentation/screens/auth/signup_otp_screen.dart';
 import 'package:wedly/presentation/screens/auth/signup_success_screen.dart';
 import 'package:wedly/presentation/screens/auth/provider_documents_screen.dart';
@@ -18,6 +16,8 @@ import 'package:wedly/presentation/screens/auth/role_selector_screen.dart';
 import 'package:wedly/presentation/screens/provider/provider_navigation_wrapper.dart';
 import 'package:wedly/presentation/screens/provider/provider_add_service_screen.dart';
 import 'package:wedly/presentation/screens/provider/provider_edit_service_screen.dart';
+import 'package:wedly/presentation/screens/provider/provider_edit_general_service_screen.dart';
+import 'package:wedly/presentation/screens/provider/provider_edit_venue_service_screen.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
 import 'package:wedly/presentation/screens/user/user_edit_profile_screen.dart';
@@ -30,13 +30,15 @@ import 'package:wedly/presentation/screens/user/help_and_support_screen.dart';
 import 'package:wedly/presentation/screens/user/venues_list_screen.dart';
 import 'package:wedly/presentation/screens/user/venue_booking_screen.dart';
 import 'package:wedly/presentation/screens/user/category_services_list_screen.dart';
-import 'package:wedly/presentation/screens/user/photographer_booking_screen.dart';
-import 'package:wedly/presentation/screens/user/videographer_booking_screen.dart';
-import 'package:wedly/presentation/screens/user/makeupartist_booking_screen.dart';
-import 'package:wedly/presentation/screens/user/car_booking_screen.dart';
-import 'package:wedly/presentation/screens/user/wedding_dress_booking_screen.dart';
-import 'package:wedly/presentation/screens/user/decoration_booking_screen.dart';
-import 'package:wedly/presentation/screens/user/weddingplanner_booking_screen.dart';
+// OLD BOOKING SCREENS - Replaced with dynamic_service_booking_screen.dart
+// import 'package:wedly/presentation/screens/user/photographer_booking_screen.dart';
+// import 'package:wedly/presentation/screens/user/videographer_booking_screen.dart';
+// import 'package:wedly/presentation/screens/user/makeupartist_booking_screen.dart';
+// import 'package:wedly/presentation/screens/user/car_booking_screen.dart';
+// import 'package:wedly/presentation/screens/user/wedding_dress_booking_screen.dart';
+// import 'package:wedly/presentation/screens/user/decoration_booking_screen.dart';
+// import 'package:wedly/presentation/screens/user/weddingplanner_booking_screen.dart';
+import 'package:wedly/presentation/screens/user/dynamic_service_booking_screen.dart';
 import 'package:wedly/logic/blocs/service/service_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
@@ -46,8 +48,6 @@ class AppRouter {
   static const String login = '/login';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
-  static const String resetPassword = '/reset-password';
-  static const String otpVerification = '/otp-verification';
   static const String signupOtp = '/signup-otp';
   static const String signupSuccess = '/signup-success';
   static const String providerDocuments = '/provider-documents';
@@ -72,9 +72,12 @@ class AppRouter {
   static const String weddingDressBooking = '/wedding-dress-booking';
   static const String decorationBooking = '/decoration-booking';
   static const String weddingPlannerBooking = '/wedding-planner-booking';
+  static const String dynamicServiceBooking = '/dynamic-service-booking';
   static const String providerHome = '/provider';
   static const String providerAddService = '/provider/add-service';
   static const String providerEditService = '/provider/edit-service';
+  static const String providerEditGeneralService = '/provider/edit-general-service';
+  static const String providerEditVenueService = '/provider/edit-venue-service';
 
   static void goToLogin(BuildContext context) {
     Navigator.of(context).pushAndRemoveUntil(
@@ -111,27 +114,15 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SignUpScreen());
       case forgotPassword:
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
-      case resetPassword:
-        final args = settings.arguments as Map<String, dynamic>?;
-        return MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(
-            token: args?['token'],
-          ),
-        );
-      case otpVerification:
-        final args = settings.arguments as Map<String, dynamic>?;
-        return MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(
-            phoneOrEmail: args?['phoneOrEmail'] ?? '',
-            isForPasswordReset: args?['isForPasswordReset'] ?? false,
-          ),
-        );
       case signupOtp:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
           builder: (_) => SignupOtpScreen(
             phoneOrEmail: args?['phoneOrEmail'] ?? '',
             userRole: args?['userRole'] ?? UserRole.user,
+            name: args?['name'],
+            password: args?['password'],
+            phone: args?['phone'],
           ),
         );
       case signupSuccess:
@@ -141,8 +132,15 @@ class AppRouter {
               SignupSuccessScreen(userRole: args?['userRole'] ?? UserRole.user),
         );
       case providerDocuments:
+        final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
-          builder: (_) => const ProviderDocumentsScreen(),
+          builder: (_) => ProviderDocumentsScreen(
+            name: args?['name'] ?? '',
+            email: args?['email'] ?? '',
+            password: args?['password'] ?? '',
+            phone: args?['phone'] ?? '',
+            city: args?['city'] ?? '',
+          ),
         );
       case roleSelector:
         return MaterialPageRoute(builder: (_) => const RoleSelectorScreen());
@@ -171,6 +169,30 @@ class AppRouter {
           builder: (_) => BlocProvider<ProviderServiceBloc>(
             create: (_) => getIt<ProviderServiceBloc>(),
             child: ProviderEditServiceScreen(service: service),
+          ),
+        );
+      case providerEditGeneralService:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        if (service == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider<ProviderServiceBloc>(
+            create: (_) => getIt<ProviderServiceBloc>(),
+            child: ProviderEditGeneralServiceScreen(service: service),
+          ),
+        );
+      case providerEditVenueService:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final service = args?['service'];
+        if (service == null) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider<ProviderServiceBloc>(
+            create: (_) => getIt<ProviderServiceBloc>(),
+            child: ProviderEditVenueServiceScreen(service: service),
           ),
         );
       case userEditProfile:
@@ -238,85 +260,22 @@ class AppRouter {
             child: CategoryServicesListScreen(category: category),
           ),
         );
+      // OLD BOOKING ROUTES - Now all use dynamicServiceBooking
       case photographerBooking:
-        final args = settings.arguments as Map<String, dynamic>?;
-        final service = args?['service'];
-        final offer = args?['offer'];
-        if (service == null && offer == null) {
-          return MaterialPageRoute(builder: (_) => const LoginScreen());
-        }
-        return MaterialPageRoute(
-          builder: (_) =>
-              PhotographerBookingScreen(service: service, offer: offer),
-        );
       case videographerBooking:
-        final args = settings.arguments as Map<String, dynamic>?;
-        final service = args?['service'];
-        final offer = args?['offer'];
-        // Convert offer to service if needed (temporary solution)
-        if (service == null && offer == null) {
-          return MaterialPageRoute(builder: (_) => const LoginScreen());
-        }
-        return MaterialPageRoute(
-          builder: (_) =>
-              VideographerBookingScreen(service: service ?? offer?.toService()),
-        );
       case makeupArtistBooking:
-        final args = settings.arguments as Map<String, dynamic>?;
-        final service = args?['service'];
-        final offer = args?['offer'];
-        // Convert offer to service if needed (temporary solution)
-        if (service == null && offer == null) {
-          return MaterialPageRoute(builder: (_) => const LoginScreen());
-        }
-        return MaterialPageRoute(
-          builder: (_) =>
-              MakeupArtistBookingScreen(service: service ?? offer?.toService()),
-        );
       case carBooking:
-        final args = settings.arguments as Map<String, dynamic>?;
-        final service = args?['service'];
-        final offer = args?['offer'];
-        // Convert offer to service if needed (temporary solution)
-        if (service == null && offer == null) {
-          return MaterialPageRoute(builder: (_) => const LoginScreen());
-        }
-        return MaterialPageRoute(
-          builder: (_) =>
-              CarBookingScreen(service: service ?? offer?.toService()),
-        );
       case weddingDressBooking:
-        final args = settings.arguments as Map<String, dynamic>?;
-        final service = args?['service'];
-        final offer = args?['offer'];
-        if (service == null && offer == null) {
-          return MaterialPageRoute(builder: (_) => const LoginScreen());
-        }
-        return MaterialPageRoute(
-          builder: (_) =>
-              WeddingDressBookingScreen(service: service, offer: offer),
-        );
       case decorationBooking:
-        final args = settings.arguments as Map<String, dynamic>?;
-        final service = args?['service'];
-        final offer = args?['offer'];
-        if (service == null && offer == null) {
-          return MaterialPageRoute(builder: (_) => const LoginScreen());
-        }
-        return MaterialPageRoute(
-          builder: (_) =>
-              DecorationBookingScreen(service: service, offer: offer),
-        );
       case weddingPlannerBooking:
+      case dynamicServiceBooking:
         final args = settings.arguments as Map<String, dynamic>?;
         final service = args?['service'];
-        final offer = args?['offer'];
-        if (service == null && offer == null) {
+        if (service == null) {
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
         return MaterialPageRoute(
-          builder: (_) =>
-              WeddingPlannerBookingScreen(service: service, offer: offer),
+          builder: (_) => DynamicServiceBookingScreen(service: service),
         );
       default:
         return MaterialPageRoute(builder: (_) => const LoginScreen());

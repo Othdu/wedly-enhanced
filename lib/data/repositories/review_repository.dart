@@ -158,10 +158,7 @@ class ReviewRepository {
     final response = await apiClient!.post(
       endpoint,
       data: {
-        'user_id': userId,
-        'user_name': userName,
-        'user_image_url': userImageUrl,
-        'rating': rating,
+        'rating': rating.toInt(), // API expects integer rating
         'comment': comment,
       },
     );
@@ -187,7 +184,7 @@ class ReviewRepository {
 
     final response = await apiClient!.put(
       ApiConstants.updateReview(reviewId),
-      data: {'rating': rating, 'comment': comment},
+      data: {'rating': rating.toInt(), 'comment': comment},
     );
 
     final responseData = response.data['data'] ?? response.data;

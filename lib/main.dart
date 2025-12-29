@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/core/services/connectivity_service.dart';
 import 'package:wedly/core/theme/app_theme.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
@@ -21,6 +22,9 @@ void main() async {
 
   // Setup dependency injection
   await setupDependencyInjection();
+
+  // Initialize connectivity service
+  await ConnectivityService().initialize();
 
   runApp(const WedlyApp());
 }

@@ -18,6 +18,69 @@ class UserCartScreen extends StatefulWidget {
 }
 
 class _UserCartScreenState extends State<UserCartScreen> {
+  void _showDeleteConfirmationDialog(BuildContext context, CartItemModel item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return Directionality(
+          textDirection: ui.TextDirection.rtl,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'تأكيد الحذف',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+              textAlign: TextAlign.right,
+            ),
+            content: Text(
+              'هل أنت متأكد من حذف "${item.service.name}" من السلة؟',
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.right,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                },
+                child: Text(
+                  'إلغاء',
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  context.read<CartBloc>().add(CartItemRemoved(itemId: item.id));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'حذف',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,7 +224,7 @@ class _UserCartScreenState extends State<UserCartScreen> {
           // Delete button on the left
           InkWell(
             onTap: () {
-              context.read<CartBloc>().add(CartItemRemoved(itemId: item.id));
+              _showDeleteConfirmationDialog(context, item);
             },
             child: Container(
               padding: const EdgeInsets.all(8),
@@ -266,12 +329,6 @@ class _UserCartScreenState extends State<UserCartScreen> {
           (categoryTotals[category] ?? 0.0) + item.servicePrice;
     }
 
-    // Calculate total service charge
-    final serviceChargeTotalPrice = state.items.fold<double>(
-      0.0,
-      (sum, item) => sum + item.serviceCharge,
-    );
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -323,13 +380,6 @@ class _UserCartScreenState extends State<UserCartScreen> {
                 const Color(0xFFD4AF37),
               ),
             ),
-          ),
-
-          // Service charge row
-          _buildPriceRow(
-            'الضريبة',
-            serviceChargeTotalPrice,
-            const Color(0xFFD4AF37),
           ),
 
           const SizedBox(height: 8),

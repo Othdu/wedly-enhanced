@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:equatable/equatable.dart';
+import 'package:wedly/data/models/venue_model.dart';
 
 class ServiceModel extends Equatable {
   final String id;
@@ -12,6 +13,7 @@ class ServiceModel extends Equatable {
   final double? discountPercentage; // Optional discount percentage (0-100)
   final bool hasOffer; // Whether this service has an active offer
   final bool offerApproved; // Whether the offer is approved by admin
+  final DateTime? offerExpiryDate; // Offer expiration date
   final String providerId; // Provider who owns this service
   final List<String>? imageUrls; // Multiple images (API will upload)
   final double? morningPrice; // Price for morning time slot (صباحي)
@@ -25,6 +27,7 @@ class ServiceModel extends Equatable {
   final double? rating; // Average rating from users
   final int? reviewCount; // Number of reviews
   final File? imageFile; // Image file for service creation (not persisted)
+  final List<Map<String, dynamic>>? dynamicSections; // Dynamic pricing sections from API
 
   const ServiceModel({
     required this.id,
@@ -37,6 +40,7 @@ class ServiceModel extends Equatable {
     this.discountPercentage,
     this.hasOffer = false,
     this.offerApproved = false,
+    this.offerExpiryDate,
     required this.providerId,
     this.imageUrls,
     this.morningPrice,
@@ -50,6 +54,7 @@ class ServiceModel extends Equatable {
     this.rating,
     this.reviewCount,
     this.imageFile,
+    this.dynamicSections,
   });
 
   @override
@@ -64,6 +69,7 @@ class ServiceModel extends Equatable {
         discountPercentage,
         hasOffer,
         offerApproved,
+        offerExpiryDate,
         providerId,
         imageUrls,
         morningPrice,
@@ -76,6 +82,7 @@ class ServiceModel extends Equatable {
         isPendingApproval,
         rating,
         reviewCount,
+        dynamicSections,
         // Note: imageFile is intentionally excluded from props as it's transient
       ];
 
@@ -90,6 +97,7 @@ class ServiceModel extends Equatable {
     double? discountPercentage,
     bool? hasOffer,
     bool? offerApproved,
+    DateTime? offerExpiryDate,
     String? providerId,
     List<String>? imageUrls,
     double? morningPrice,
@@ -103,6 +111,7 @@ class ServiceModel extends Equatable {
     double? rating,
     int? reviewCount,
     File? imageFile,
+    List<Map<String, dynamic>>? dynamicSections,
   }) {
     return ServiceModel(
       id: id ?? this.id,
@@ -115,6 +124,7 @@ class ServiceModel extends Equatable {
       discountPercentage: discountPercentage ?? this.discountPercentage,
       hasOffer: hasOffer ?? this.hasOffer,
       offerApproved: offerApproved ?? this.offerApproved,
+      offerExpiryDate: offerExpiryDate ?? this.offerExpiryDate,
       providerId: providerId ?? this.providerId,
       imageUrls: imageUrls ?? this.imageUrls,
       morningPrice: morningPrice ?? this.morningPrice,
@@ -128,6 +138,7 @@ class ServiceModel extends Equatable {
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
       imageFile: imageFile ?? this.imageFile,
+      dynamicSections: dynamicSections ?? this.dynamicSections,
     );
   }
 
@@ -146,6 +157,9 @@ class ServiceModel extends Equatable {
           : null,
       hasOffer: json['has_offer'] as bool? ?? json['hasOffer'] as bool? ?? false,
       offerApproved: json['offer_approved'] as bool? ?? json['offerApproved'] as bool? ?? false,
+      offerExpiryDate: json['offer_expiry_date'] != null
+          ? DateTime.parse(json['offer_expiry_date'] as String)
+          : null,
       providerId: json['provider_id'] as String? ?? json['providerId'] as String? ?? '',
       imageUrls: json['image_urls'] != null
           ? List<String>.from(json['image_urls'] as List)
@@ -172,6 +186,13 @@ class ServiceModel extends Equatable {
           ? (json['rating'] as num).toDouble()
           : null,
       reviewCount: json['review_count'] as int?,
+      dynamicSections: json['dynamic_sections'] != null
+          ? List<Map<String, dynamic>>.from(
+              (json['dynamic_sections'] as List).map(
+                (section) => Map<String, dynamic>.from(section as Map),
+              ),
+            )
+          : null,
       // imageFile is not included in JSON as it's only used for creation
     );
   }
@@ -188,6 +209,7 @@ class ServiceModel extends Equatable {
       'discount_percentage': discountPercentage,
       'has_offer': hasOffer,
       'offer_approved': offerApproved,
+      'offer_expiry_date': offerExpiryDate?.toIso8601String(),
       'provider_id': providerId,
       'image_urls': imageUrls,
       'morning_price': morningPrice,
@@ -200,6 +222,7 @@ class ServiceModel extends Equatable {
       'is_pending_approval': isPendingApproval,
       'rating': rating,
       'review_count': reviewCount,
+      'dynamic_sections': dynamicSections,
       // imageFile is not serialized to JSON
     };
   }
@@ -215,5 +238,28 @@ class ServiceModel extends Equatable {
 
   // Helper method to check if service has approved offer
   bool get hasApprovedOffer => hasOffer && offerApproved;
+
+  // Convert ServiceModel to VenueModel (for venue services)
+  VenueModel toVenueModel() {
+    return VenueModel(
+      id: id,
+      name: name,
+      description: description,
+      imageUrl: imageUrl,
+      imageUrls: imageUrls,
+      rating: rating ?? 0.0,
+      reviewCount: reviewCount ?? 0,
+      capacity: chairCount ?? 0,
+      pricePerPerson: price ?? 0.0,
+      morningPrice: morningPrice,
+      eveningPrice: eveningPrice,
+      providerId: providerId,
+      address: address,
+      latitude: latitude,
+      longitude: longitude,
+      isActive: isActive,
+      isPendingApproval: isPendingApproval,
+    );
+  }
 }
 

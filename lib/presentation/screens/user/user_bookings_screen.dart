@@ -10,6 +10,7 @@ import 'package:wedly/logic/blocs/booking/booking_event.dart';
 import 'package:wedly/logic/blocs/booking/booking_state.dart';
 import 'package:wedly/data/models/booking_model.dart';
 import 'package:wedly/presentation/widgets/error_view.dart';
+import 'package:wedly/presentation/widgets/review_bottom_sheet.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 
 class UserBookingsScreen extends StatefulWidget {
@@ -31,6 +32,37 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
     if (authState is AuthAuthenticated) {
       context.read<BookingBloc>().add(FetchUserBookings(authState.user.id));
     }
+  }
+
+  void _showReviewBottomSheet(BookingModel booking) {
+    ReviewBottomSheet.show(
+      context: context,
+      targetId: booking.serviceId,
+      targetType: booking.reviewTargetType, // Auto-detects 'venue' or 'service' based on category
+      serviceName: booking.serviceName,
+      onReviewSubmitted: () {
+        // Reload bookings to update the hasReviewed status
+        _loadBookings();
+      },
+    );
+  }
+
+  void _showEditReviewBottomSheet(BookingModel booking) {
+    if (booking.reviewId == null) return;
+
+    ReviewBottomSheet.showEdit(
+      context: context,
+      targetId: booking.serviceId,
+      targetType: booking.reviewTargetType, // Auto-detects 'venue' or 'service' based on category
+      serviceName: booking.serviceName,
+      reviewId: booking.reviewId!,
+      existingRating: booking.reviewRating ?? 5.0,
+      existingComment: booking.reviewComment ?? '',
+      onReviewSubmitted: () {
+        // Reload bookings to update the review data
+        _loadBookings();
+      },
+    );
   }
 
   String _formatDate(DateTime date) {
@@ -272,6 +304,12 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                             getStatusTextColor: _getStatusTextColor,
                             getStatusText: _getStatusText,
                             getStatusTextAr: _getStatusTextAr,
+                            onReviewTap: booking.status == BookingStatus.completed && !booking.hasReviewed
+                                ? () => _showReviewBottomSheet(booking)
+                                : null,
+                            onEditReviewTap: booking.status == BookingStatus.completed && booking.hasReviewed
+                                ? () => _showEditReviewBottomSheet(booking)
+                                : null,
                           );
                         },
                       ),
@@ -298,6 +336,8 @@ class _BookingCard extends StatelessWidget {
   final Color Function(BookingStatus) getStatusTextColor;
   final String Function(BookingStatus) getStatusText;
   final String Function(BookingStatus) getStatusTextAr;
+  final VoidCallback? onReviewTap;
+  final VoidCallback? onEditReviewTap;
 
   const _BookingCard({
     required this.booking,
@@ -308,6 +348,8 @@ class _BookingCard extends StatelessWidget {
     required this.getStatusTextColor,
     required this.getStatusText,
     required this.getStatusTextAr,
+    this.onReviewTap,
+    this.onEditReviewTap,
   });
 
   @override
@@ -390,6 +432,83 @@ class _BookingCard extends StatelessWidget {
               value: formatPhoneNumber(booking.customerPhone),
               valueColor: Colors.black,
             ),
+
+            // Review button - only show for completed bookings that haven't been reviewed
+            if (booking.status == BookingStatus.completed && !booking.hasReviewed) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onReviewTap,
+                  icon: const Icon(Icons.star_rounded, size: 20),
+                  label: const Text(
+                    'قيّم الخدمة',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+
+            // Show "Edit Review" button for reviewed bookings
+            if (booking.status == BookingStatus.completed && booking.hasReviewed) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onEditReviewTap,
+                  icon: const Icon(Icons.edit_rounded, size: 18),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'تعديل التقييم',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Show current rating stars
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(5, (index) {
+                          final starIndex = index + 1;
+                          return Icon(
+                            starIndex <= (booking.reviewRating ?? 0)
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            size: 16,
+                            color: starIndex <= (booking.reviewRating ?? 0)
+                                ? AppColors.gold
+                                : Colors.grey.shade300,
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.green.shade700,
+                    side: BorderSide(color: Colors.green.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

@@ -7,10 +7,8 @@ import 'package:wedly/logic/blocs/search/search_event.dart';
 import 'package:wedly/logic/blocs/search/search_state.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/presentation/widgets/skeleton_image.dart';
-
-// TODO: API - دمج نقطة نهاية البحث
-// Endpoint: GET /api/services/search?query={query}&category={category}
-// Response: { "services": [...], "total": 10 }
+import 'package:wedly/presentation/widgets/skeleton_loading.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
@@ -189,13 +187,16 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                         padding: const EdgeInsets.only(
                           right: 16,
                           left: 16,
-                          bottom: 16,
+                          bottom: 12,
                         ),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          // تمت إزالة reverse: true لأن Directionality تتكفل بها
-                          child: Row(
-                            children: [
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            // تمت إزالة reverse: true لأن Directionality تتكفل بها
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                               // رقاقة "الكل" - الأولى من اليمين
                               _buildCategoryChip(
                                 context,
@@ -209,23 +210,25 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                               // تمت إزالة .reversed
                               ...state.availableCategories.map((category) {
                                 final isSelected =
-                                    state.selectedCategory == category;
+                                    state.selectedCategory == category.id;
                                 // [تحسين] - إضافة Padding هنا لتنظيم المسافات
                                 return Padding(
                                   // استخدام padding right لعمل مسافة قبل العنصر في RTL
                                   padding: const EdgeInsets.only(right: 8),
                                   child: _buildCategoryChip(
                                     context,
-                                    category,
-                                    category,
+                                    category.nameAr, // Display Arabic name
+                                    category.id, // Use ID as value
                                     isSelected,
                                   ),
                                 );
                               }),
                             ],
                           ),
-                        ),
-                      );
+                            ),
+                          ),
+                        );
+                      
                     }
                     return const SizedBox.shrink();
                   },
@@ -306,6 +309,11 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                           ),
                         );
                       } else if (state is SearchLoaded) {
+                        // Show skeleton while refreshing
+                        if (state.isRefreshing) {
+                          return _buildLoadingSkeleton();
+                        }
+
                         if (state.services.isEmpty) {
                           return Center(
                             child: Column(
@@ -380,10 +388,10 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
         _searchFocusNode.unfocus();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFD4AF37) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(33),
           border: Border.all(
             color: isSelected ? const Color(0xFFD4AF37) : Colors.grey[300]!,
             width: 1,
@@ -394,8 +402,9 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
           style: TextStyle(
             color: isSelected ? Colors.white : Colors.black87,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 14,
+            fontSize: 13,
           ),
+          textDirection: TextDirection.rtl,
         ),
       ),
     );
@@ -409,8 +418,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            // [تحسين] - استخدام Opacity لتعريف الشفافية
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -520,13 +528,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: الانتقال لصفحة تفاصيل الخدمة
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('عرض تفاصيل ${service.name}'),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
+                      _navigateToServiceDetails(context, service);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD4AF37),
@@ -817,6 +819,205 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
           Container(height: 1, color: Colors.grey[300]),
         ],
       ),
+    );
+  }
+
+  // Navigation logic based on service category
+  void _navigateToServiceDetails(BuildContext context, ServiceModel service) {
+    // Check for venue first (venues have chair_count)
+    if (service.chairCount != null && service.chairCount! > 0) {
+      // This is a venue service - navigate to venue details
+      Navigator.pushNamed(
+        context,
+        AppRouter.venueDetails,
+        arguments: {'venue': service.toVenueModel()},
+      );
+    } else {
+      // All other services use the dynamic booking screen
+      Navigator.pushNamed(
+        context,
+        AppRouter.dynamicServiceBooking,
+        arguments: {'service': service},
+      );
+    }
+  }
+
+  // OLD HELPER METHODS - No longer needed with dynamic booking screen
+  // Kept as comments for reference
+  /*
+  // Helper methods to identify service types
+  bool _isPhotographerService(ServiceModel service) {
+    final serviceCategory = service.category.toLowerCase();
+    final photographerCategories = [
+      'photography',
+      'مصورين',
+      'تصوير فوتوغرافي',
+      'مصور',
+    ];
+    return photographerCategories.any(
+      (category) => serviceCategory.contains(category.toLowerCase()),
+    );
+  }
+
+  bool _isVideographerService(ServiceModel service) {
+    final serviceCategory = service.category.toLowerCase();
+    final videographerCategories = [
+      'videography',
+      'فيديوغراف',
+      'فيديو',
+      'تصوير فيديو',
+    ];
+    return videographerCategories.any(
+      (category) => serviceCategory.contains(category.toLowerCase()),
+    );
+  }
+
+  bool _isMakeupArtistService(ServiceModel service) {
+    final serviceCategory = service.category.toLowerCase().trim();
+    if (serviceCategory == 'beauty') return true;
+
+    final makeupArtistCategories = [
+      'beauty',
+      'كوافير وميكب',
+      'تجميل وميك أب',
+      'ميكب',
+      'كوافير',
+      'تجميل',
+      'makeup',
+      'hair',
+    ];
+    return makeupArtistCategories.any(
+      (category) => serviceCategory.contains(category.toLowerCase()),
+    );
+  }
+
+  bool _isCarService(ServiceModel service) {
+    final serviceCategory = service.category.toLowerCase().trim();
+    final carCategories = [
+      'cars',
+      'سيارات',
+      'سيارات الزفاف',
+      'سيارات زفاف',
+      'نقل',
+      'transportation',
+      'wedding cars',
+    ];
+    return carCategories.any(
+      (category) => serviceCategory.contains(category.toLowerCase()),
+    );
+  }
+
+  bool _isWeddingDressService(ServiceModel service) {
+    final serviceCategory = service.category.toLowerCase().trim();
+    final weddingDressCategories = [
+      'wedding dress',
+      'فساتين',
+      'فساتين الزفاف',
+      'فساتين زفاف',
+      'فستان',
+      'dresses',
+      'bridal',
+      'عروس',
+    ];
+    return weddingDressCategories.any(
+      (category) => serviceCategory.contains(category.toLowerCase()),
+    );
+  }
+
+  bool _isDecorationService(ServiceModel service) {
+    final serviceCategory = service.category.toLowerCase().trim();
+    final decorationCategories = [
+      'decoration',
+      'ديكور',
+      'الديكور',
+      'الديكور والزينة',
+      'ديكور والزينة',
+      'زينة',
+      'تزيين',
+      'decor',
+      'كوش',
+    ];
+    return decorationCategories.any(
+      (category) => serviceCategory.contains(category.toLowerCase()),
+    );
+  }
+
+  bool _isWeddingPlannerService(ServiceModel service) {
+    final serviceCategory = service.category.toLowerCase().trim();
+    final weddingPlannerCategories = [
+      'wedding planner',
+      'منظم حفلات',
+      'منظم',
+      'تنظيم حفلات',
+      'planner',
+      'event planner',
+    ];
+    return weddingPlannerCategories.any(
+      (category) => serviceCategory.contains(category.toLowerCase()),
+    );
+  }
+  */
+
+  /// Build skeleton loading for services list
+  Widget _buildLoadingSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 3,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          height: 380,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SkeletonLoading.shimmer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Image skeleton
+                Container(
+                  height: 200,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                ),
+                // Content skeleton
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 20,
+                        width: double.infinity,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 16,
+                        width: 150,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

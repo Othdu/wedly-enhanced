@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/presentation/widgets/skeleton_image.dart';
+import 'package:wedly/core/utils/city_translator.dart';
 
 /// Widget that displays a service card for category listings
 /// Shows service image, name, rating, price, and CTA button
@@ -120,7 +121,7 @@ class CategoryServiceCard extends StatelessWidget {
                     if (service.rating != null && service.rating! > 0)
                       Expanded(
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             const Icon(
                               Icons.star,
@@ -148,13 +149,64 @@ class CategoryServiceCard extends StatelessWidget {
                             color: Colors.black54,
                           ),
                           textDirection: TextDirection.rtl,
-                          textAlign: TextAlign.right,
+                          textAlign: TextAlign.end,
                         ),
                       ),
                   ],
                 ),
 
                 const SizedBox(height: 8),
+
+                // Venue-specific details (if chairCount exists)
+                if (service.chairCount != null) ...[
+                  // Chair count for venues
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        'السعة: ${service.chairCount} كرسي',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textDirection: TextDirection.rtl,
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.event_seat,
+                        size: 18,
+                        color: Colors.grey[600],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // City for venues
+                  if (service.city != null)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            CityTranslator.translate(service.city!),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                            ),
+                            textDirection: TextDirection.rtl,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.location_on,
+                          size: 18,
+                          color: Colors.grey[600],
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 8),
+                ],
 
                 // Price Row (shows discount if available)
                 if (service.price != null)

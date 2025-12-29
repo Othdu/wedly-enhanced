@@ -23,6 +23,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _cityController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -37,6 +38,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _cityController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -64,19 +66,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return;
       }
 
-      // Set loading state
+      // For providers: Skip OTP and go directly to documents screen
+      if (_selectedRole == UserRole.provider) {
+        Navigator.of(context).pushNamed(
+          AppRouter.providerDocuments,
+          arguments: {
+            'name': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'password': _passwordController.text,
+            'phone': _phoneController.text.trim(),
+            'city': _cityController.text.trim(),
+          },
+        );
+        return;
+      }
+
+      // For users: Continue with normal registration flow (OTP verification)
       setState(() {
         _isLoading = true;
       });
 
       try {
-        // Call register API
+        // Call register API for users
         final authRepository = getIt<AuthRepository>();
         final result = await authRepository.register(
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
           phone: _phoneController.text.trim(),
+          city: _cityController.text.trim(),
           role: _selectedRole!,
         );
 
@@ -97,12 +115,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             );
 
-            // Navigate to OTP verification screen with email
+            // Navigate to OTP verification screen with all registration data
             Navigator.of(context).pushNamed(
               AppRouter.signupOtp,
               arguments: {
                 'phoneOrEmail': _emailController.text.trim(),
                 'userRole': _selectedRole!,
+                'name': _nameController.text.trim(),
+                'password': _passwordController.text,
+                'phone': _phoneController.text.trim(),
+                'city': _cityController.text.trim(),
               },
             );
           }
@@ -528,6 +550,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
   },
 ),
 
+                              const SizedBox(height: 16),
+                              // City Field
+                              TextFormField(
+                                controller: _cityController,
+                                decoration: InputDecoration(
+                                  hintText: 'المدينة',
+                                  hintTextDirection: TextDirection.rtl,
+                                  hintStyle: TextStyle(
+                                    color: AppColors.textHint,
+                                  ),
+                                  prefixIcon: const Icon(Icons.location_city_outlined),
+                                  filled: true,
+                                  fillColor: AppColors.greyBackground,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: AppColors.gold,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  errorBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.red,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                ),
+                                textDirection: TextDirection.rtl,
+                                enabled: !isLoading,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'الرجاء إدخال المدينة';
+                                  }
+                                  return null;
+                                },
+                              ),
                               const SizedBox(height: 16),
                               // Password Field
                               TextFormField(

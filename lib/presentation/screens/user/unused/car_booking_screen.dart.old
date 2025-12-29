@@ -2,28 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
-/// Makeup artist booking screen with date selection and personal info
-/// Shows service details, allows date selection and collects user information
-class MakeupArtistBookingScreen extends StatefulWidget {
+/// Car rental booking screen with detailed information
+/// Shows car details with interactive additions selection
+class CarBookingScreen extends StatefulWidget {
   final ServiceModel service;
 
-  const MakeupArtistBookingScreen({super.key, required this.service});
+  const CarBookingScreen({super.key, required this.service});
 
   @override
-  State<MakeupArtistBookingScreen> createState() =>
-      _MakeupArtistBookingScreenState();
+  State<CarBookingScreen> createState() => _CarBookingScreenState();
 }
 
-class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
+class _CarBookingScreenState extends State<CarBookingScreen> {
+  // Form key and controllers
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
 
+  // Date selection
   DateTime? _selectedDate;
   DateTime _displayedMonth = DateTime.now();
 
-  // Selected additions (optional extras)
+  // Selected additions (only interactive section)
   final Set<String> _selectedAdditions = {};
 
   @override
@@ -34,51 +35,39 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
     super.dispose();
   }
 
-  // Static package data for makeup artist
+  // Static package data for car rental
   static const Map<String, Map<String, dynamic>> _packages = {
-    'details': {
-      'title': 'تفاصيل الباقة',
-      'items': [
-        'نوع الخدمة : تجهيز ومكياج عرائس كامل',
-        'الخدمات المتاحة : مكياج - تسريحة شعر',
-      ],
+    'carDetails': {
+      'title': 'بيانات السيارة',
+      'items': ['النوع: BMW 6 series', 'اللون: أسود', 'الموديل: 2022'],
     },
-    'styles': {
-      'title': 'الستايلات المتوفرة',
+    'serviceDetails': {
+      'title': 'تفاصيل الخدمة',
       'items': [
-        'Soft Glam',
-        'Classic Look',
-        'Natural Glow',
-        'Full Bridal Look',
-      ],
-    },
-    'components': {
-      'title': 'المكونات',
-      'items': [
-        'مكياج كامل للوجه',
-        'تسريحة شعر حسب الاختيار',
-        'تركيب رموش + تثبيت نهائي',
-        'رفة فاونديشن للجسم (اختياري)',
-        'جلسة تجريبية قبل يوم الفرح',
+        'الخدمة: تأجير مع سائق',
+        'مدة الحجز: حسب الطلب',
+        'الاستخدام: أفراح - تصوير',
       ],
     },
     'price': {
       'title': 'السعر',
-      'items': ['السعر يبدأ من 2,500 جنيه', 'يشمل: مكياج + شعر + مثبت + رموش'],
+      'items': [
+        'سعر الساعة: 450 جنيه',
+        'سعر اليوم: 2500 جنيه',
+        'السعر يشمل: الوقود + تزيين بسيط للسيارة',
+      ],
+    },
+    'driverInfo': {
+      'title': 'بيانات السائق',
+      'items': ['الاسم: محمود متولي', 'السن: 25 سنة', 'الخبرة: 4 سنوات'],
     },
     'additions': {
       'title': 'الإضافات',
       'items': [
-        'خدمة منزلية (Home Service)',
-        'عناية بالبشرة قبل الإيفانت',
-        'جلسة تصوير خاصة أثناء التحضير',
-      ],
-    },
-    'timing': {
-      'title': 'الوقت والتجهيز',
-      'items': [
-        'مدة الجلسة: 2 - 3 ساعات',
-        'الحجز المسبق: قبل الموعد بـ 3 أيام على الأقل',
+        'تزيين فاخر للسيارة',
+        'سائق إضافي احتياطي',
+        'خدمة التصوير الفوتوغرافي',
+        'باقة ورد داخل السيارة',
       ],
     },
   };
@@ -89,7 +78,7 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: CustomScrollView(
         slivers: [
-          // App Bar with makeup artist image
+          // App Bar with car image
           _buildSliverAppBar(context),
 
           // Content
@@ -99,8 +88,8 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
               children: [
                 const SizedBox(height: 16),
 
-                // Makeup artist name badge
-                _buildMakeupArtistBadge(),
+                // Car name badge
+                _buildCarBadge(),
 
                 const SizedBox(height: 24),
 
@@ -119,7 +108,7 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
                   const SizedBox(height: 24),
                 ],
 
-                // Booking Button (shown after date selection)
+                // Price Summary and Booking Button (shown after date selection)
                 if (_selectedDate != null) ...[
                   _buildPriceSummary(),
                   const SizedBox(height: 16),
@@ -153,7 +142,11 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   color: Colors.grey.shade300,
-                  child: const Icon(Icons.face, size: 80, color: Colors.grey),
+                  child: const Icon(
+                    Icons.directions_car,
+                    size: 80,
+                    color: Colors.grey,
+                  ),
                 );
               },
             ),
@@ -176,7 +169,7 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
     );
   }
 
-  Widget _buildMakeupArtistBadge() {
+  Widget _buildCarBadge() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
@@ -199,24 +192,24 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
   Widget _buildPackagesSection() {
     return Column(
       children: [
-        _buildPackageCard('details', isInteractive: false),
+        _buildPackageCard('carDetails'),
         const SizedBox(height: 16),
-        _buildPackageCard('styles', isInteractive: false),
+        _buildPackageCard('serviceDetails'),
         const SizedBox(height: 16),
-        _buildPackageCard('components', isInteractive: false),
+        _buildPackageCard('price'),
         const SizedBox(height: 16),
-        _buildPackageCard('price', isInteractive: false),
+        _buildPackageCard('driverInfo'),
         const SizedBox(height: 16),
-        _buildPackageCard('additions', isInteractive: true),
+        _buildPackageCard('additions'),
         const SizedBox(height: 16),
-        _buildPackageCard('timing', isInteractive: false),
       ],
     );
   }
 
-  Widget _buildPackageCard(String packageKey, {required bool isInteractive}) {
+  Widget _buildPackageCard(String packageKey) {
     final package = _packages[packageKey]!;
     final items = package['items'] as List<dynamic>;
+    final isAdditions = packageKey == 'additions';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -250,102 +243,74 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
           const SizedBox(height: 16),
 
           // Items with bullet points or checkboxes
-          ...items.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
-            final itemKey = '$packageKey-$index';
-            final isSelected = _selectedAdditions.contains(itemKey);
+          ...items.map((item) {
+            final itemStr = item.toString();
+            final isSelected = _selectedAdditions.contains(itemStr);
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: isInteractive
-                  ? GestureDetector(
-                      onTap: () {
+              child: GestureDetector(
+                onTap: isAdditions
+                    ? () {
                         setState(() {
                           if (isSelected) {
-                            _selectedAdditions.remove(itemKey);
+                            _selectedAdditions.remove(itemStr);
                           } else {
-                            _selectedAdditions.add(itemKey);
+                            _selectedAdditions.add(itemStr);
                           }
                         });
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Checkbox for interactive items
-                          Container(
-                            width: 20,
-                            height: 20,
-                            margin: const EdgeInsets.only(top: 2),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.grey[10],
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFFD4AF37)
-                                    : Colors.grey.shade400,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    size: 14,
-                                    color: Colors.white,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              item.toString(),
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: isSelected
-                                    ? Colors.black87
-                                    : Colors.black87,
-                                height: 1.5,
-                                fontWeight: isSelected
-                                    ? FontWeight.w500
-                                    : FontWeight.normal,
-                              ),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                        ],
+                      }
+                    : null,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      margin: const EdgeInsets.only(top: 2),
+                      decoration: BoxDecoration(
+                        color: isAdditions && isSelected
+                            ? const Color(0xFFD4AF37)
+                            : (isAdditions ? Colors.white : Colors.grey[300]),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isAdditions && isSelected
+                              ? const Color(0xFFD4AF37)
+                              : (isAdditions
+                                    ? const Color(0xFFD4AF37).withOpacity(0.3)
+                                    : Colors.grey.shade400),
+                          width: 1.5,
+                        ),
                       ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Static bullet point for non-interactive items
-                        Container(
-                          width: 20,
-                          height: 20,
-                          margin: const EdgeInsets.only(top: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            item.toString(),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.black87,
-                              height: 1.5,
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
+                      child: isAdditions && isSelected
+                          ? const Icon(
+                              Icons.check,
+                              size: 14,
+                              color: Colors.white,
+                            )
+                          : null,
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        itemStr,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isAdditions && isSelected
+                              ? Colors.black
+                              : Colors.black87,
+                          fontWeight: isAdditions && isSelected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           }),
         ],
@@ -731,12 +696,12 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
   }
 
   Widget _buildPriceSummary() {
-    // TODO: Replace with actual prices from API
     const double basePrice = 2500.0;
     const Map<String, double> additionPrices = {
-      'خدمة منزلية (Home Service)': 300.0,
-      'عناية بالبشرة قبل الإيفانت': 500.0,
-      'جلسة تصوير خاصة أثناء التحضير': 800.0,
+      'تزيين فاخر للسيارة': 500.0,
+      'سائق إضافي احتياطي': 300.0,
+      'خدمة التصوير الفوتوغرافي': 800.0,
+      'باقة ورد داخل السيارة': 200.0,
     };
 
     // Calculate total from selected additions
@@ -782,7 +747,7 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'السعر الأساسي',
+                'السعر الأساسي (يوم واحد)',
                 style: TextStyle(fontSize: 15, color: Colors.black87),
                 textAlign: TextAlign.right,
               ),
@@ -822,7 +787,6 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
                         color: Colors.grey.shade700,
                       ),
                     ),
-
                     Expanded(
                       child: Text(
                         '+${price.toStringAsFixed(0)} جنيه',
@@ -830,7 +794,6 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
                           fontSize: 14,
                           color: Colors.grey.shade700,
                         ),
-
                         textAlign: TextAlign.left,
                       ),
                     ),
@@ -848,7 +811,7 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'الإجمالي',
                 style: TextStyle(
                   fontSize: 18,
@@ -881,37 +844,20 @@ class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               // Build additions list
-              final List<String> additionsList = [];
-              if (_selectedAdditions.isNotEmpty) {
-                additionsList.addAll(_selectedAdditions.map((key) {
-                  final parts = key.split('-');
-                  final packageKey = parts[0];
-                  final index = int.parse(parts[1]);
-                  final items = _packages[packageKey]!['items'] as List<dynamic>;
-                  return items[index].toString();
-                }));
-              }
+              final List<String> additionsList = _selectedAdditions.toList();
 
               // Calculate total price
               const double basePrice = 2500.0;
               const Map<String, double> additionPrices = {
-                'خدمة منزلية (Home Service)': 300.0,
-                'عناية بالبشرة قبل الإيفانت': 500.0,
-                'جلسة تصوير خاصة أثناء التحضير': 800.0,
+                'تزيين فاخر للسيارة': 500.0,
+                'سائق إضافي احتياطي': 300.0,
+                'خدمة التصوير الفوتوغرافي': 800.0,
+                'باقة ورد داخل السيارة': 200.0,
               };
 
               double additionsTotal = 0.0;
               for (final addition in _selectedAdditions) {
-                final parts = addition.split('-');
-                if (parts.length == 2) {
-                  final packageKey = parts[0];
-                  final index = int.parse(parts[1]);
-                  if (packageKey == 'additions') {
-                    final items = _packages['additions']!['items'] as List<dynamic>;
-                    final additionText = items[index].toString();
-                    additionsTotal += additionPrices[additionText] ?? 0.0;
-                  }
-                }
+                additionsTotal += additionPrices[addition] ?? 0.0;
               }
               final double totalPrice = basePrice + additionsTotal;
 

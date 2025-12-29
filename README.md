@@ -1,145 +1,213 @@
-# Wedly - Wedding Services Marketplace 💍
+# Wedly - Wedding Services Marketplace
 
-<div align="center">
+A comprehensive Flutter wedding services marketplace connecting couples with service providers. Built with Clean Architecture and BLoC pattern, featuring dual-role support for Users and Providers.
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.9.2+-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.0+-0175C2?logo=dart&logoColor=white)
 ![BLoC](https://img.shields.io/badge/State-BLoC-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**A comprehensive Flutter wedding services marketplace with dual-role support (User & Provider)**
+---
 
-[Features](#features) • [Architecture](#architecture) • [Getting Started](#getting-started) • [Screenshots](#screenshots) • [API Integration](#api-integration)
+## Overview
 
-</div>
+Wedly enables couples to discover, compare, and book wedding services while allowing providers to showcase and manage their offerings. The app supports Arabic as the primary language with full RTL layout.
+
+### Key Highlights
+
+- Clean Architecture with clear separation of concerns
+- BLoC Pattern for predictable state management
+- Dual Role System (User & Provider modes)
+- Arabic-First Design with RTL support
+- Real API Integration with Dio HTTP client
+- Material Design 3 with gold accent theming
+- Social Authentication (Google, Facebook)
+- OpenStreetMap Integration for venue locations
+- Offline-aware with connectivity monitoring
 
 ---
 
-## 📱 Overview
+## Features
 
-Wedly is a modern Flutter application built with Clean Architecture and BLoC pattern, designed to connect wedding service providers with couples planning their special day. The app features a sophisticated dual-role system, allowing users to browse and book services while providers can manage their offerings.
+### User Features
 
-### 🌟 Key Highlights
+- **Home Dashboard** - Banners carousel, categories grid, services list, wedding countdown timer
+- **Service Browsing** - Filter by category, city, and price range
+- **Search** - Search services with suggestions, recent searches, and category filters
+- **Venue Listings** - Dedicated venue browsing with map integration, capacity info, and pricing
+- **Dynamic Booking** - Book services with forms that adapt based on service type
+- **Shopping Cart** - Manage multiple bookings before checkout
+- **Payment Flow** - Multiple payment methods with confirmation
+- **Reviews & Ratings** - Submit and view 5-star ratings with comments
+- **Bookings Management** - Track booking status (pending/confirmed/completed/cancelled)
+- **Notifications** - Receive updates on bookings, offers, and reminders
+- **Address Management** - Save and manage delivery addresses
+- **Profile Management** - Edit profile, change password, upload profile picture
+- **Promotional Offers** - View discounts and special deals
 
-- **Clean Architecture** with clear separation of concerns
-- **BLoC Pattern** for predictable state management
-- **Dual Role System** (User & Provider modes)
-- **Arabic-First Design** with RTL support
-- **Mock Data Ready** for seamless API integration
-- **Material Design 3** with custom theming
+### Provider Features
 
----
+- **Service Management** - Add, edit, delete, and toggle service availability
+- **Venue Management** - Specialized forms for venue details (capacity, pricing tiers)
+- **Bookings Dashboard** - View and manage incoming bookings by status
+- **Booking Actions** - Accept, reject, or mark bookings as complete
+- **Profile Management** - Business profile with document uploads
+- **Analytics** - Track service performance (placeholder for future metrics)
 
-## 🎯 Features
+### Authentication
 
-### ✨ Current Implementation
-
-#### User Features
-- 🏠 **Dynamic Home Screen** with customizable widget layout
-- 🎁 **Offers System** with carousel and dedicated list view
-- 📋 **Category Browsing** with service filtering
-- 🗓️ **Booking System** for multiple service types (Decoration, Wedding Dress, Wedding Planner)
-- 🛒 **Shopping Cart** for managing multiple bookings
-- 💳 **Payment Flow** with method selection
-- 👤 **Profile Management** with edit capabilities
-- 🔍 **Search & Filter** services by category
-- ⭐ **Venue Listings** with dedicated browsing
-
-#### Provider Features
-- 📊 **Dashboard** with service management
-- ➕ **Add/Edit Services** with comprehensive forms
-- 📈 **Analytics** placeholder for future metrics
-- 📅 **Booking Management** view
-- 👤 **Profile Management**
-
-#### Offers Feature (NEW)
-- 🎯 **Offers Carousel** on home screen with "المزيد" navigation
-- 📋 **Offers List Screen** displaying all active offers
-- 💰 **Discount Badges** showing percentage off
-- ⭐ **Provider Ratings** with review counts
-- 💵 **Price Comparison** (original vs. discounted)
-- 🔗 **Direct Booking** navigation to service-specific booking screens
-- 🔄 **Pull-to-Refresh** functionality
-- ⚡ **Fast Loading** with skeleton screens
+- Email/Password login and registration
+- Social login (Google, Facebook)
+- OTP verification for signup
+- Password reset with OTP
+- Role selection (User or Provider)
+- Session management with automatic token refresh
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Project Structure
 
-```
+```text
 lib/
-├── core/                          # Core utilities and configurations
-│   ├── constants/                # App constants and strings
-│   ├── di/                       # Dependency injection (GetIt)
-│   ├── theme/                    # Material Design 3 theming
-│   └── utils/                    # Utility classes and enums
-├── data/                         # Data layer
-│   ├── models/                   # Data models (Equatable)
-│   │   ├── user_model.dart
-│   │   ├── service_model.dart
-│   │   ├── offer_model.dart      # NEW: Offer data model
-│   │   ├── booking_model.dart
-│   │   ├── venue_model.dart
-│   │   └── category_model.dart
-│   ├── repositories/             # Repository implementations
-│   │   ├── auth_repository.dart
-│   │   ├── service_repository.dart
-│   │   ├── offer_repository.dart  # NEW: Offers data source
-│   │   ├── booking_repository.dart
-│   │   ├── cart_repository.dart
-│   │   └── venue_repository.dart
-│   └── services/                 # API services (ready for integration)
-├── logic/                        # Business logic layer
-│   └── blocs/                    # BLoC state management
-│       ├── auth/                 # Authentication BLoC
-│       ├── home/                 # Home screen BLoC (includes offers)
-│       ├── service/              # Service management BLoC
-│       ├── booking/              # Booking management BLoC
-│       ├── cart/                 # Shopping cart BLoC
-│       └── venue/                # Venue browsing BLoC
-├── presentation/                 # Presentation layer
-│   ├── screens/                  # Screen widgets
-│   │   ├── auth/                # Authentication screens
-│   │   ├── user/                # User role screens
-│   │   │   ├── user_home_screen.dart
-│   │   │   ├── offers_list_screen.dart  # NEW: Full offers list
-│   │   │   ├── decoration_booking_screen.dart
-│   │   │   ├── wedding_dress_booking_screen.dart
-│   │   │   ├── weddingplanner_booking_screen.dart
-│   │   │   └── user_cart_screen.dart
-│   │   └── provider/            # Provider role screens
-│   └── widgets/                 # Reusable widgets
-│       ├── offers_carousel_widget.dart  # NEW: Offers carousel
-│       ├── service_card.dart
-│       └── skeleton_loading.dart
-├── routes/                       # Navigation and routing
-│   └── app_router.dart          # Centralized routing
-└── main.dart                    # App entry point
+├── core/
+│   ├── constants/          # Colors, strings, app constants
+│   ├── di/                 # Dependency injection (GetIt)
+│   ├── services/           # Connectivity, push notifications
+│   ├── theme/              # Material Design 3 theming
+│   └── utils/              # Enums, helpers, logger, permissions
+├── data/
+│   ├── models/             # Data classes (Equatable)
+│   ├── repositories/       # Data access layer
+│   └── services/           # API client, token manager, social auth
+├── logic/
+│   └── blocs/              # BLoC state management
+│       ├── auth/
+│       ├── home/
+│       ├── service/
+│       ├── venue/
+│       ├── booking/
+│       ├── cart/
+│       ├── banner/
+│       ├── review/
+│       ├── search/
+│       ├── notification/
+│       ├── address/
+│       └── provider_service/
+├── presentation/
+│   ├── screens/
+│   │   ├── auth/           # Login, signup, OTP, password reset
+│   │   ├── user/           # User role screens (25+ screens)
+│   │   ├── provider/       # Provider role screens (10+ screens)
+│   │   ├── splash/
+│   │   └── onboarding/
+│   └── widgets/            # 25+ reusable components
+├── routes/
+│   └── app_router.dart     # Centralized navigation
+└── main.dart
 ```
 
-### Architecture Layers
+### Data Models
 
-#### 1. **Data Layer**
-- **Models**: Immutable data classes using Equatable for value equality
-- **Repositories**: Mock implementations simulating API calls with realistic delays
-- **Services**: API client setup (ready for backend integration)
+| Model | Description |
+| ----- | ----------- |
+| UserModel | User data with role, profile info, phone, city |
+| ServiceModel | Service with name, price, category, rating, location, dynamic sections |
+| VenueModel | Venue with capacity, chair count, morning/evening pricing |
+| BookingModel | Booking with status, amount, customer info, review |
+| CartItemModel | Cart item with service, date, time, prices |
+| ReviewModel | 5-star rating with comment and user info |
+| BannerModel | Promotional banner with image and optional link |
+| OfferModel | Promotional offer with discount and expiry |
+| CategoryModel | Service category with name and image |
+| AddressModel | User address with city, district, building |
+| NotificationModel | Notification with type and timestamp |
+| CountdownModel | Wedding countdown timer |
 
-#### 2. **Logic Layer**
-- **BLoC Pattern**: Predictable state management with flutter_bloc
-- **Events**: User actions (e.g., `HomeServicesRequested`)
-- **States**: UI states (e.g., `HomeLoading`, `HomeLoaded`, `HomeError`)
-- **Separation**: Business logic completely separated from UI
+### Repositories
 
-#### 3. **Presentation Layer**
-- **Screens**: Organized by feature and role
-- **Widgets**: Reusable, customizable components
-- **Theming**: Consistent Material Design 3 styling
+| Repository | Purpose |
+| ---------- | ------- |
+| AuthRepository | Login, register, OTP, password reset, profile |
+| ServiceRepository | Services CRUD, categories, search, filtering |
+| VenueRepository | Venues list and details |
+| BookingRepository | Create/update bookings, status management |
+| CartRepository | Shopping cart operations with persistence |
+| ReviewRepository | Reviews CRUD for services and venues |
+| BannerRepository | Promotional banners |
+| OfferRepository | Promotional offers |
+| NotificationRepository | User notifications |
+| CategoryRepository | Service categories |
+| AddressRepository | User addresses, cities, districts |
+
+### BLoCs (State Management)
+
+| BLoC | Responsibility |
+| ---- | -------------- |
+| AuthBloc | Authentication, session, profile updates |
+| HomeBloc | Home screen data, layout configuration |
+| ServiceBloc | Service details, filtering, pagination |
+| VenueBloc | Venue list and details |
+| BookingBloc | Booking operations for user/provider |
+| CartBloc | Shopping cart state |
+| ReviewBloc | Reviews submission and display |
+| BannerBloc | Promotional banners |
+| NotificationBloc | Notifications, unread count |
+| ProviderServiceBloc | Provider service management |
+| SearchBloc | Search functionality with suggestions |
+| AddressBloc | Address management |
 
 ---
 
-## 🚀 Getting Started
+## Screens
+
+### Authentication (7 screens)
+
+- Login with demo credentials option
+- Signup with phone and city
+- OTP verification (6-digit input)
+- Forgot password (3-step flow)
+- Provider document upload
+- Role selector
+- Signup success
+
+### User Role (20+ screens)
+
+- Home with dynamic widgets
+- Navigation wrapper with bottom nav
+- Profile view and edit
+- Search with filters
+- Bookings list with status tabs
+- Cart management
+- Category services list
+- Dynamic service booking
+- Venue booking with time slots
+- Venue details with map
+- Venues list
+- Payment method selection
+- Payment confirmation
+- Payment success
+- Notifications list
+- Offers list
+- Address management
+- Change password
+- Help and support
+- Terms and conditions
+
+### Provider Role (10+ screens)
+
+- Services list management
+- Add new service
+- Edit general service
+- Edit venue service
+- Bookings list with status tabs
+- Booking details with actions
+- Profile view and edit
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
@@ -150,290 +218,243 @@ Dart SDK: >=3.0.0
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/wedly-enhanced.git
-   cd wedly-enhanced
-   ```
+1. Clone the repository
 
-2. **Install dependencies**
-   ```bash
-   flutter pub get
-   ```
+```bash
+git clone https://github.com/othdu/wedly-enhanced.git
+cd wedly-enhanced
+```
 
-3. **Run the app**
-   ```bash
-   flutter run
-   ```
+2. Install dependencies
 
-4. **Build for production**
-   ```bash
-   # Android
-   flutter build apk --release
+```bash
+flutter pub get
+```
 
-   # iOS (requires macOS)
-   flutter build ios --release
+3. Run the app
 
-   # Web
-   flutter build web --release
-   ```
+```bash
+flutter run
+```
 
-### Testing Credentials
+4. Build for production
 
-For testing purposes (mock authentication):
-- **Email**: Any valid email format
-- **Password**: Minimum 6 characters
-- Or click **"Use Demo Credentials"** button to auto-fill
+```bash
+# Android APK
+flutter build apk --release
+
+# Android App Bundle
+flutter build appbundle --release
+
+# iOS (requires macOS)
+flutter build ios --release
+
+# Web
+flutter build web --release
+```
+
+### Development Commands
+
+```bash
+# Analyze code
+flutter analyze
+
+# Format code
+dart format .
+
+# Run tests
+flutter test
+
+# Generate JSON serialization code
+flutter pub run build_runner build
+```
 
 ---
 
-## 🔌 API Integration
+## API Integration
 
-The codebase is **API-ready** with comprehensive TODO comments throughout. All repositories currently use mock data but are structured for seamless API integration.
+The app uses Dio HTTP client with automatic token refresh and error handling.
 
-### Mock Data Details
+### Configuration
 
-| Repository | Mock Items | Network Delay |
-|-----------|-----------|---------------|
-| **OfferRepository** | 6 offers | 800ms |
-| **ServiceRepository** | 6 services | 500ms |
-| **BookingRepository** | 7 bookings | 600ms |
-| **VenueRepository** | Mock venues | 700ms |
-| **CartRepository** | Cart items | 400ms |
+Update the base URL in `lib/data/services/api_constants.dart`:
 
-### Integration Steps
-
-1. **Add HTTP package**
-   ```yaml
-   dependencies:
-     dio: ^5.0.0  # or http: ^1.0.0
-   ```
-
-2. **Configure API base URL**
-   ```dart
-   // lib/data/services/api_constants.dart
-   class ApiConstants {
-     static const String baseUrl = 'https://api.yourbackend.com';
-     static const String offers = '$baseUrl/offers';
-     // ... other endpoints
-   }
-   ```
-
-3. **Update repositories**
-   - Replace mock methods with real API calls
-   - Implement error handling
-   - Add token management
-   - See TODO comments in each repository file
-
-4. **API Endpoints Required**
-
-   ```
-   Offers API:
-   GET  /api/offers              - Get all active offers
-   GET  /api/offers/:id          - Get offer by ID
-   GET  /api/offers/provider/:id - Get offers by provider
-
-   Services API:
-   GET  /api/services            - Get all services
-   GET  /api/services/:id        - Get service by ID
-   POST /api/services            - Create service (provider)
-
-   Auth API:
-   POST /api/auth/login          - User login
-   POST /api/auth/register       - User registration
-   POST /api/auth/logout         - User logout
-
-   Bookings API:
-   GET  /api/bookings            - Get user bookings
-   POST /api/bookings            - Create booking
-   PUT  /api/bookings/:id        - Update booking
-   ```
-
-5. **Toggle Mock Mode**
-   ```dart
-   // lib/core/di/injection_container.dart
-   const bool _useMockData = false;  // Switch to real API
-   ```
-
-### API Response Format Examples
-
-<details>
-<summary>Click to view expected API response formats</summary>
-
-**Offers Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "1",
-      "title": "Wedding Hall Decoration",
-      "title_ar": "قاعة زفاف – التصميم الملكي",
-      "description": "Premium decoration package",
-      "description_ar": "تزيين فاخر لقاعة الزفاف",
-      "image_url": "https://example.com/image.jpg",
-      "discount": "-50%",
-      "expiry_date": "2025-12-31T23:59:59Z",
-      "provider_id": "provider_1",
-      "provider_name": "استوديو الأحلام",
-      "service_type": "decoration",
-      "original_price": 14000.0,
-      "discounted_price": 7000.0,
-      "rating": 4.8,
-      "review_count": 200
-    }
-  ]
+```dart
+class ApiConstants {
+  static const String baseUrl = 'https://your-api-domain.com/api';
 }
 ```
 
-**Services Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "1",
-      "name": "Professional Photography",
-      "name_ar": "تصوير احترافي",
-      "description": "Wedding photography package",
-      "description_ar": "باقة تصوير زفاف احترافية",
-      "price": 5000.0,
-      "category": "photography",
-      "image_url": "https://example.com/photo.jpg",
-      "provider_id": "provider_1",
-      "rating": 4.9
-    }
-  ]
-}
-```
+### API Endpoints
 
-</details>
+| Endpoint | Method | Description |
+| -------- | ------ | ----------- |
+| /auth/login | POST | User login |
+| /auth/register | POST | User registration |
+| /auth/verify-otp | POST | OTP verification |
+| /auth/forgot-password | POST | Password reset |
+| /services | GET | Get all services |
+| /services/{id} | GET | Get service details |
+| /services/category/{id} | GET | Services by category |
+| /venues | GET | Get all venues |
+| /venues/{id} | GET | Get venue details |
+| /bookings | GET/POST | User bookings |
+| /bookings/{id}/status | PUT | Update booking status |
+| /cart | GET/POST/DELETE | Shopping cart |
+| /reviews | GET/POST | Reviews |
+| /banners | GET | Promotional banners |
+| /offers | GET | Promotional offers |
+| /notifications | GET | User notifications |
+| /users/profile | GET/PUT | User profile |
+| /users/profile/image | POST | Profile image upload |
+
+### Mock Mode
+
+Toggle between mock and real API in `lib/core/di/injection_container.dart`:
+
+```dart
+const bool _useMockData = false; // Set to true for mock data
+```
 
 ---
 
-## 🎨 Theming & Localization
+## Dependencies
+
+### Core
+
+| Package | Version | Purpose |
+| ------- | ------- | ------- |
+| flutter_bloc | ^8.1.6 | State management |
+| equatable | ^2.0.5 | Value equality |
+| get_it | ^7.7.0 | Dependency injection |
+| go_router | ^14.2.0 | Navigation |
+
+### Networking
+
+| Package | Version | Purpose |
+| ------- | ------- | ------- |
+| dio | ^5.9.0 | HTTP client |
+| pretty_dio_logger | ^1.3.1 | Request logging |
+| connectivity_plus | ^7.0.0 | Network status |
+
+### Storage & Auth
+
+| Package | Version | Purpose |
+| ------- | ------- | ------- |
+| flutter_secure_storage | ^9.2.4 | Secure token storage |
+| shared_preferences | ^2.5.3 | Local preferences |
+| google_sign_in | ^6.2.1 | Google authentication |
+| flutter_facebook_auth | ^7.1.1 | Facebook authentication |
+
+### UI & Media
+
+| Package | Version | Purpose |
+| ------- | ------- | ------- |
+| cached_network_image | ^3.4.1 | Image caching |
+| image_picker | ^1.2.0 | Photo selection |
+| flutter_svg | ^2.0.10 | SVG support |
+| shimmer | ^3.0.0 | Loading effects |
+| google_fonts | ^6.2.0 | Custom fonts |
+
+### Maps & Location
+
+| Package | Version | Purpose |
+| ------- | ------- | ------- |
+| flutter_map | ^8.2.2 | OpenStreetMap integration |
+| latlong2 | ^0.9.1 | Coordinates handling |
+| geolocator | ^14.0.2 | Location services |
+
+---
+
+## Theming & Localization
 
 ### Material Design 3
-- Custom color scheme with gold accent (#D4AF37)
+
+- Gold accent color (#D4AF37)
 - Light and dark mode support
 - Consistent spacing and typography
 
 ### Localization
-- **Primary Language**: Arabic (ar_SA) 
-- **RTL Support**: Full right-to-left layout
-- **Fallback**: English support configured
-- All UI text uses Arabic with proper text direction
+
+- Primary Language: Arabic (ar_SA)
+- Full RTL layout support
+- English fallback configured
+- 27 Egyptian governorates translated
 
 ---
 
-## 📦 Dependencies
+## Widgets Library
 
-### Core Dependencies
-```yaml
-dependencies:
-  flutter_bloc: ^8.1.3          # State management
-  equatable: ^2.0.5             # Value equality
-  get_it: ^7.6.4               # Dependency injection
-  go_router: ^13.0.0           # Navigation (configured)
-  flutter_secure_storage: ^9.0.0  # Secure token storage
-```
+The app includes 25+ reusable widgets:
 
-### UI Dependencies
-```yaml
-  intl: ^0.18.1                # Internationalization
-  cached_network_image: ^3.3.0 # Image caching (ready)
-```
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-flutter test
-
-# Run with coverage
-flutter test --coverage
-
-# Analyze code
-flutter analyze
-```
-
-**Current Test Status:**
-- Unit tests: Minimal (TODO)
-- Widget tests: Default widget test
-- Integration tests: Not implemented
+- ServiceCard, VenueCard, CategoryCard
+- BannersCarousel, OffersCarousel
+- CategoriesGrid, ServicesList
+- ProfilePictureWidget with upload
+- CachedImageWidget, SkeletonImage
+- CountdownTimerWidget
+- BookingCard, StatusBadge
+- ReviewBottomSheet
+- ErrorView, OfflineIndicator
+- NotificationBadge
+- AuthSessionListener
+- WidgetFactory for dynamic UI
 
 ---
 
-## 🗺️ Roadmap
+## Project Status
 
-### Phase 1: Core Features (✅ Completed)
+### Completed
+
 - [x] Clean architecture setup
-- [x] Authentication flow
-- [x] Role-based navigation
+- [x] Authentication flow with social login
+- [x] OTP verification and password reset
+- [x] Role-based navigation (User/Provider)
 - [x] Home screen with dynamic widgets
-- [x] Service browsing
-- [x] Offers system with carousel and list
-- [x] Booking flow for multiple service types
-- [x] Shopping cart functionality
+- [x] Service browsing and details
+- [x] Venue listings with map integration
+- [x] Dynamic booking system
+- [x] Shopping cart
+- [x] Payment flow
+- [x] Reviews and ratings
+- [x] Notifications system
+- [x] Profile management
+- [x] Address management
+- [x] Search with filters
+- [x] Provider service management
+- [x] Provider booking management
+- [x] Offline connectivity monitoring
 
-### Phase 2: API Integration (🚧 In Progress)
-- [ ] Connect to backend API
-- [ ] Implement authentication tokens
-- [ ] Real-time data synchronization
-- [ ] Image upload functionality
+### In Progress
+
+- [ ] Push notifications (FCM)
+- [ ] Real-time chat
 - [ ] Payment gateway integration
-
-### Phase 3: Enhanced Features
-- [ ] Push notifications
-- [ ] Real-time chat between users and providers
-- [ ] Reviews and ratings system
-- [ ] Advanced search and filters
 - [ ] Provider analytics dashboard
-- [ ] Social media integration
-
-### Phase 4: Optimization
-- [ ] Performance optimization
-- [ ] Offline mode with caching
-- [ ] Image optimization
-- [ ] Comprehensive testing suite
-- [ ] CI/CD pipeline
-
----
-## 🐛 Known Issues
-
-- Unused `_isOffer` variable in booking screens (cosmetic warning)
-- Some deprecated `withOpacity` calls (scheduled for update)
-- Mock authentication accepts any credentials (intentional for testing)
 
 ---
 
-## 📄 License
+## Contributing
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- Flutter & Dart teams for the amazing framework
-- BLoC library maintainers
-- Unsplash for placeholder images
-- The open-source community
-- claudeeeeeeeeee<3
----
-
-## 📞 Support
-
-For support, please:
-- 📧 Email: moh.mus2019@gmail.com
-- 🐛 Issues: [GitHub Issues](https://github.com/othdu/wedly-enhanced/issues)
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
-<div align="center">
+## License
 
-**Built with ❤️ using Flutter**
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-</div>
+---
+
+## Support
+
+- Issues: [GitHub Issues](https://github.com/othdu/wedly-enhanced/issues)
+- Email: moh.mus2019@gmail.com
+
+---
+
+Built with Flutter

@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wedly/core/utils/app_logger.dart';
 import 'package:wedly/core/utils/enums.dart';
 import 'package:wedly/data/models/user_model.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/api_constants.dart';
+import 'package:wedly/data/services/api_exceptions.dart';
 import 'package:wedly/data/services/token_manager.dart';
+import 'package:wedly/data/services/social_auth_service.dart';
 
 class AuthRepository {
   final ApiClient? _apiClient;
@@ -146,20 +149,41 @@ class AuthRepository {
 
     // Handle nested data structure
     final responseData = response.data['data'] ?? response.data;
+    AppLogger.auth('Login response received');
+    AppLogger.debug('Response data keys: ${responseData.keys.toList()}', tag: 'AuthRepo');
+
+    // Check if provider account is pending approval
+    // The backend might return: { "pending": true, "message": "..." }
+    // or: { "status": "pending", "message": "..." }
+    final isPending = responseData['pending'] == true ||
+                      responseData['status'] == 'pending' ||
+                      responseData['approval_status'] == 'pending';
+    if (isPending) {
+      final message = responseData['message'] as String? ??
+          'حسابك قيد المراجعة. يرجى الانتظار حتى يتم الموافقة على حسابك.';
+      throw ProviderPendingApprovalException(message: message);
+    }
 
     // Save tokens
     final accessToken = responseData['access_token'] ?? responseData['accessToken'] as String;
     final refreshToken = responseData['refresh_token'] ?? responseData['refreshToken'] as String;
+
+    AppLogger.success('Tokens extracted from response', tag: 'AuthRepo');
+    AppLogger.token('Access token', tokenPreview: accessToken);
+
     await _tokenManager!.saveTokens(
       accessToken: accessToken,
       refreshToken: refreshToken,
     );
+
+    AppLogger.debug('Tokens saved to secure storage', tag: 'AuthRepo');
 
     // Parse user data
     final user = UserModel.fromJson(responseData['user']);
     await _tokenManager?.saveUserRole(user.role.name);
 
     _currentUser = user;
+    AppLogger.auth('User logged in: ${user.email} (${user.role.name})');
     return user;
   }
 
@@ -176,6 +200,15 @@ class AuthRepository {
         // Continue with local logout even if API fails
       }
       await _performLocalLogout();
+    }
+
+    // Sign out from Google/Facebook to clear cached account
+    try {
+      final socialAuthService = SocialAuthService();
+      await socialAuthService.signOut();
+    } catch (e) {
+      // Continue even if social sign out fails
+      AppLogger.warning('Social sign out error: $e', tag: 'AuthRepo');
     }
   }
 
@@ -294,18 +327,16 @@ class AuthRepository {
         },
       );
 
-      print('📦 Update Profile Response: ${response.data}');
+      AppLogger.response('Update Profile Response', tag: 'AuthRepo');
       final responseData = response.data['data'] ?? response.data;
-      print('📦 Response Data: $responseData');
       final userData = responseData['user'] ?? responseData;
-      print('📦 User Data: $userData');
 
       final user = UserModel.fromJson(userData);
       _currentUser = user;
       await _saveUserToCache(user);
       return user;
     } catch (e) {
-      print('❌ Error in _apiUpdateProfile: $e');
+      AppLogger.error('Error in _apiUpdateProfile', tag: 'AuthRepo', error: e);
       rethrow;
     }
   }
@@ -493,12 +524,13 @@ class AuthRepository {
     required String email,
     required String password,
     required String phone,
+    String? city,
     required UserRole role,
   }) async {
     if (useMockData) {
-      return _mockRegister(name: name, email: email, password: password, phone: phone, role: role);
+      return _mockRegister(name: name, email: email, password: password, phone: phone, city: city, role: role);
     } else {
-      return _apiRegister(name: name, email: email, password: password, phone: phone, role: role);
+      return _apiRegister(name: name, email: email, password: password, phone: phone, city: city, role: role);
     }
   }
 
@@ -507,6 +539,7 @@ class AuthRepository {
     required String email,
     required String password,
     required String phone,
+    String? city,
     required UserRole role,
   }) async {
     await Future.delayed(const Duration(seconds: 1));
@@ -523,8 +556,10 @@ class AuthRepository {
     required String email,
     required String password,
     required String phone,
+    String? city,
     required UserRole role,
   }) async {
+    AppLogger.auth('Registering user with email: $email');
     final response = await _apiClient!.post(
       ApiConstants.register,
       data: {
@@ -532,9 +567,12 @@ class AuthRepository {
         'email': email,
         'password': password,
         'phone': phone,
+        if (city != null && city.isNotEmpty) 'city': city,
         'role': role.name,
       },
     );
+
+    AppLogger.success('Registration response received', tag: 'AuthRepo');
 
     final responseData = response.data['data'] ?? response.data;
     return {
@@ -548,11 +586,22 @@ class AuthRepository {
   Future<UserModel> verifyOtp({
     required String email,
     required String otp,
+    String? name,
+    String? password,
+    String? phone,
+    UserRole? role,
   }) async {
     if (useMockData) {
       return _mockVerifyOtp(email: email, otp: otp);
     } else {
-      return _apiVerifyOtp(email: email, otp: otp);
+      return _apiVerifyOtp(
+        email: email,
+        otp: otp,
+        name: name,
+        password: password,
+        phone: phone,
+        role: role,
+      );
     }
   }
 
@@ -577,18 +626,52 @@ class AuthRepository {
   Future<UserModel> _apiVerifyOtp({
     required String email,
     required String otp,
+    String? name,
+    String? password,
+    String? phone,
+    UserRole? role,
   }) async {
+    // Backend Pattern: Registration creates unverified account, OTP just activates it
+    // So we only send email + OTP, not the full registration data
+    final requestData = {
+      'email': email,
+      'otp': otp.toString(),
+    };
+
+    AppLogger.auth('Sending verifyOtp request');
+    AppLogger.debug('OTP length: ${otp.length}', tag: 'AuthRepo');
+
     final response = await _apiClient!.post(
       ApiConstants.verifyOtp,
-      data: {
-        'email': email,
-        'otp': otp,
-      },
+      data: requestData,
     );
+
+    AppLogger.success('OTP Verification successful', tag: 'AuthRepo');
 
     final responseData = response.data['data'] ?? response.data;
 
-    // Save tokens if provided
+    // Backend only returns {verified: true}, not user data or tokens
+    // After successful verification, we need to log the user in
+    if (responseData['verified'] == true) {
+      AppLogger.auth('Account verified! Now logging in automatically...');
+
+      // Auto-login with the credentials we have
+      if (password != null && email.isNotEmpty) {
+        final loginUser = await login(
+          email: email,
+          password: password,
+          role: role,
+        );
+        AppLogger.success('Auto-login successful', tag: 'AuthRepo');
+        return loginUser;
+      } else {
+        // No password provided, create a basic user object
+        // This shouldn't happen in normal flow
+        throw Exception('لا يمكن تسجيل الدخول تلقائياً. الرجاء تسجيل الدخول يدوياً.');
+      }
+    }
+
+    // Legacy flow: If backend returns user data directly (old API version)
     final accessToken = responseData['access_token'] ?? responseData['accessToken'];
     final refreshToken = responseData['refresh_token'] ?? responseData['refreshToken'];
     if (accessToken != null && refreshToken != null) {
@@ -598,7 +681,6 @@ class AuthRepository {
       );
     }
 
-    // Parse user data
     final user = UserModel.fromJson(responseData['user'] ?? responseData);
     await _tokenManager?.saveUserRole(user.role.name);
 
@@ -643,6 +725,109 @@ class AuthRepository {
     };
   }
 
+  /// Register provider with documents
+  /// API: POST /api/auth/register-provider
+  Future<Map<String, dynamic>> registerProvider({
+    required String email,
+    required String password,
+    required String name,
+    String? phone,
+    String? city,
+    required String idFrontPath,
+    required String idBackPath,
+    String? commercialRegisterPath,
+    String? taxCardPath,
+  }) async {
+    if (useMockData) {
+      return _mockRegisterProvider();
+    } else {
+      return _apiRegisterProvider(
+        email: email,
+        password: password,
+        name: name,
+        phone: phone,
+        city: city,
+        idFrontPath: idFrontPath,
+        idBackPath: idBackPath,
+        commercialRegisterPath: commercialRegisterPath,
+        taxCardPath: taxCardPath,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> _mockRegisterProvider() async {
+    await Future.delayed(const Duration(seconds: 2));
+    return {
+      'success': true,
+      'message': 'تم إرسال طلبك للمراجعة بنجاح',
+    };
+  }
+
+  Future<Map<String, dynamic>> _apiRegisterProvider({
+    required String email,
+    required String password,
+    required String name,
+    String? phone,
+    String? city,
+    required String idFrontPath,
+    required String idBackPath,
+    String? commercialRegisterPath,
+    String? taxCardPath,
+  }) async {
+    // Create multipart form data for file uploads
+    final formData = FormData();
+
+    // Add required text fields
+    formData.fields.add(MapEntry('email', email));
+    formData.fields.add(MapEntry('password', password));
+    formData.fields.add(MapEntry('name', name));
+
+    // Add optional text fields
+    if (phone != null && phone.isNotEmpty) {
+      formData.fields.add(MapEntry('phone', phone));
+    }
+    if (city != null && city.isNotEmpty) {
+      formData.fields.add(MapEntry('city', city));
+    }
+
+    // Add required documents (id_front and id_back)
+    formData.files.add(MapEntry(
+      'id_front',
+      await MultipartFile.fromFile(idFrontPath, filename: 'id_front.jpg'),
+    ));
+    formData.files.add(MapEntry(
+      'id_back',
+      await MultipartFile.fromFile(idBackPath, filename: 'id_back.jpg'),
+    ));
+
+    // Add optional documents if provided
+    if (commercialRegisterPath != null) {
+      formData.files.add(MapEntry(
+        'commercial_register',
+        await MultipartFile.fromFile(commercialRegisterPath, filename: 'commercial_register.jpg'),
+      ));
+    }
+    if (taxCardPath != null) {
+      formData.files.add(MapEntry(
+        'tax_card',
+        await MultipartFile.fromFile(taxCardPath, filename: 'tax_card.jpg'),
+      ));
+    }
+
+    AppLogger.auth('Registering provider with documents');
+    final response = await _apiClient!.post(
+      ApiConstants.registerProvider,
+      data: formData,
+    );
+
+    AppLogger.success('Provider registration response received', tag: 'AuthRepo');
+    final responseData = response.data['data'] ?? response.data;
+    return {
+      'success': responseData['success'] ?? true,
+      'message': responseData['message'] ?? 'تم إرسال طلبك للمراجعة بنجاح',
+    };
+  }
+
   /// Request password reset
   Future<Map<String, dynamic>> forgotPassword({
     required String email,
@@ -681,15 +866,16 @@ class AuthRepository {
     };
   }
 
-  /// Reset password with token/OTP
+  /// Reset password with email, OTP and new password
   Future<Map<String, dynamic>> resetPassword({
-    required String token,
+    required String email,
+    required String otp,
     required String password,
   }) async {
     if (useMockData) {
-      return _mockResetPassword(token: token, password: password);
+      return _mockResetPassword(email: email, otp: otp, password: password);
     } else {
-      return _apiResetPassword(token: token, password: password);
+      return _apiResetPassword(email: email, otp: otp, password: password);
     }
   }
 
@@ -725,7 +911,8 @@ class AuthRepository {
   }
 
   Future<Map<String, dynamic>> _mockResetPassword({
-    required String token,
+    required String email,
+    required String otp,
     required String password,
   }) async {
     await Future.delayed(const Duration(milliseconds: 800));
@@ -736,14 +923,16 @@ class AuthRepository {
   }
 
   Future<Map<String, dynamic>> _apiResetPassword({
-    required String token,
+    required String email,
+    required String otp,
     required String password,
   }) async {
     final response = await _apiClient!.post(
       ApiConstants.resetPassword,
       data: {
-        'token': token,
-        'password': password,
+        'email': email,
+        'otp': otp,
+        'new_password': password,
       },
     );
 

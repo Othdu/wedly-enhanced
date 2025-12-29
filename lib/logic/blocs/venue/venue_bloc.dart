@@ -21,7 +21,6 @@ class VenueBloc extends Bloc<VenueEvent, VenueState> {
     emit(const VenuesLoading());
 
     try {
-      // TODO: API Integration - This will call the real API endpoint
       final venues = await venueRepository.getVenues();
       emit(VenuesLoaded(venues));
     } catch (e) {
@@ -37,7 +36,6 @@ class VenueBloc extends Bloc<VenueEvent, VenueState> {
     emit(const VenueDetailsLoading());
 
     try {
-      // TODO: API Integration - This will call the real API endpoint
       final venue = await venueRepository.getVenueById(event.venueId);
 
       if (venue != null) {

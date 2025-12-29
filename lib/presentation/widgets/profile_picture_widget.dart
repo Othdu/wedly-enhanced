@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'skeleton_image.dart';
+import 'package:wedly/core/utils/permission_helper.dart' as permission;
 
 class ProfilePictureWidget extends StatefulWidget {
   final String? profileImageUrl;
@@ -30,8 +31,29 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
   Future<void> _pickImage() async {
     if (!widget.isEditable) return;
 
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    // Show dialog to choose between camera and gallery
+    final source = await permission.PermissionHelper.showImageSourceDialog(context);
+    if (source == null || !mounted) return;
+
+    bool hasPermission = false;
+
+    if (source == permission.ImageSource.camera) {
+      // Request camera permission
+      hasPermission = await permission.PermissionHelper.requestCameraPermission(context);
+    } else {
+      // Request storage/photos permission
+      hasPermission = await permission.PermissionHelper.requestStoragePermission(context);
+    }
+
+    if (!hasPermission || !mounted) return;
+
+    // Pick image from selected source
+    final imageSource = source == permission.ImageSource.camera
+        ? ImageSource.camera
+        : ImageSource.gallery;
+
+    final XFile? image = await _picker.pickImage(source: imageSource);
+    if (image != null && mounted) {
       setState(() {
         _selectedImage = File(image.path);
       });

@@ -3,14 +3,14 @@ import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
-/// Wedding planner booking screen with date selection and personal info
+/// Wedding dress booking screen with date selection and personal info
 /// Shows service details, allows date selection and collects user information
 /// Can accept either a service or an offer
-class WeddingPlannerBookingScreen extends StatefulWidget {
+class WeddingDressBookingScreen extends StatefulWidget {
   final ServiceModel? service;
   final OfferModel? offer;
 
-  const WeddingPlannerBookingScreen({
+  const WeddingDressBookingScreen({
     super.key,
     this.service,
     this.offer,
@@ -18,12 +18,11 @@ class WeddingPlannerBookingScreen extends StatefulWidget {
             'Either service or offer must be provided');
 
   @override
-  State<WeddingPlannerBookingScreen> createState() =>
-      _WeddingPlannerBookingScreenState();
+  State<WeddingDressBookingScreen> createState() =>
+      _WeddingDressBookingScreenState();
 }
 
-class _WeddingPlannerBookingScreenState
-    extends State<WeddingPlannerBookingScreen> {
+class _WeddingDressBookingScreenState extends State<WeddingDressBookingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -31,9 +30,6 @@ class _WeddingPlannerBookingScreenState
 
   DateTime? _selectedDate;
   DateTime _displayedMonth = DateTime.now();
-
-  // Selected additions (optional extras)
-  final Set<String> _selectedAdditions = {};
 
   // Helper getters to work with both service and offer
   String get _title {
@@ -60,57 +56,45 @@ class _WeddingPlannerBookingScreenState
     super.dispose();
   }
 
-  // Static package data for wedding planner
+  // Static package data for wedding dress
   static const Map<String, Map<String, dynamic>> _packages = {
     'details': {
       'title': 'تفاصيل الباقة',
       'items': [
-        'نوع الخدمة : تنظيم وتنسيق حفلات زفاف كاملة',
-        'الخدمات المتاحة : تنظيم - تنسيق - إدارة',
+        'نوع الخدمة : تأجير أو تصميم فساتين زفاف',
+        'الخدمات المتاحة : فساتين - شيفون - تول - تطريز يدوي',
       ],
     },
-    'services': {
-      'title': 'الخدمات المتاحة',
+    'styles': {
+      'title': 'الأنواع المتاحة',
       'items': [
-        'تنسيق حفلات زفاف كاملة',
-        'إدارة يوم الفرح بالكامل',
-        'تنسيق مع الموردين والمكياج والموسيقى',
-        'إعداد جدول الحفل والبرنامج الزمني',
+        'فساتين الأميرات',
+        'فساتين حورية البحر',
+        'فساتين مستقيمة (Sheath)',
+        'فساتين خصر عالي (Empire)',
+        'فساتين قصيرة',
       ],
     },
     'components': {
       'title': 'المكونات',
       'items': [
-        'اجتماعات تخطيط شاملة',
-        'إدارة الميزانية والمصاريف',
-        'حجز وتنسيق جميع الموردين',
-        'تصميم ثيمات وديكورات مخصصة',
-        'إدارة قائمة الضيوف والدعوات',
-        'إشراف كامل يوم الحفل',
+        'فستان الزفاف كامل',
+        'طرحة مطابقة للتصميم',
+        'إكسسوارات بسيطة (حسب الباقة)',
       ],
     },
     'price': {
       'title': 'السعر',
       'items': [
-        'السعر يبدأ من 9,000 جنيه',
-        'يشمل: إدارة + تنظيم + تنسيق + إشراف فريق العمل',
-      ],
-    },
-    'additions': {
-      'title': 'الإضافات',
-      'items': [
-        'ديكور خاص',
-        'خدمة ضيافة',
-        'جلسة تصوير قبل الحدث',
-        'تجهيز كوشة مخصصة',
+        'السعر يبدأ من 5,000 جنيه',
+        'يشمل: تعديل المقاس + تنظيف قبل التسليم',
       ],
     },
     'timing': {
       'title': 'الوقت والتجهيز',
       'items': [
-        'مدة التخطيط: من أسبوع إلى شهر',
-        'مدة التغطية: حتى نهاية الحفل',
-        'الحجز المسبق: قبل الموعد بـ 3 أيام على الأقل',
+        'مدة التجهيز: 7 - 3 أيام حسب نوع التصميم',
+        'مدة الحجز: أسبوع إلى أسبوعين قبل الموعد',
       ],
     },
   };
@@ -121,7 +105,7 @@ class _WeddingPlannerBookingScreenState
       backgroundColor: const Color(0xFFF5F5F5),
       body: CustomScrollView(
         slivers: [
-          // App Bar with wedding planner image
+          // App Bar with wedding dress image
           _buildSliverAppBar(context),
 
           // Content
@@ -131,8 +115,8 @@ class _WeddingPlannerBookingScreenState
               children: [
                 const SizedBox(height: 16),
 
-                // Wedding planner name badge
-                _buildWeddingPlannerBadge(),
+                // Wedding dress name badge
+                _buildWeddingDressBadge(),
 
                 const SizedBox(height: 24),
 
@@ -185,8 +169,11 @@ class _WeddingPlannerBookingScreenState
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   color: Colors.grey.shade300,
-                  child: const Icon(Icons.event_note,
-                      size: 80, color: Colors.grey),
+                  child: const Icon(
+                    Icons.checkroom,
+                    size: 80,
+                    color: Colors.grey,
+                  ),
                 );
               },
             ),
@@ -209,7 +196,7 @@ class _WeddingPlannerBookingScreenState
     );
   }
 
-  Widget _buildWeddingPlannerBadge() {
+  Widget _buildWeddingDressBadge() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
@@ -234,13 +221,11 @@ class _WeddingPlannerBookingScreenState
       children: [
         _buildPackageCard('details', isInteractive: false),
         const SizedBox(height: 16),
-        _buildPackageCard('services', isInteractive: false),
+        _buildPackageCard('styles', isInteractive: false),
         const SizedBox(height: 16),
         _buildPackageCard('components', isInteractive: false),
         const SizedBox(height: 16),
         _buildPackageCard('price', isInteractive: false),
-        const SizedBox(height: 16),
-        _buildPackageCard('additions', isInteractive: true),
         const SizedBox(height: 16),
         _buildPackageCard('timing', isInteractive: false),
       ],
@@ -267,7 +252,7 @@ class _WeddingPlannerBookingScreenState
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // Package title
           Text(
@@ -282,103 +267,38 @@ class _WeddingPlannerBookingScreenState
 
           const SizedBox(height: 16),
 
-          // Items with bullet points or checkboxes
-          ...items.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
-            final itemKey = '$packageKey-$index';
-            final isSelected = _selectedAdditions.contains(itemKey);
-
+          // Items with bullet points
+          ...items.map((item) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: isInteractive
-                  ? GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            _selectedAdditions.remove(itemKey);
-                          } else {
-                            _selectedAdditions.add(itemKey);
-                          }
-                        });
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Checkbox for interactive items
-                          Container(
-                            width: 20,
-                            height: 20,
-                            margin: const EdgeInsets.only(top: 2),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.grey[10],
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFFD4AF37)
-                                    : Colors.grey.shade400,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    size: 14,
-                                    color: Colors.white,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              item.toString(),
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: isSelected
-                                    ? Colors.black87
-                                    : Colors.black87,
-                                height: 1.5,
-                                fontWeight: isSelected
-                                    ? FontWeight.w500
-                                    : FontWeight.normal,
-                              ),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Static bullet point for non-interactive items
-                        Container(
-                          width: 20,
-                          height: 20,
-                          margin: const EdgeInsets.only(top: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            item.toString(),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.black87,
-                              height: 1.5,
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Static bullet point
+                  Container(
+                    width: 20,
+                    height: 20,
+                    margin: const EdgeInsets.only(top: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item.toString(),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.black87,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
             );
           }),
         ],
@@ -460,33 +380,34 @@ class _WeddingPlannerBookingScreenState
           // Weekday headers (RTL: Sat to Sun)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              'الأحد',
-              'الإثنين',
-              'الثلاثاء',
-              'الأربعاء',
-              'الخميس',
-              'الجمعة',
-              'السبت',
-            ]
-                .map(
-                  (day) => SizedBox(
-                    width: 40,
-                    child: Center(
-                      child: Text(
-                        day,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade500,
+            children:
+                [
+                      'الأحد',
+                      'الإثنين',
+                      'الثلاثاء',
+                      'الأربعاء',
+                      'الخميس',
+                      'الجمعة',
+                      'السبت',
+                    ]
+                    .map(
+                      (day) => SizedBox(
+                        width: 40,
+                        child: Center(
+                          child: Text(
+                            day,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                )
-                .toList()
-                .reversed
-                .toList(),
+                    )
+                    .toList()
+                    .reversed
+                    .toList(),
           ),
 
           const SizedBox(height: 12),
@@ -523,12 +444,14 @@ class _WeddingPlannerBookingScreenState
     // Add day widgets
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_displayedMonth.year, _displayedMonth.month, day);
-      final isSelected = _selectedDate != null &&
+      final isSelected =
+          _selectedDate != null &&
           _selectedDate!.year == date.year &&
           _selectedDate!.month == date.month &&
           _selectedDate!.day == date.day;
 
-      final isToday = DateTime.now().year == date.year &&
+      final isToday =
+          DateTime.now().year == date.year &&
           DateTime.now().month == date.month &&
           DateTime.now().day == date.day;
 
@@ -553,8 +476,8 @@ class _WeddingPlannerBookingScreenState
               color: isSelected
                   ? const Color(0xFFD4AF37)
                   : (isToday
-                      ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
-                      : Colors.transparent),
+                        ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
+                        : Colors.transparent),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
@@ -566,10 +489,10 @@ class _WeddingPlannerBookingScreenState
                   color: isPast
                       ? Colors.grey.shade300
                       : (isSelected
-                          ? Colors.white
-                          : (isToday
-                              ? const Color(0xFFD4AF37)
-                              : Colors.black87)),
+                            ? Colors.white
+                            : (isToday
+                                  ? const Color(0xFFD4AF37)
+                                  : Colors.black87)),
                 ),
               ),
             ),
@@ -761,34 +684,8 @@ class _WeddingPlannerBookingScreenState
   }
 
   Widget _buildPriceSummary() {
-    // TODO: Replace with actual prices from API
-    const double basePrice = 9000.0;
-    const Map<String, double> additionPrices = {
-      'ديكور خاص': 1500.0,
-      'خدمة ضيافة': 2000.0,
-      'جلسة تصوير قبل الحدث': 1000.0,
-      'تجهيز كوشة مخصصة': 1800.0,
-    };
-
-    // Calculate total from selected additions
-    double additionsTotal = 0.0;
-    for (final additionKey in _selectedAdditions) {
-      // Extract the item text from the package
-      final parts = additionKey.split('-');
-      if (parts.length == 2) {
-        final packageKey = parts[0];
-        final index = int.tryParse(parts[1]) ?? -1;
-        if (packageKey == 'additions' && index >= 0) {
-          final items = _packages['additions']!['items'] as List<dynamic>;
-          if (index < items.length) {
-            final itemText = items[index] as String;
-            additionsTotal += additionPrices[itemText] ?? 0.0;
-          }
-        }
-      }
-    }
-
-    final double totalPrice = basePrice + additionsTotal;
+    const double basePrice = 5000.0;
+    final double totalPrice = basePrice;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -816,98 +713,16 @@ class _WeddingPlannerBookingScreenState
               fontWeight: FontWeight.bold,
               color: Color(0xFFD4AF37),
             ),
-            textAlign: TextAlign.right,
+            textAlign: TextAlign.left,
           ),
           const SizedBox(height: 16),
-
-          // Base price
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'السعر الأساسي',
-                style: TextStyle(fontSize: 15, color: Colors.black87),
-                textAlign: TextAlign.right,
-              ),
-              Text(
-                '${basePrice.toStringAsFixed(0)} جنيه',
-                style: const TextStyle(fontSize: 15, color: Colors.black87),
-              ),
-            ],
-          ),
-
-          // Selected additions
-          if (_selectedAdditions.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 8),
-            const Text(
-              'الإضافات المختارة:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 8),
-            ..._selectedAdditions.map((additionKey) {
-              // Extract the item text from the package
-              final parts = additionKey.split('-');
-              String itemText = '';
-              double price = 0.0;
-
-              if (parts.length == 2) {
-                final packageKey = parts[0];
-                final index = int.tryParse(parts[1]) ?? -1;
-                if (packageKey == 'additions' && index >= 0) {
-                  final items = _packages['additions']!['items'] as List<dynamic>;
-                  if (index < items.length) {
-                    itemText = items[index] as String;
-                    price = additionPrices[itemText] ?? 0.0;
-                  }
-                }
-              }
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        itemText,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                    Text(
-                      '+${price.toStringAsFixed(0)} جنيه',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                      ),
-                      textAlign: TextAlign.left,
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
-
-          const SizedBox(height: 12),
-          const Divider(thickness: 2),
-          const SizedBox(height: 12),
 
           // Total price
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'الإجمالي',
+                'السعر الإجمالي',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -938,47 +753,8 @@ class _WeddingPlannerBookingScreenState
         child: ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              // Build additions list
-              final List<String> additionsList = [];
-              for (final additionKey in _selectedAdditions) {
-                final parts = additionKey.split('-');
-                if (parts.length == 2) {
-                  final packageKey = parts[0];
-                  final index = int.tryParse(parts[1]) ?? -1;
-                  if (packageKey == 'additions' && index >= 0) {
-                    final items = _packages['additions']!['items'] as List<dynamic>;
-                    if (index < items.length) {
-                      additionsList.add(items[index] as String);
-                    }
-                  }
-                }
-              }
-
-              // Calculate total price
-              const double basePrice = 9000.0;
-              const Map<String, double> additionPrices = {
-                'ديكور خاص': 1500.0,
-                'خدمة ضيافة': 2000.0,
-                'جلسة تصوير قبل الحدث': 1000.0,
-                'تجهيز كوشة مخصصة': 1800.0,
-              };
-
-              double additionsTotal = 0.0;
-              for (final additionKey in _selectedAdditions) {
-                final parts = additionKey.split('-');
-                if (parts.length == 2) {
-                  final packageKey = parts[0];
-                  final index = int.tryParse(parts[1]) ?? -1;
-                  if (packageKey == 'additions' && index >= 0) {
-                    final items = _packages['additions']!['items'] as List<dynamic>;
-                    if (index < items.length) {
-                      final itemText = items[index] as String;
-                      additionsTotal += additionPrices[itemText] ?? 0.0;
-                    }
-                  }
-                }
-              }
-              final double totalPrice = basePrice + additionsTotal;
+              // Get total price
+              const double totalPrice = 5000.0;
 
               // Format date
               final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
@@ -990,7 +766,6 @@ class _WeddingPlannerBookingScreenState
                 builder: (context) => BookingSuccessDialog(
                   serviceName: _title,
                   date: formattedDate,
-                  additions: additionsList.isNotEmpty ? additionsList : null,
                   totalPrice: totalPrice,
                 ),
               );

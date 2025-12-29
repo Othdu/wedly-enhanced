@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:wedly/core/services/push_notification_service.dart';
 import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/data/repositories/booking_repository.dart';
@@ -121,7 +122,10 @@ Future<void> setupDependencyInjection() async {
   );
 
   getIt.registerLazySingleton<BannerRepository>(
-    () => BannerRepository(),
+    () => BannerRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
   );
 
   getIt.registerLazySingleton<CategoryRepository>(
@@ -168,7 +172,10 @@ Future<void> setupDependencyInjection() async {
   );
 
   getIt.registerFactory<ReviewBloc>(
-    () => ReviewBloc(reviewRepository: getIt<ReviewRepository>()),
+    () => ReviewBloc(
+      reviewRepository: getIt<ReviewRepository>(),
+      authBloc: getIt<AuthBloc>(),
+    ),
   );
 
   getIt.registerFactory<NotificationBloc>(
@@ -182,5 +189,8 @@ Future<void> setupDependencyInjection() async {
   getIt.registerFactory<BannerBloc>(
     () => BannerBloc(bannerRepository: getIt<BannerRepository>()),
   );
+
+  // Initialize Notification Service with repository
+  NotificationService().initialize(getIt<NotificationRepository>());
 }
 

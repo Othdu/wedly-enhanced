@@ -160,7 +160,6 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
   }
 
   void _handleApproval(BuildContext context) {
-    // TODO: API Integration - Send approval request to backend
     // Endpoint: PUT /api/bookings/{bookingId}/approve
     // Body: { "status": "confirmed" }
     context.read<BookingBloc>().add(

@@ -81,14 +81,22 @@ class AuthRegisterRequested extends AuthEvent {
 class AuthOtpVerificationRequested extends AuthEvent {
   final String email;
   final String otp;
+  final String? name;
+  final String? password;
+  final String? phone;
+  final UserRole? role;
 
   const AuthOtpVerificationRequested({
     required this.email,
     required this.otp,
+    this.name,
+    this.password,
+    this.phone,
+    this.role,
   });
 
   @override
-  List<Object?> get props => [email, otp];
+  List<Object?> get props => [email, otp, name, password, phone, role];
 }
 
 class AuthResendOtpRequested extends AuthEvent {
@@ -110,16 +118,18 @@ class AuthForgotPasswordRequested extends AuthEvent {
 }
 
 class AuthResetPasswordRequested extends AuthEvent {
-  final String token;
+  final String email;
+  final String otp;
   final String password;
 
   const AuthResetPasswordRequested({
-    required this.token,
+    required this.email,
+    required this.otp,
     required this.password,
   });
 
   @override
-  List<Object?> get props => [token, password];
+  List<Object?> get props => [email, otp, password];
 }
 
 /// Event triggered when session expires (refresh token invalid)
@@ -152,7 +162,9 @@ class AuthUpdateProfileImageRequested extends AuthEvent {
 class AuthSocialLoginRequested extends AuthEvent {
   final String provider; // 'google' or 'facebook'
 
-  const AuthSocialLoginRequested({required this.provider});
+  const AuthSocialLoginRequested({
+    required this.provider,
+  });
 
   @override
   List<Object?> get props => [provider];

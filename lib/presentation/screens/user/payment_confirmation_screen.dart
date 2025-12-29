@@ -317,7 +317,6 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     }
 
     List<Widget> items = [];
-    double totalServiceCharges = 0;
 
     for (var cartItem in widget.cartItems) {
       items.add(
@@ -337,18 +336,6 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           ),
         );
       }
-
-      totalServiceCharges += cartItem.serviceCharge;
-    }
-
-    if (totalServiceCharges > 0) {
-      items.add(
-        _buildDetailRow(
-          label: 'الضريبة',
-          value:
-              '\u202B${NumberFormat('#,###').format(totalServiceCharges.toInt())} جنية\u202C',
-        ),
-      );
     }
 
     // NEW CLEAN APPOINTMENT INSERTED HERE
@@ -476,7 +463,6 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
       },
     );
 
-    // TODO: API Integration - Payment Processing
     // Replace this mock implementation with real API call
     //
     // API Endpoint: POST /api/v1/payments/process

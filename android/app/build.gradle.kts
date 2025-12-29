@@ -34,10 +34,11 @@ android {
         applicationId = "com.wedlyapp.services"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion  // Required for google_sign_in
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -54,6 +55,10 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
     }
+}
+
+dependencies {
+    implementation("androidx.startup:startup-runtime:1.1.1")
 }
 
 flutter {

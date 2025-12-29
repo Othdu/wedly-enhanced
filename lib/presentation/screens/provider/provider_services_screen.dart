@@ -146,7 +146,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                     },
                     icon: const Icon(Icons.add, color: Colors.white, size: 20),
                     label: const Text(
-                      'إضافة خدمة',
+                      ' خدمة',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -276,9 +276,15 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                               );
                             },
                             onEdit: () async {
+                              // Route to different screens based on whether it's a venue
+                              final isVenue = service.chairCount != null;
+                              final routeName = isVenue
+                                  ? AppRouter.providerEditVenueService
+                                  : AppRouter.providerEditGeneralService;
+
                               final result = await Navigator.pushNamed(
                                 context,
-                                AppRouter.providerEditService,
+                                routeName,
                                 arguments: {'service': service},
                               );
                               // Refresh services list if service was edited

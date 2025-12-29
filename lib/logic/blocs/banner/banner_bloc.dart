@@ -17,13 +17,20 @@ class BannerBloc extends Bloc<BannerEvent, BannerState> {
     BannersRequested event,
     Emitter<BannerState> emit,
   ) async {
+    print('🎯 BannerBloc: Loading banners...');
     emit(BannerLoading());
 
     try {
       final banners = await bannerRepository.getBanners();
+      print('✅ BannerBloc: Received ${banners.length} active banners');
+
+      for (var banner in banners) {
+        print('  - Banner ID: ${banner.id}, Image: ${banner.imageUrl}');
+      }
 
       emit(BannerLoaded(banners: banners));
     } catch (e) {
+      print('❌ BannerBloc: Error loading banners: $e');
       emit(const BannerError(
         message: 'فشل تحميل العروض. يرجى المحاولة مرة أخرى.',
       ));

@@ -1,31 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
-/// Car rental booking screen with detailed information
-/// Shows car details with interactive additions selection
-class CarBookingScreen extends StatefulWidget {
-  final ServiceModel service;
+/// Wedding planner booking screen with date selection and personal info
+/// Shows service details, allows date selection and collects user information
+/// Can accept either a service or an offer
+class WeddingPlannerBookingScreen extends StatefulWidget {
+  final ServiceModel? service;
+  final OfferModel? offer;
 
-  const CarBookingScreen({super.key, required this.service});
+  const WeddingPlannerBookingScreen({
+    super.key,
+    this.service,
+    this.offer,
+  }) : assert(service != null || offer != null,
+            'Either service or offer must be provided');
 
   @override
-  State<CarBookingScreen> createState() => _CarBookingScreenState();
+  State<WeddingPlannerBookingScreen> createState() =>
+      _WeddingPlannerBookingScreenState();
 }
 
-class _CarBookingScreenState extends State<CarBookingScreen> {
-  // Form key and controllers
+class _WeddingPlannerBookingScreenState
+    extends State<WeddingPlannerBookingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  // Date selection
   DateTime? _selectedDate;
   DateTime _displayedMonth = DateTime.now();
 
-  // Selected additions (only interactive section)
+  // Selected additions (optional extras)
   final Set<String> _selectedAdditions = {};
+
+  // Helper getters to work with both service and offer
+  String get _title {
+    if (widget.offer != null) {
+      return widget.offer!.titleAr;
+    }
+    return widget.service!.name;
+  }
+
+  String get _imageUrl {
+    if (widget.offer != null) {
+      return widget.offer!.imageUrl;
+    }
+    return widget.service!.imageUrl;
+  }
+
+  bool get _isOffer => widget.offer != null;
 
   @override
   void dispose() {
@@ -35,39 +60,57 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
     super.dispose();
   }
 
-  // Static package data for car rental
+  // Static package data for wedding planner
   static const Map<String, Map<String, dynamic>> _packages = {
-    'carDetails': {
-      'title': 'بيانات السيارة',
-      'items': ['النوع: BMW 6 series', 'اللون: أسود', 'الموديل: 2022'],
-    },
-    'serviceDetails': {
-      'title': 'تفاصيل الخدمة',
+    'details': {
+      'title': 'تفاصيل الباقة',
       'items': [
-        'الخدمة: تأجير مع سائق',
-        'مدة الحجز: حسب الطلب',
-        'الاستخدام: أفراح - تصوير',
+        'نوع الخدمة : تنظيم وتنسيق حفلات زفاف كاملة',
+        'الخدمات المتاحة : تنظيم - تنسيق - إدارة',
+      ],
+    },
+    'services': {
+      'title': 'الخدمات المتاحة',
+      'items': [
+        'تنسيق حفلات زفاف كاملة',
+        'إدارة يوم الفرح بالكامل',
+        'تنسيق مع الموردين والمكياج والموسيقى',
+        'إعداد جدول الحفل والبرنامج الزمني',
+      ],
+    },
+    'components': {
+      'title': 'المكونات',
+      'items': [
+        'اجتماعات تخطيط شاملة',
+        'إدارة الميزانية والمصاريف',
+        'حجز وتنسيق جميع الموردين',
+        'تصميم ثيمات وديكورات مخصصة',
+        'إدارة قائمة الضيوف والدعوات',
+        'إشراف كامل يوم الحفل',
       ],
     },
     'price': {
       'title': 'السعر',
       'items': [
-        'سعر الساعة: 450 جنيه',
-        'سعر اليوم: 2500 جنيه',
-        'السعر يشمل: الوقود + تزيين بسيط للسيارة',
+        'السعر يبدأ من 9,000 جنيه',
+        'يشمل: إدارة + تنظيم + تنسيق + إشراف فريق العمل',
       ],
-    },
-    'driverInfo': {
-      'title': 'بيانات السائق',
-      'items': ['الاسم: محمود متولي', 'السن: 25 سنة', 'الخبرة: 4 سنوات'],
     },
     'additions': {
       'title': 'الإضافات',
       'items': [
-        'تزيين فاخر للسيارة',
-        'سائق إضافي احتياطي',
-        'خدمة التصوير الفوتوغرافي',
-        'باقة ورد داخل السيارة',
+        'ديكور خاص',
+        'خدمة ضيافة',
+        'جلسة تصوير قبل الحدث',
+        'تجهيز كوشة مخصصة',
+      ],
+    },
+    'timing': {
+      'title': 'الوقت والتجهيز',
+      'items': [
+        'مدة التخطيط: من أسبوع إلى شهر',
+        'مدة التغطية: حتى نهاية الحفل',
+        'الحجز المسبق: قبل الموعد بـ 3 أيام على الأقل',
       ],
     },
   };
@@ -78,7 +121,7 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: CustomScrollView(
         slivers: [
-          // App Bar with car image
+          // App Bar with wedding planner image
           _buildSliverAppBar(context),
 
           // Content
@@ -88,8 +131,8 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
               children: [
                 const SizedBox(height: 16),
 
-                // Car name badge
-                _buildCarBadge(),
+                // Wedding planner name badge
+                _buildWeddingPlannerBadge(),
 
                 const SizedBox(height: 24),
 
@@ -108,7 +151,7 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
                   const SizedBox(height: 24),
                 ],
 
-                // Price Summary and Booking Button (shown after date selection)
+                // Booking Button (shown after date selection)
                 if (_selectedDate != null) ...[
                   _buildPriceSummary(),
                   const SizedBox(height: 16),
@@ -137,16 +180,13 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
           fit: StackFit.expand,
           children: [
             Image.network(
-              widget.service.imageUrl,
+              _imageUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   color: Colors.grey.shade300,
-                  child: const Icon(
-                    Icons.directions_car,
-                    size: 80,
-                    color: Colors.grey,
-                  ),
+                  child: const Icon(Icons.event_note,
+                      size: 80, color: Colors.grey),
                 );
               },
             ),
@@ -169,7 +209,7 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
     );
   }
 
-  Widget _buildCarBadge() {
+  Widget _buildWeddingPlannerBadge() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
@@ -178,7 +218,7 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
         borderRadius: BorderRadius.circular(25),
       ),
       child: Text(
-        widget.service.name,
+        _title,
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
@@ -192,24 +232,24 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
   Widget _buildPackagesSection() {
     return Column(
       children: [
-        _buildPackageCard('carDetails'),
+        _buildPackageCard('details', isInteractive: false),
         const SizedBox(height: 16),
-        _buildPackageCard('serviceDetails'),
+        _buildPackageCard('services', isInteractive: false),
         const SizedBox(height: 16),
-        _buildPackageCard('price'),
+        _buildPackageCard('components', isInteractive: false),
         const SizedBox(height: 16),
-        _buildPackageCard('driverInfo'),
+        _buildPackageCard('price', isInteractive: false),
         const SizedBox(height: 16),
-        _buildPackageCard('additions'),
+        _buildPackageCard('additions', isInteractive: true),
         const SizedBox(height: 16),
+        _buildPackageCard('timing', isInteractive: false),
       ],
     );
   }
 
-  Widget _buildPackageCard(String packageKey) {
+  Widget _buildPackageCard(String packageKey, {required bool isInteractive}) {
     final package = _packages[packageKey]!;
     final items = package['items'] as List<dynamic>;
-    final isAdditions = packageKey == 'additions';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -243,74 +283,102 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
           const SizedBox(height: 16),
 
           // Items with bullet points or checkboxes
-          ...items.map((item) {
-            final itemStr = item.toString();
-            final isSelected = _selectedAdditions.contains(itemStr);
+          ...items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            final itemKey = '$packageKey-$index';
+            final isSelected = _selectedAdditions.contains(itemKey);
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: GestureDetector(
-                onTap: isAdditions
-                    ? () {
+              child: isInteractive
+                  ? GestureDetector(
+                      onTap: () {
                         setState(() {
                           if (isSelected) {
-                            _selectedAdditions.remove(itemStr);
+                            _selectedAdditions.remove(itemKey);
                           } else {
-                            _selectedAdditions.add(itemStr);
+                            _selectedAdditions.add(itemKey);
                           }
                         });
-                      }
-                    : null,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      margin: const EdgeInsets.only(top: 2),
-                      decoration: BoxDecoration(
-                        color: isAdditions && isSelected
-                            ? const Color(0xFFD4AF37)
-                            : (isAdditions ? Colors.white : Colors.grey[300]),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: isAdditions && isSelected
-                              ? const Color(0xFFD4AF37)
-                              : (isAdditions
-                                    ? const Color(0xFFD4AF37).withOpacity(0.3)
-                                    : Colors.grey.shade400),
-                          width: 1.5,
-                        ),
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Checkbox for interactive items
+                          Container(
+                            width: 20,
+                            height: 20,
+                            margin: const EdgeInsets.only(top: 2),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFD4AF37)
+                                  : Colors.grey[10],
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFFD4AF37)
+                                    : Colors.grey.shade400,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: Colors.white,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              item.toString(),
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: isSelected
+                                    ? Colors.black87
+                                    : Colors.black87,
+                                height: 1.5,
+                                fontWeight: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
                       ),
-                      child: isAdditions && isSelected
-                          ? const Icon(
-                              Icons.check,
-                              size: 14,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        itemStr,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: isAdditions && isSelected
-                              ? Colors.black
-                              : Colors.black87,
-                          fontWeight: isAdditions && isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          height: 1.5,
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Static bullet point for non-interactive items
+                        Container(
+                          width: 20,
+                          height: 20,
+                          margin: const EdgeInsets.only(top: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
                         ),
-                        textAlign: TextAlign.right,
-                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item.toString(),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.black87,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
             );
           }),
         ],
@@ -392,34 +460,33 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
           // Weekday headers (RTL: Sat to Sun)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children:
-                [
-                      'الأحد',
-                      'الإثنين',
-                      'الثلاثاء',
-                      'الأربعاء',
-                      'الخميس',
-                      'الجمعة',
-                      'السبت',
-                    ]
-                    .map(
-                      (day) => SizedBox(
-                        width: 40,
-                        child: Center(
-                          child: Text(
-                            day,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
+            children: [
+              'الأحد',
+              'الإثنين',
+              'الثلاثاء',
+              'الأربعاء',
+              'الخميس',
+              'الجمعة',
+              'السبت',
+            ]
+                .map(
+                  (day) => SizedBox(
+                    width: 40,
+                    child: Center(
+                      child: Text(
+                        day,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade500,
                         ),
                       ),
-                    )
-                    .toList()
-                    .reversed
-                    .toList(),
+                    ),
+                  ),
+                )
+                .toList()
+                .reversed
+                .toList(),
           ),
 
           const SizedBox(height: 12),
@@ -456,14 +523,12 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
     // Add day widgets
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_displayedMonth.year, _displayedMonth.month, day);
-      final isSelected =
-          _selectedDate != null &&
+      final isSelected = _selectedDate != null &&
           _selectedDate!.year == date.year &&
           _selectedDate!.month == date.month &&
           _selectedDate!.day == date.day;
 
-      final isToday =
-          DateTime.now().year == date.year &&
+      final isToday = DateTime.now().year == date.year &&
           DateTime.now().month == date.month &&
           DateTime.now().day == date.day;
 
@@ -488,8 +553,8 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
               color: isSelected
                   ? const Color(0xFFD4AF37)
                   : (isToday
-                        ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
-                        : Colors.transparent),
+                      ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
+                      : Colors.transparent),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
@@ -501,10 +566,10 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
                   color: isPast
                       ? Colors.grey.shade300
                       : (isSelected
-                            ? Colors.white
-                            : (isToday
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.black87)),
+                          ? Colors.white
+                          : (isToday
+                              ? const Color(0xFFD4AF37)
+                              : Colors.black87)),
                 ),
               ),
             ),
@@ -696,19 +761,30 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
   }
 
   Widget _buildPriceSummary() {
-    // TODO: Replace with actual prices from API
-    const double basePrice = 2500.0;
+    const double basePrice = 9000.0;
     const Map<String, double> additionPrices = {
-      'تزيين فاخر للسيارة': 500.0,
-      'سائق إضافي احتياطي': 300.0,
-      'خدمة التصوير الفوتوغرافي': 800.0,
-      'باقة ورد داخل السيارة': 200.0,
+      'ديكور خاص': 1500.0,
+      'خدمة ضيافة': 2000.0,
+      'جلسة تصوير قبل الحدث': 1000.0,
+      'تجهيز كوشة مخصصة': 1800.0,
     };
 
     // Calculate total from selected additions
     double additionsTotal = 0.0;
-    for (final addition in _selectedAdditions) {
-      additionsTotal += additionPrices[addition] ?? 0.0;
+    for (final additionKey in _selectedAdditions) {
+      // Extract the item text from the package
+      final parts = additionKey.split('-');
+      if (parts.length == 2) {
+        final packageKey = parts[0];
+        final index = int.tryParse(parts[1]) ?? -1;
+        if (packageKey == 'additions' && index >= 0) {
+          final items = _packages['additions']!['items'] as List<dynamic>;
+          if (index < items.length) {
+            final itemText = items[index] as String;
+            additionsTotal += additionPrices[itemText] ?? 0.0;
+          }
+        }
+      }
     }
 
     final double totalPrice = basePrice + additionsTotal;
@@ -739,7 +815,7 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
               fontWeight: FontWeight.bold,
               color: Color(0xFFD4AF37),
             ),
-            textAlign: TextAlign.left,
+            textAlign: TextAlign.right,
           ),
           const SizedBox(height: 16),
 
@@ -748,7 +824,7 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'السعر الأساسي (يوم واحد)',
+                'السعر الأساسي',
                 style: TextStyle(fontSize: 15, color: Colors.black87),
                 textAlign: TextAlign.right,
               ),
@@ -771,32 +847,49 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
-              textAlign: TextAlign.left,
+              textAlign: TextAlign.right,
             ),
             const SizedBox(height: 8),
-            ..._selectedAdditions.map((addition) {
-              final price = additionPrices[addition] ?? 0.0;
+            ..._selectedAdditions.map((additionKey) {
+              // Extract the item text from the package
+              final parts = additionKey.split('-');
+              String itemText = '';
+              double price = 0.0;
+
+              if (parts.length == 2) {
+                final packageKey = parts[0];
+                final index = int.tryParse(parts[1]) ?? -1;
+                if (packageKey == 'additions' && index >= 0) {
+                  final items = _packages['additions']!['items'] as List<dynamic>;
+                  if (index < items.length) {
+                    itemText = items[index] as String;
+                    price = additionPrices[itemText] ?? 0.0;
+                  }
+                }
+              }
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      addition,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
                     Expanded(
                       child: Text(
-                        '+${price.toStringAsFixed(0)} جنيه',
+                        itemText,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade700,
                         ),
-                        textAlign: TextAlign.left,
+                        textAlign: TextAlign.right,
                       ),
+                    ),
+                    Text(
+                      '+${price.toStringAsFixed(0)} جنيه',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                      textAlign: TextAlign.left,
                     ),
                   ],
                 ),
@@ -845,20 +938,44 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               // Build additions list
-              final List<String> additionsList = _selectedAdditions.toList();
+              final List<String> additionsList = [];
+              for (final additionKey in _selectedAdditions) {
+                final parts = additionKey.split('-');
+                if (parts.length == 2) {
+                  final packageKey = parts[0];
+                  final index = int.tryParse(parts[1]) ?? -1;
+                  if (packageKey == 'additions' && index >= 0) {
+                    final items = _packages['additions']!['items'] as List<dynamic>;
+                    if (index < items.length) {
+                      additionsList.add(items[index] as String);
+                    }
+                  }
+                }
+              }
 
               // Calculate total price
-              const double basePrice = 2500.0;
+              const double basePrice = 9000.0;
               const Map<String, double> additionPrices = {
-                'تزيين فاخر للسيارة': 500.0,
-                'سائق إضافي احتياطي': 300.0,
-                'خدمة التصوير الفوتوغرافي': 800.0,
-                'باقة ورد داخل السيارة': 200.0,
+                'ديكور خاص': 1500.0,
+                'خدمة ضيافة': 2000.0,
+                'جلسة تصوير قبل الحدث': 1000.0,
+                'تجهيز كوشة مخصصة': 1800.0,
               };
 
               double additionsTotal = 0.0;
-              for (final addition in _selectedAdditions) {
-                additionsTotal += additionPrices[addition] ?? 0.0;
+              for (final additionKey in _selectedAdditions) {
+                final parts = additionKey.split('-');
+                if (parts.length == 2) {
+                  final packageKey = parts[0];
+                  final index = int.tryParse(parts[1]) ?? -1;
+                  if (packageKey == 'additions' && index >= 0) {
+                    final items = _packages['additions']!['items'] as List<dynamic>;
+                    if (index < items.length) {
+                      final itemText = items[index] as String;
+                      additionsTotal += additionPrices[itemText] ?? 0.0;
+                    }
+                  }
+                }
               }
               final double totalPrice = basePrice + additionsTotal;
 
@@ -870,7 +987,7 @@ class _CarBookingScreenState extends State<CarBookingScreen> {
                 context: context,
                 barrierDismissible: false,
                 builder: (context) => BookingSuccessDialog(
-                  serviceName: widget.service.name,
+                  serviceName: _title,
                   date: formattedDate,
                   additions: additionsList.isNotEmpty ? additionsList : null,
                   totalPrice: totalPrice,

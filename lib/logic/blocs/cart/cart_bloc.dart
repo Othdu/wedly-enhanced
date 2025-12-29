@@ -63,9 +63,35 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     Emitter<CartState> emit,
   ) async {
     try {
+      // Optimistically update UI by removing item from current state
+      if (state is CartLoaded) {
+        final currentState = state as CartLoaded;
+        final updatedItems = currentState.items
+            .where((item) => item.id != event.itemId)
+            .toList();
+
+        // Calculate new totals
+        final newItemCount = updatedItems.length;
+        final newTotalPrice = updatedItems.fold<double>(
+          0.0,
+          (sum, item) => sum + item.totalPrice,
+        );
+
+        // Emit optimistic update immediately
+        emit(CartLoaded(
+          items: updatedItems,
+          itemCount: newItemCount,
+          totalPrice: newTotalPrice,
+        ));
+      }
+
+      // Perform actual deletion in background
       await cartRepository.removeFromCart(event.itemId);
 
-      // Reload cart
+      // Add small delay to allow backend to process deletion
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Reload cart from backend to ensure consistency
       final items = await cartRepository.getCartItems('current_user');
       final itemCount = await cartRepository.getCartItemCount();
       final totalPrice = await cartRepository.getTotalPrice();

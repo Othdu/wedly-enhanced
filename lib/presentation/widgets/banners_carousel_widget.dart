@@ -153,45 +153,8 @@ class _BannersCarouselWidgetState extends State<BannersCarouselWidget> {
                     ),
                   ),
                 ),
-                // Gradient overlay (only if there's a title)
-                if (banner.titleAr != null || banner.title != null)
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.5),
-                        ],
-                      ),
-                    ),
-                  ),
-                // Title overlay (if exists)
-                if (banner.titleAr != null || banner.title != null)
-                  Positioned(
-                    bottom: 16,
-                    right: 16,
-                    left: 16,
-                    child: Text(
-                      banner.titleAr ?? banner.title ?? '',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black45,
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      textDirection: TextDirection.rtl,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                // Note: Banners display only images, no text overlay
+                // Admin configures promotional images directly
               ],
             ),
           ),

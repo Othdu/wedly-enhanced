@@ -5,11 +5,6 @@ import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/logic/blocs/search/search_event.dart';
 import 'package:wedly/logic/blocs/search/search_state.dart';
 
-// TODO: API - Add search-specific repository methods
-// - searchServices(String query, String? category) -> Future<List<ServiceModel>>
-// - getSearchSuggestions(String query) -> Future<List<String>>
-// - getPopularSearches() -> Future<List<String>>
-
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   final ServiceRepository serviceRepository;
   static const String _recentSearchesKey = 'recent_searches';
@@ -46,7 +41,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
       // الحصول على جميع الخدمات والفئات
       final services = await serviceRepository.getServices();
-      final categories = await serviceRepository.getCategories();
+      final categories = await serviceRepository.getCategoriesWithDetails();
       final recentSearches = await _getRecentSearches();
 
       emit(SearchLoaded(
@@ -66,11 +61,16 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     Emitter<SearchState> emit,
   ) async {
     try {
-      emit(const SearchLoading());
+      // If already loaded, show refreshing state instead of full loading
+      if (state is SearchLoaded) {
+        emit((state as SearchLoaded).copyWith(isRefreshing: true));
+      } else {
+        emit(const SearchLoading());
+      }
 
       // الحصول على جميع الخدمات
       final allServices = await serviceRepository.getServices();
-      final categories = await serviceRepository.getCategories();
+      final categories = await serviceRepository.getCategoriesWithDetails();
 
       // الفلترة حسب الفئة إذا تم تحديدها
       List<ServiceModel> filteredServices = allServices;
@@ -107,10 +107,15 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     Emitter<SearchState> emit,
   ) async {
     try {
-      emit(const SearchLoading());
+      // If already loaded, show refreshing state instead of full loading
+      if (state is SearchLoaded) {
+        emit((state as SearchLoaded).copyWith(isRefreshing: true));
+      } else {
+        emit(const SearchLoading());
+      }
 
       final allServices = await serviceRepository.getServices();
-      final categories = await serviceRepository.getCategories();
+      final categories = await serviceRepository.getCategoriesWithDetails();
 
       // الفلترة حسب الفئة إذا تم تحديدها، وإلا عرض الكل
       final filteredServices = event.category != null && event.category!.isNotEmpty
@@ -145,7 +150,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       emit(const SearchLoading());
 
       final services = await serviceRepository.getServices();
-      final categories = await serviceRepository.getCategories();
+      final categories = await serviceRepository.getCategoriesWithDetails();
       final recentSearches = await _getRecentSearches();
 
       emit(SearchLoaded(
@@ -176,13 +181,14 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
           suggestions: [],
           recentSearches: recentSearches,
           popularSearches: _mockPopularSearches,
+          isRefreshing: false,
         ));
         return;
       }
 
       // توليد اقتراحات بناءً على أسماء الخدمات والفئات
       final allServices = await serviceRepository.getServices();
-      final categories = await serviceRepository.getCategories();
+      final categories = await serviceRepository.getCategoriesWithDetails();
       final query = event.query.toLowerCase();
 
       // جمع الاقتراحات من أسماء الخدمات
@@ -193,9 +199,10 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
           .take(5)
           .toList();
 
-      // جمع الاقتراحات من الفئات
+      // جمع الاقتراحات من الفئات (use Arabic names)
       final categorySuggestions = categories
-          .where((category) => category.toLowerCase().contains(query))
+          .where((category) => category.nameAr.toLowerCase().contains(query))
+          .map((category) => category.nameAr)
           .take(3)
           .toList();
 
@@ -207,6 +214,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
       emit(currentState.copyWith(
         suggestions: suggestions,
+        isRefreshing: false,
       ));
     } catch (e) {
       // في حالة الخطأ، لا نغير الحالة
@@ -243,6 +251,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
         final currentState = state as SearchLoaded;
         emit(currentState.copyWith(
           recentSearches: recentSearches,
+          isRefreshing: false,
         ));
       }
     } catch (e) {
@@ -280,6 +289,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
         final currentState = state as SearchLoaded;
         emit(currentState.copyWith(
           recentSearches: recentSearches,
+          isRefreshing: false,
         ));
       }
     } catch (e) {
@@ -303,6 +313,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
         final currentState = state as SearchLoaded;
         emit(currentState.copyWith(
           recentSearches: [],
+          isRefreshing: false,
         ));
       }
     } catch (e) {

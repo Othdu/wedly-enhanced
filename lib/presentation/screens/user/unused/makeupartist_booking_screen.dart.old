@@ -1,28 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/service_model.dart';
-import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/presentation/widgets/booking_success_dialog.dart';
 
-/// Decoration booking screen with date selection and personal info
+/// Makeup artist booking screen with date selection and personal info
 /// Shows service details, allows date selection and collects user information
-/// Can accept either a service or an offer
-class DecorationBookingScreen extends StatefulWidget {
-  final ServiceModel? service;
-  final OfferModel? offer;
+class MakeupArtistBookingScreen extends StatefulWidget {
+  final ServiceModel service;
 
-  const DecorationBookingScreen({
-    super.key,
-    this.service,
-    this.offer,
-  }) : assert(service != null || offer != null,
-            'Either service or offer must be provided');
+  const MakeupArtistBookingScreen({super.key, required this.service});
 
   @override
-  State<DecorationBookingScreen> createState() =>
-      _DecorationBookingScreenState();
+  State<MakeupArtistBookingScreen> createState() =>
+      _MakeupArtistBookingScreenState();
 }
 
-class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
+class _MakeupArtistBookingScreenState extends State<MakeupArtistBookingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -31,22 +23,8 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
   DateTime? _selectedDate;
   DateTime _displayedMonth = DateTime.now();
 
-  // Helper getters to work with both service and offer
-  String get _title {
-    if (widget.offer != null) {
-      return widget.offer!.titleAr;
-    }
-    return widget.service!.name;
-  }
-
-  String get _imageUrl {
-    if (widget.offer != null) {
-      return widget.offer!.imageUrl;
-    }
-    return widget.service!.imageUrl;
-  }
-
-  bool get _isOffer => widget.offer != null;
+  // Selected additions (optional extras)
+  final Set<String> _selectedAdditions = {};
 
   @override
   void dispose() {
@@ -56,47 +34,50 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
     super.dispose();
   }
 
-  // Static package data for decoration
+  // Static package data for makeup artist
   static const Map<String, Map<String, dynamic>> _packages = {
     'details': {
       'title': 'تفاصيل الباقة',
       'items': [
-        'نوع الخدمة: ديكور قاعة الفرح',
-        'الخدمات المتاحة: ديكور - زينة - إضاءة',
+        'نوع الخدمة : تجهيز ومكياج عرائس كامل',
+        'الخدمات المتاحة : مكياج - تسريحة شعر',
       ],
     },
     'styles': {
-      'title': 'قاعة البدرام',
+      'title': 'الستايلات المتوفرة',
       'items': [
-        'نوع القاعة: قاعة مكيفة مع ديكور فاخر',
-        'السعة: تتسع لعدد كبير من الضيوف',
+        'Soft Glam',
+        'Classic Look',
+        'Natural Glow',
+        'Full Bridal Look',
       ],
     },
     'components': {
       'title': 'المكونات',
       'items': [
-        'ديكور كامل للمنصة',
-        'تنسيق الكراسي والطاولات',
-        'إضاءة احترافية',
-        'ورد طبيعي + تنسيق إضافي',
-        'خلفية مصممة (Backdrop)',
-        'ديكور طاولات',
-        'ضيافة بسيطة (اختياري)',
+        'مكياج كامل للوجه',
+        'تسريحة شعر حسب الاختيار',
+        'تركيب رموش + تثبيت نهائي',
+        'رفة فاونديشن للجسم (اختياري)',
+        'جلسة تجريبية قبل يوم الفرح',
       ],
     },
     'price': {
       'title': 'السعر',
+      'items': ['السعر يبدأ من 2,500 جنيه', 'يشمل: مكياج + شعر + مثبت + رموش'],
+    },
+    'additions': {
+      'title': 'الإضافات',
       'items': [
-        'السعر يبدأ من 8500 جنيه',
-        'يشمل: تركيب + نقل + فك',
-        'الإضافات: إضاءة ليزر / كشافات / حروف ضوئية',
+        'خدمة منزلية (Home Service)',
+        'عناية بالبشرة قبل الإيفانت',
+        'جلسة تصوير خاصة أثناء التحضير',
       ],
     },
     'timing': {
       'title': 'الوقت والتجهيز',
       'items': [
-        'وقت التنفيذ: 3 - 5 ساعات',
-        'مدة الحجز: حسب موعد القاعة',
+        'مدة الجلسة: 2 - 3 ساعات',
         'الحجز المسبق: قبل الموعد بـ 3 أيام على الأقل',
       ],
     },
@@ -108,7 +89,7 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: CustomScrollView(
         slivers: [
-          // App Bar with decoration image
+          // App Bar with makeup artist image
           _buildSliverAppBar(context),
 
           // Content
@@ -118,8 +99,8 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
               children: [
                 const SizedBox(height: 16),
 
-                // Decoration name badge
-                _buildDecorationBadge(),
+                // Makeup artist name badge
+                _buildMakeupArtistBadge(),
 
                 const SizedBox(height: 24),
 
@@ -167,12 +148,12 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
           fit: StackFit.expand,
           children: [
             Image.network(
-              _imageUrl,
+              widget.service.imageUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   color: Colors.grey.shade300,
-                  child: const Icon(Icons.celebration, size: 80, color: Colors.grey),
+                  child: const Icon(Icons.face, size: 80, color: Colors.grey),
                 );
               },
             ),
@@ -195,7 +176,7 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
     );
   }
 
-  Widget _buildDecorationBadge() {
+  Widget _buildMakeupArtistBadge() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
@@ -204,7 +185,7 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
         borderRadius: BorderRadius.circular(25),
       ),
       child: Text(
-        _title,
+        widget.service.name,
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
@@ -225,6 +206,8 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
         _buildPackageCard('components', isInteractive: false),
         const SizedBox(height: 16),
         _buildPackageCard('price', isInteractive: false),
+        const SizedBox(height: 16),
+        _buildPackageCard('additions', isInteractive: true),
         const SizedBox(height: 16),
         _buildPackageCard('timing', isInteractive: false),
       ],
@@ -266,38 +249,103 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
 
           const SizedBox(height: 16),
 
-          // Items with bullet points
-          ...items.map((item) {
+          // Items with bullet points or checkboxes
+          ...items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            final itemKey = '$packageKey-$index';
+            final isSelected = _selectedAdditions.contains(itemKey);
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Static bullet point
-                  Container(
-                    width: 20,
-                    height: 20,
-                    margin: const EdgeInsets.only(top: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      item.toString(),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Colors.black87,
-                        height: 1.5,
+              child: isInteractive
+                  ? GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedAdditions.remove(itemKey);
+                          } else {
+                            _selectedAdditions.add(itemKey);
+                          }
+                        });
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Checkbox for interactive items
+                          Container(
+                            width: 20,
+                            height: 20,
+                            margin: const EdgeInsets.only(top: 2),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFD4AF37)
+                                  : Colors.grey[10],
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFFD4AF37)
+                                    : Colors.grey.shade400,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: Colors.white,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              item.toString(),
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: isSelected
+                                    ? Colors.black87
+                                    : Colors.black87,
+                                height: 1.5,
+                                fontWeight: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.right,
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Static bullet point for non-interactive items
+                        Container(
+                          width: 20,
+                          height: 20,
+                          margin: const EdgeInsets.only(top: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item.toString(),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.black87,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             );
           }),
         ],
@@ -683,8 +731,20 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
   }
 
   Widget _buildPriceSummary() {
-    // TODO: Replace with actual prices from API
-    const double totalPrice = 8500.0;
+    const double basePrice = 2500.0;
+    const Map<String, double> additionPrices = {
+      'خدمة منزلية (Home Service)': 300.0,
+      'عناية بالبشرة قبل الإيفانت': 500.0,
+      'جلسة تصوير خاصة أثناء التحضير': 800.0,
+    };
+
+    // Calculate total from selected additions
+    double additionsTotal = 0.0;
+    for (final addition in _selectedAdditions) {
+      additionsTotal += additionPrices[addition] ?? 0.0;
+    }
+
+    final double totalPrice = basePrice + additionsTotal;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -712,15 +772,82 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
               fontWeight: FontWeight.bold,
               color: Color(0xFFD4AF37),
             ),
-            textAlign: TextAlign.right,
+            textAlign: TextAlign.left,
           ),
           const SizedBox(height: 16),
+
+          // Base price
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'السعر الأساسي',
+                style: TextStyle(fontSize: 15, color: Colors.black87),
+                textAlign: TextAlign.right,
+              ),
+              Text(
+                '${basePrice.toStringAsFixed(0)} جنيه',
+                style: const TextStyle(fontSize: 15, color: Colors.black87),
+              ),
+            ],
+          ),
+
+          // Selected additions
+          if (_selectedAdditions.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text(
+              'الإضافات المختارة:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.left,
+            ),
+            const SizedBox(height: 8),
+            ..._selectedAdditions.map((addition) {
+              final price = additionPrices[addition] ?? 0.0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      addition,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+
+                    Expanded(
+                      child: Text(
+                        '+${price.toStringAsFixed(0)} جنيه',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
+
+                        textAlign: TextAlign.left,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+
+          const SizedBox(height: 12),
+          const Divider(thickness: 2),
+          const SizedBox(height: 12),
 
           // Total price
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'الإجمالي',
                 style: TextStyle(
                   fontSize: 18,
@@ -752,8 +879,40 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
         child: ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              // Get total price
-              const double totalPrice = 8500.0;
+              // Build additions list
+              final List<String> additionsList = [];
+              if (_selectedAdditions.isNotEmpty) {
+                additionsList.addAll(_selectedAdditions.map((key) {
+                  final parts = key.split('-');
+                  final packageKey = parts[0];
+                  final index = int.parse(parts[1]);
+                  final items = _packages[packageKey]!['items'] as List<dynamic>;
+                  return items[index].toString();
+                }));
+              }
+
+              // Calculate total price
+              const double basePrice = 2500.0;
+              const Map<String, double> additionPrices = {
+                'خدمة منزلية (Home Service)': 300.0,
+                'عناية بالبشرة قبل الإيفانت': 500.0,
+                'جلسة تصوير خاصة أثناء التحضير': 800.0,
+              };
+
+              double additionsTotal = 0.0;
+              for (final addition in _selectedAdditions) {
+                final parts = addition.split('-');
+                if (parts.length == 2) {
+                  final packageKey = parts[0];
+                  final index = int.parse(parts[1]);
+                  if (packageKey == 'additions') {
+                    final items = _packages['additions']!['items'] as List<dynamic>;
+                    final additionText = items[index].toString();
+                    additionsTotal += additionPrices[additionText] ?? 0.0;
+                  }
+                }
+              }
+              final double totalPrice = basePrice + additionsTotal;
 
               // Format date
               final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
@@ -763,8 +922,9 @@ class _DecorationBookingScreenState extends State<DecorationBookingScreen> {
                 context: context,
                 barrierDismissible: false,
                 builder: (context) => BookingSuccessDialog(
-                  serviceName: _title,
+                  serviceName: widget.service.name,
                   date: formattedDate,
+                  additions: additionsList.isNotEmpty ? additionsList : null,
                   totalPrice: totalPrice,
                 ),
               );

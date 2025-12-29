@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:wedly/core/constants/app_colors.dart';
+import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/routes/app_router.dart';
 
 class ProviderDocumentsScreen extends StatefulWidget {
-  const ProviderDocumentsScreen({super.key});
+  final String name;
+  final String email;
+  final String password;
+  final String phone;
+  final String city;
+
+  const ProviderDocumentsScreen({
+    super.key,
+    required this.name,
+    required this.email,
+    required this.password,
+    required this.phone,
+    required this.city,
+  });
 
   @override
   State<ProviderDocumentsScreen> createState() =>
@@ -16,136 +30,28 @@ class ProviderDocumentsScreen extends StatefulWidget {
 class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isPickingImage = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _requestLocationPermission();
-  }
+  bool _isSubmitting = false;
 
   // Track which documents have been uploaded
+  // API field names: id_front, id_back, commercial_register, tax_card
   final Map<String, bool> _uploadedDocs = {
-    'personalId': false,
-    'licensePhoto': false,
-    'commercialRecord': false,
-    'taxCard': false,
+    'id_front': false,
+    'id_back': false,
+    'commercial_register': false,
+    'tax_card': false,
   };
 
   // Store selected image paths
   final Map<String, String?> _imagePaths = {
-    'personalId': null,
-    'licensePhoto': null,
-    'commercialRecord': null,
-    'taxCard': null,
+    'id_front': null,
+    'id_back': null,
+    'commercial_register': null,
+    'tax_card': null,
   };
 
-  // Only require the first two documents (personalId and licensePhoto)
+  // Only require the first two documents (id_front and id_back)
   bool get _allDocsUploaded =>
-      _uploadedDocs['personalId']! && _uploadedDocs['licensePhoto']!;
-
-  Future<void> _requestLocationPermission() async {
-    try {
-      // Check location service
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'الرجاء تفعيل خدمة الموقع',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-
-      // Check and request permission
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        if (!mounted) return;
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(
-              'إذن الموقع مطلوب',
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-            ),
-            content: Text(
-              'يرجى منح إذن الوصول إلى الموقع من إعدادات التطبيق',
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('إلغاء', textDirection: TextDirection.rtl),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  openAppSettings();
-                },
-                child: Text('فتح الإعدادات', textDirection: TextDirection.rtl),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      if (permission == LocationPermission.denied) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'يرجى منح إذن الوصول إلى الموقع',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      // Get current location
-      await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'تم تحديد موقعك بنجاح',
-            textDirection: TextDirection.rtl,
-          ),
-          backgroundColor: AppColors.gold,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'حدث خطأ في تحديد الموقع',
-            textDirection: TextDirection.rtl,
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+      _uploadedDocs['id_front']! && _uploadedDocs['id_back']!;
 
   Future<void> _uploadDocument(String docType) async {
     // Prevent multiple simultaneous calls
@@ -256,7 +162,8 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
     }
   }
 
-  void _completeRegistration() {
+  Future<void> _completeRegistration() async {
+    // Validate required documents
     if (!_allDocsUploaded) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -270,84 +177,139 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
       return;
     }
 
-    // Show success dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.gold,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check,
-                  color: AppColors.white,
-                  size: 50,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'تم إرسال طلبك للمراجعة بنجاح',
-                textAlign: TextAlign.center,
-                textDirection: TextDirection.rtl,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.black,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'جاري مراجعة المستندات والتحقق منها، خلال 24 - 48 ساعة',
-                textAlign: TextAlign.center,
-                textDirection: TextDirection.rtl,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(); // Close dialog
-                    // Navigate to login screen
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      AppRouter.login,
-                      (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.gold,
-                    foregroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+    // Set loading state
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // Call API to register provider with documents
+      final authRepository = getIt<AuthRepository>();
+      final result = await authRepository.registerProvider(
+        email: widget.email,
+        password: widget.password,
+        name: widget.name,
+        phone: widget.phone,
+        city: widget.city,
+        idFrontPath: _imagePaths['id_front']!,
+        idBackPath: _imagePaths['id_back']!,
+        commercialRegisterPath: _imagePaths['commercial_register'],
+        taxCardPath: _imagePaths['tax_card'],
+      );
+
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      if (result['success'] == true) {
+        // Show success dialog
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: AppColors.gold,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: AppColors.white,
+                      size: 50,
                     ),
                   ),
-                  child: Text(
-                    'تم',
+                  const SizedBox(height: 24),
+                  Text(
+                    result['message'] ?? 'تم إرسال طلبك للمراجعة بنجاح',
+                    textAlign: TextAlign.center,
                     textDirection: TextDirection.rtl,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.black,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'جاري مراجعة المستندات والتحقق منها، خلال 24 - 48 ساعة',
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close dialog
+                        // Navigate to login screen
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          AppRouter.login,
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'تم',
+                        textDirection: TextDirection.rtl,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
+        );
+      } else {
+        // Show error message
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result['message'] ?? 'حدث خطأ أثناء إرسال المستندات',
+              textDirection: TextDirection.rtl,
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'حدث خطأ أثناء إرسال المستندات: $e',
+            textDirection: TextDirection.rtl,
+          ),
+          backgroundColor: Colors.red,
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override
@@ -395,32 +357,32 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
                   padding: const EdgeInsets.all(24),
                   children: [
                     const SizedBox(height: 16),
-                    // Personal ID
+                    // ID Front (صورة البطاقة الشخصية - الوجه)
                     _buildUploadBox(
-                      title: 'صورة البطاقة الشخصية (الهوية)',
-                      docType: 'personalId',
-                      isUploaded: _uploadedDocs['personalId']!,
+                      title: 'صورة البطاقة الشخصية (الوجه)',
+                      docType: 'id_front',
+                      isUploaded: _uploadedDocs['id_front']!,
                     ),
                     const SizedBox(height: 16),
-                    // License Photo
+                    // ID Back (صورة البطاقة الشخصية - الظهر)
                     _buildUploadBox(
-                      title: 'صورة البطاقة الشخصية (الهوية)',
-                      docType: 'licensePhoto',
-                      isUploaded: _uploadedDocs['licensePhoto']!,
+                      title: 'صورة البطاقة الشخصية (الظهر)',
+                      docType: 'id_back',
+                      isUploaded: _uploadedDocs['id_back']!,
                     ),
                     const SizedBox(height: 16),
-                    // Commercial Record
+                    // Commercial Register (السجل التجاري - اختياري)
                     _buildUploadBox(
                       title: 'السجل التجاري (اختياري)',
-                      docType: 'commercialRecord',
-                      isUploaded: _uploadedDocs['commercialRecord']!,
+                      docType: 'commercial_register',
+                      isUploaded: _uploadedDocs['commercial_register']!,
                     ),
                     const SizedBox(height: 16),
-                    // Tax Card
+                    // Tax Card (البطاقة الضريبية - اختياري)
                     _buildUploadBox(
                       title: 'البطاقة الضريبية (اختياري)',
-                      docType: 'taxCard',
-                      isUploaded: _uploadedDocs['taxCard']!,
+                      docType: 'tax_card',
+                      isUploaded: _uploadedDocs['tax_card']!,
                     ),
                     const SizedBox(height: 32),
                     // Complete Registration Button
@@ -428,7 +390,7 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: _completeRegistration,
+                        onPressed: _isSubmitting ? null : _completeRegistration,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.gold,
                           foregroundColor: AppColors.white,
@@ -437,14 +399,23 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: Text(
-                          'اكتمال التسجيل',
-                          textDirection: TextDirection.rtl,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.white,
+                                ),
+                              )
+                            : Text(
+                                'اكتمال التسجيل',
+                                textDirection: TextDirection.rtl,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                     ),
                   ],

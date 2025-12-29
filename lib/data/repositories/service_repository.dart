@@ -14,10 +14,8 @@ class ServiceRepository {
   final ApiClient? _apiClient;
   final bool useMockData;
 
-  // TODO: API - Replace mock services with real API data
-  // Endpoint: GET /api/services
-  // Response: { "services": [...] }
   // Mock services data - used when useMockData is true
+  // NOTE: Categories use IDs to match API format (not names)
   final List<ServiceModel> _mockServices = [
     const ServiceModel(
       id: '1',
@@ -27,11 +25,12 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
       price: 10000.0,
-      category: 'قاعات',
+      category: '2', // Venues category ID
       providerId: 'provider_1',
       rating: 4.8,
       reviewCount: 200,
       chairCount: 500,
+      city: 'التجمع الخامس، القاهرة',
     ),
     const ServiceModel(
       id: '2',
@@ -40,11 +39,12 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
       price: 15000.0,
-      category: 'قاعات',
+      category: '2', // Venues category ID
       providerId: 'provider_2',
       rating: 4.6,
       reviewCount: 250,
       chairCount: 600,
+      city: 'الشيخ زايد، الجيزة',
     ),
     const ServiceModel(
       id: '3',
@@ -53,11 +53,12 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=800',
       price: 20000.0,
-      category: 'قاعات',
+      category: '2', // Venues category ID
       providerId: 'provider_3',
       rating: 4.5,
       reviewCount: 300,
       chairCount: 700,
+      city: '6 أكتوبر، الجيزة',
     ),
     const ServiceModel(
       id: '4',
@@ -66,7 +67,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
       price: 3000.0,
-      category: 'Photography',
+      category: '1', // Photography category ID
       providerId: 'provider_4',
       rating: 4.9,
       reviewCount: 150,
@@ -81,7 +82,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=800',
       price: 5000.0,
-      category: 'Decoration',
+      category: '4', // Decoration category ID
       providerId: 'provider_5',
       rating: 4.7,
       reviewCount: 180,
@@ -93,7 +94,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800',
       price: 2500.0,
-      category: 'Beauty',
+      category: '5', // Beauty category ID
       providerId: 'provider_6',
       rating: 4.8,
       reviewCount: 120,
@@ -108,7 +109,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800',
       price: 1500.0,
-      category: 'Cars',
+      category: '3', // Cars category ID
       providerId: 'provider_7',
       rating: 4.6,
       reviewCount: 90,
@@ -123,7 +124,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800',
       price: 4000.0,
-      category: 'Entertainment',
+      category: '6', // Entertainment category ID
       providerId: 'provider_8',
       rating: 4.9,
       reviewCount: 160,
@@ -136,7 +137,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
       price: 2500.0,
-      category: 'Photography',
+      category: '1', // Photography category ID
       providerId: 'provider_9',
       rating: 4.7,
       reviewCount: 110,
@@ -148,7 +149,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
       price: 3500.0,
-      category: 'Photography',
+      category: '1', // Photography category ID
       providerId: 'provider_10',
       rating: 4.8,
       reviewCount: 95,
@@ -161,7 +162,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
       price: 6000.0,
-      category: 'Decoration',
+      category: '4', // Decoration category ID
       providerId: 'provider_11',
       rating: 4.6,
       reviewCount: 75,
@@ -173,7 +174,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7?w=800',
       price: 7500.0,
-      category: 'Decoration',
+      category: '4', // Decoration category ID
       providerId: 'provider_12',
       rating: 4.9,
       reviewCount: 130,
@@ -189,7 +190,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800',
       price: 3000.0,
-      category: 'Beauty',
+      category: '5', // Beauty category ID
       providerId: 'provider_13',
       rating: 4.8,
       reviewCount: 140,
@@ -201,7 +202,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=800',
       price: 2000.0,
-      category: 'Beauty',
+      category: '5', // Beauty category ID
       providerId: 'provider_14',
       rating: 4.5,
       reviewCount: 88,
@@ -214,7 +215,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800',
       price: 2000.0,
-      category: 'Cars',
+      category: '3', // Cars category ID
       providerId: 'provider_15',
       rating: 4.7,
       reviewCount: 65,
@@ -226,7 +227,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800',
       price: 2500.0,
-      category: 'Cars',
+      category: '3', // Cars category ID
       providerId: 'provider_16',
       rating: 4.6,
       reviewCount: 72,
@@ -239,7 +240,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=800',
       price: 4500.0,
-      category: 'Entertainment',
+      category: '6', // Entertainment category ID
       providerId: 'provider_17',
       rating: 4.9,
       reviewCount: 105,
@@ -251,7 +252,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800',
       price: 3500.0,
-      category: 'Entertainment',
+      category: '6', // Entertainment category ID
       providerId: 'provider_18',
       rating: 4.7,
       reviewCount: 92,
@@ -264,7 +265,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
       price: 9000.0,
-      category: 'Wedding Organizers',
+      category: '7', // Wedding Organizers category ID
       providerId: 'provider_19',
       rating: 4.9,
       reviewCount: 85,
@@ -276,7 +277,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
       price: 12000.0,
-      category: 'Wedding Organizers',
+      category: '7', // Wedding Organizers category ID
       providerId: 'provider_20',
       rating: 5.0,
       reviewCount: 120,
@@ -288,7 +289,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800',
       price: 10000.0,
-      category: 'Wedding Organizers',
+      category: '7', // Wedding Organizers category ID
       providerId: 'provider_21',
       rating: 4.8,
       reviewCount: 95,
@@ -301,7 +302,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800',
       price: 5000.0,
-      category: 'Wedding Dresses',
+      category: '8', // Wedding Dresses category ID
       providerId: 'provider_22',
       rating: 4.9,
       reviewCount: 115,
@@ -314,7 +315,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=800',
       price: 12000.0,
-      category: 'Wedding Dresses',
+      category: '8', // Wedding Dresses category ID
       providerId: 'provider_23',
       rating: 5.0,
       reviewCount: 142,
@@ -326,7 +327,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
       price: 8000.0,
-      category: 'Wedding Dresses',
+      category: '8', // Wedding Dresses category ID
       providerId: 'provider_24',
       rating: 4.8,
       reviewCount: 98,
@@ -338,7 +339,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
       price: 6000.0,
-      category: 'Wedding Dresses',
+      category: '8', // Wedding Dresses category ID
       providerId: 'provider_25',
       rating: 4.7,
       reviewCount: 87,
@@ -350,7 +351,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1542042161784-26ab9e041e89?w=800',
       price: 3500.0,
-      category: 'Wedding Dresses',
+      category: '8', // Wedding Dresses category ID
       providerId: 'provider_26',
       rating: 4.6,
       reviewCount: 73,
@@ -362,7 +363,7 @@ class ServiceRepository {
       imageUrl:
           'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=800',
       price: 7500.0,
-      category: 'Wedding Dresses',
+      category: '8', // Wedding Dresses category ID
       providerId: 'provider_27',
       rating: 4.9,
       reviewCount: 105,
@@ -392,9 +393,31 @@ class ServiceRepository {
   Future<List<ServiceModel>> _apiGetServices() async {
     try {
       final response = await _apiClient!.get(ApiConstants.services);
+
+      // Validate response data structure
+      if (response.data == null || response.data is! Map) {
+        print('⚠️ Invalid API response structure for services');
+        return _mockGetServices();
+      }
+
       final responseData = response.data['data'] ?? response.data;
-      final List<dynamic> data = responseData['services'] ?? responseData;
-      final services = data.map((json) => ServiceModel.fromJson(json)).toList();
+
+      // Ensure we have a valid services array
+      dynamic servicesData = responseData['services'] ?? responseData;
+      if (servicesData is! List) {
+        print('⚠️ API response is not a list for services');
+        return _mockGetServices();
+      }
+
+      final List<dynamic> data = servicesData;
+      final services = data.map((json) {
+        try {
+          return ServiceModel.fromJson(json as Map<String, dynamic>);
+        } catch (e) {
+          print('⚠️ Error parsing service JSON: $e');
+          return null;
+        }
+      }).whereType<ServiceModel>().toList(); // Filter out null values
 
       // Fallback to mock data if API returns empty results
       if (services.isEmpty) {
@@ -404,7 +427,7 @@ class ServiceRepository {
 
       return services;
     } catch (e) {
-      print('⚠️ API Error in getServices: $e');
+      print('! API Error in getServices: $e');
       print('📦 Falling back to mock data');
       return _mockGetServices();
     }
@@ -442,45 +465,202 @@ class ServiceRepository {
     }
   }
 
-  /// Get services by category
-  Future<List<ServiceModel>> getServicesByCategory(String category) async {
+  /// Get services by category with optional filters and pagination
+  /// Returns a map with 'services', 'pagination', and 'hasMore'
+  Future<Map<String, dynamic>> getServicesByCategoryWithFilters(
+    String category, {
+    String? city,
+    double? minPrice,
+    double? maxPrice,
+    double? rating,
+    bool? hasOffer,
+    int page = 1,
+    int limit = 10,
+    String? sort,
+  }) async {
     if (useMockData) {
-      return _mockGetServicesByCategory(category);
+      return _mockGetServicesByCategoryWithFilters(
+        category,
+        city: city,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        rating: rating,
+        hasOffer: hasOffer,
+        page: page,
+        limit: limit,
+      );
     } else {
-      return _apiGetServicesByCategory(category);
+      return _apiGetServicesByCategoryWithFilters(
+        category,
+        city: city,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        rating: rating,
+        hasOffer: hasOffer,
+        page: page,
+        limit: limit,
+        sort: sort,
+      );
     }
   }
 
-  /// Mock implementation: Get services by category
-  Future<List<ServiceModel>> _mockGetServicesByCategory(String category) async {
+  /// Mock implementation: Get services by category with filters
+  Future<Map<String, dynamic>> _mockGetServicesByCategoryWithFilters(
+    String category, {
+    String? city,
+    double? minPrice,
+    double? maxPrice,
+    double? rating,
+    bool? hasOffer,
+    int page = 1,
+    int limit = 10,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    return _mockServices
+
+    // Start with category filter
+    var filteredServices = _mockServices
         .where((service) => service.category == category)
         .toList();
+
+    // Apply city filter
+    if (city != null && city.isNotEmpty) {
+      filteredServices = filteredServices
+          .where((service) => service.city?.contains(city) ?? false)
+          .toList();
+    }
+
+    // Apply price filters
+    if (minPrice != null) {
+      filteredServices = filteredServices
+          .where((service) => (service.price ?? 0) >= minPrice)
+          .toList();
+    }
+    if (maxPrice != null) {
+      filteredServices = filteredServices
+          .where((service) => (service.price ?? double.infinity) <= maxPrice)
+          .toList();
+    }
+
+    // Apply rating filter
+    if (rating != null) {
+      filteredServices = filteredServices
+          .where((service) => (service.rating ?? 0) >= rating)
+          .toList();
+    }
+
+    // Apply has_offer filter
+    if (hasOffer == true) {
+      filteredServices = filteredServices
+          .where((service) => service.hasOffer && service.offerApproved)
+          .toList();
+    }
+
+    // Calculate pagination
+    final totalItems = filteredServices.length;
+    final totalPages = (totalItems / limit).ceil();
+    final startIndex = (page - 1) * limit;
+    final endIndex = startIndex + limit;
+
+    // Get paginated results
+    final paginatedServices = startIndex < filteredServices.length
+        ? filteredServices.sublist(
+            startIndex,
+            endIndex > filteredServices.length ? filteredServices.length : endIndex,
+          )
+        : <ServiceModel>[];
+
+    return {
+      'services': paginatedServices,
+      'pagination': {
+        'current_page': page,
+        'total_pages': totalPages,
+        'total_items': totalItems,
+        'items_per_page': limit,
+      },
+      'hasMore': page < totalPages,
+    };
   }
 
-  /// API implementation: Get services by category
-  Future<List<ServiceModel>> _apiGetServicesByCategory(String category) async {
+  /// API implementation: Get services by category with filters
+  Future<Map<String, dynamic>> _apiGetServicesByCategoryWithFilters(
+    String category, {
+    String? city,
+    double? minPrice,
+    double? maxPrice,
+    double? rating,
+    bool? hasOffer,
+    int page = 1,
+    int limit = 10,
+    String? sort,
+  }) async {
     try {
       final response = await _apiClient!.get(
-        ApiConstants.servicesByCategory(category),
+        ApiConstants.servicesWithFilters(
+          category: category,
+          city: city,
+          minPrice: minPrice,
+          maxPrice: maxPrice,
+          rating: rating,
+          hasOffer: hasOffer,
+          page: page,
+          limit: limit,
+          sort: sort,
+        ),
       );
-      final responseData = response.data['data'] ?? response.data;
-      final List<dynamic> data = responseData['services'] ?? responseData;
-      final services = data.map((json) => ServiceModel.fromJson(json)).toList();
 
-      // Fallback to mock data if API returns empty results
-      if (services.isEmpty) {
-        print('⚠️ API returned empty services for category $category, falling back to mock data');
-        return _mockGetServicesByCategory(category);
+      // Validate response data structure
+      if (response.data == null || response.data is! Map) {
+        print('⚠️ Invalid API response structure for category $category');
+        return _mockGetServicesByCategoryWithFilters(category, page: page, limit: limit);
       }
 
-      return services;
+      final responseData = response.data['data'] ?? response.data;
+
+      // Ensure we have a valid services array
+      dynamic servicesData = responseData['services'] ?? responseData;
+      if (servicesData is! List) {
+        print('⚠️ API response is not a list for category $category');
+        return _mockGetServicesByCategoryWithFilters(category, page: page, limit: limit);
+      }
+
+      final List<dynamic> data = servicesData;
+      final services = data.map((json) {
+        try {
+          return ServiceModel.fromJson(json as Map<String, dynamic>);
+        } catch (e) {
+          print('⚠️ Error parsing service JSON: $e');
+          return null;
+        }
+      }).whereType<ServiceModel>().toList();
+
+      // Parse pagination info
+      final paginationData = responseData['pagination'] as Map<String, dynamic>?;
+      final currentPage = paginationData?['current_page'] ?? page;
+      final totalPages = paginationData?['total_pages'] ?? 1;
+      final totalItems = paginationData?['total_items'] ?? services.length;
+      final itemsPerPage = paginationData?['items_per_page'] ?? limit;
+
+      return {
+        'services': services,
+        'pagination': {
+          'current_page': currentPage,
+          'total_pages': totalPages,
+          'total_items': totalItems,
+          'items_per_page': itemsPerPage,
+        },
+        'hasMore': currentPage < totalPages,
+      };
     } catch (e) {
-      print('⚠️ API Error in getServicesByCategory($category): $e');
+      print('! API Error in getServicesByCategoryWithFilters($category): $e');
       print('📦 Falling back to mock data');
-      return _mockGetServicesByCategory(category);
+      return _mockGetServicesByCategoryWithFilters(category, page: page, limit: limit);
     }
+  }
+
+  /// Get services by category (legacy method for backward compatibility)
+  Future<List<ServiceModel>> getServicesByCategory(String category) async {
+    final result = await getServicesByCategoryWithFilters(category, limit: 100);
+    return result['services'] as List<ServiceModel>;
   }
 
   /// Get all unique categories
@@ -503,6 +683,67 @@ class ServiceRepository {
     // Get all services and extract unique categories
     final services = await getServices();
     return services.map((service) => service.category).toSet().toList();
+  }
+
+  /// Get all available cities from the API
+  Future<List<String>> getCities() async {
+    if (useMockData) {
+      return _mockGetCities();
+    } else {
+      return _apiGetCities();
+    }
+  }
+
+  /// Mock implementation: Get cities (all 27 Egyptian governorates)
+  Future<List<String>> _mockGetCities() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return [
+      'القاهرة',
+      'الجيزة',
+      'الإسكندرية',
+      'بورسعيد',
+      'السويس',
+      'الإسماعيلية',
+      'دمياط',
+      'الدقهلية',
+      'الشرقية',
+      'القليوبية',
+      'كفر الشيخ',
+      'الغربية',
+      'المنوفية',
+      'البحيرة',
+      'مطروح',
+      'شمال سيناء',
+      'جنوب سيناء',
+      'البحر الأحمر',
+      'الفيوم',
+      'بني سويف',
+      'المنيا',
+      'أسيوط',
+      'سوهاج',
+      'قنا',
+      'الأقصر',
+      'أسوان',
+      'الوادي الجديد',
+    ];
+  }
+
+  /// API implementation: Get cities from addresses endpoint
+  Future<List<String>> _apiGetCities() async {
+    try {
+      final response = await _apiClient!.get(ApiConstants.addressCities);
+      final responseData = response.data['data'] ?? response.data;
+      final cities = responseData['cities'] ?? responseData;
+
+      if (cities is List) {
+        return cities.cast<String>();
+      }
+      return _mockGetCities();
+    } catch (e) {
+      print('⚠️ API Error in getCities: $e');
+      print('📦 Falling back to mock cities');
+      return _mockGetCities();
+    }
   }
 
   /// Get services for a specific provider
@@ -558,7 +799,6 @@ class ServiceRepository {
     final formData = FormData.fromMap({
       'name': service.name,
       'description': service.description,
-      'price': service.price?.toString() ?? '0',
       'category': service.category,
 
       // Add image file if provided
@@ -567,6 +807,10 @@ class ServiceRepository {
           service.imageFile!.path,
           filename: service.imageFile!.path.split(Platform.pathSeparator).last,
         ),
+
+      // Optional general price (for non-venue categories)
+      if (service.price != null)
+        'price': service.price.toString(),
 
       // Optional venue-specific fields
       if (service.chairCount != null)
@@ -601,32 +845,87 @@ class ServiceRepository {
   }
 
   /// Add dynamic section to a service (Provider only)
+  /// Creates a section with options already included in the response
   Future<Map<String, dynamic>> addDynamicSection({
     required String serviceId,
-    required String title,
+    required String sectionName,
     required String description,
-    required String selectionType, // 'single' or 'multiple'
+    required List<Map<String, dynamic>> options, // [{text: "...", price: "..."}]
+    int? order,
   }) async {
     if (useMockData) {
       await Future.delayed(const Duration(milliseconds: 300));
       return {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'title': title,
+        'section_name': sectionName,
         'description': description,
-        'selectionType': selectionType,
+        'options': options,
+        'order': order ?? 0,
       };
     }
 
     final response = await _apiClient!.post(
       '/api/services/$serviceId/dynamic-sections',
       data: {
-        'title': title,
+        'section_name': sectionName, // Changed from 'title' to match API
         'description': description,
-        'selection_type': selectionType,
+        'options': options, // Include options in creation
+        if (order != null) 'order': order,
       },
     );
     final responseData = response.data['data'] ?? response.data;
     return responseData['section'] ?? responseData;
+  }
+
+  /// Get all dynamic sections for a service
+  /// Used for non-venue services to get customization options
+  Future<List<Map<String, dynamic>>> getDynamicSections(String serviceId) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      // Return empty list in mock mode - real sections created when service is added
+      return [];
+    }
+
+    try {
+      final response = await _apiClient!.get(
+        '/api/services/$serviceId/dynamic-sections',
+      );
+      final responseData = response.data['data'] ?? response.data;
+      final sections = responseData['sections'] ?? responseData;
+
+      if (sections is List) {
+        return sections.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('⚠️ Error fetching dynamic sections: $e');
+      return [];
+    }
+  }
+
+  /// Get pricing packages for photographer/videographer services
+  Future<List<Map<String, dynamic>>> getServicePackages(String serviceId) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      // Return empty list in mock mode
+      return [];
+    }
+
+    try {
+      final response = await _apiClient!.get(
+        '/api/services/$serviceId/packages',
+      );
+      final responseData = response.data['data'] ?? response.data;
+      final packages = responseData['packages'] ?? responseData;
+
+      if (packages is List) {
+        return packages.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('⚠️ Error fetching service packages: $e');
+      return [];
+    }
   }
 
   /// Add option to a dynamic section (Provider only)
@@ -646,7 +945,7 @@ class ServiceRepository {
     }
 
     final response = await _apiClient!.post(
-      '/api/services/$serviceId/dynamic-sections/$sectionId/options',
+      ApiConstants.createSectionOption(serviceId, sectionId),
       data: {
         'text': text,
         'price': price,
@@ -654,6 +953,92 @@ class ServiceRepository {
     );
     final responseData = response.data['data'] ?? response.data;
     return responseData['option'] ?? responseData;
+  }
+
+  /// Update a dynamic section (Provider only)
+  Future<Map<String, dynamic>> updateDynamicSection({
+    required String serviceId,
+    required String sectionId,
+    String? sectionName,
+    String? description,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      return {
+        'id': sectionId,
+        'section_name': sectionName,
+        'description': description,
+      };
+    }
+
+    final response = await _apiClient!.put(
+      ApiConstants.updateDynamicSection(serviceId, sectionId),
+      data: {
+        if (sectionName != null) 'section_name': sectionName,
+        if (description != null) 'description': description,
+      },
+    );
+    final responseData = response.data['data'] ?? response.data;
+    return responseData['section'] ?? responseData;
+  }
+
+  /// Delete a dynamic section (Provider only)
+  Future<void> deleteDynamicSection({
+    required String serviceId,
+    required String sectionId,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      return;
+    }
+
+    await _apiClient!.delete(
+      ApiConstants.deleteDynamicSection(serviceId, sectionId),
+    );
+  }
+
+  /// Update a section option (Provider only)
+  Future<Map<String, dynamic>> updateSectionOption({
+    required String serviceId,
+    required String sectionId,
+    required String optionId,
+    String? text,
+    String? price,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      return {
+        'id': optionId,
+        'text': text,
+        'price': price,
+      };
+    }
+
+    final response = await _apiClient!.put(
+      ApiConstants.updateSectionOption(serviceId, sectionId, optionId),
+      data: {
+        if (text != null) 'text': text,
+        if (price != null) 'price': price,
+      },
+    );
+    final responseData = response.data['data'] ?? response.data;
+    return responseData['option'] ?? responseData;
+  }
+
+  /// Delete a section option (Provider only)
+  Future<void> deleteSectionOption({
+    required String serviceId,
+    required String sectionId,
+    required String optionId,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      return;
+    }
+
+    await _apiClient!.delete(
+      ApiConstants.deleteSectionOption(serviceId, sectionId, optionId),
+    );
   }
 
   /// Update an existing service (Provider only)
@@ -678,11 +1063,97 @@ class ServiceRepository {
 
   /// API implementation: Update service
   Future<ServiceModel> _apiUpdateService(ServiceModel service) async {
+    // Build JSON with only fields the API accepts per PUT /api/services/{id} spec:
+    // name, description, price, morning_price, evening_price, category, chair_count,
+    // city, address, latitude, longitude, is_active
+    final Map<String, dynamic> updateData = {
+      'name': service.name,
+      'description': service.description,
+      'category': service.category,
+      'is_active': service.isActive,
+    };
+
+    // Add general price for non-venue services
+    if (service.price != null) {
+      updateData['price'] = service.price;
+    }
+
+    // Add venue-specific pricing fields
+    if (service.morningPrice != null) {
+      updateData['morning_price'] = service.morningPrice;
+    }
+    if (service.eveningPrice != null) {
+      updateData['evening_price'] = service.eveningPrice;
+    }
+    if (service.chairCount != null) {
+      updateData['chair_count'] = service.chairCount;
+    }
+    if (service.city != null) {
+      updateData['city'] = service.city;
+    }
+    if (service.address != null) {
+      updateData['address'] = service.address;
+    }
+    if (service.latitude != null) {
+      updateData['latitude'] = service.latitude;
+    }
+    if (service.longitude != null) {
+      updateData['longitude'] = service.longitude;
+    }
+
+    // Debug: Log the update data being sent
+    print('📍 Update service data: $updateData');
+    print('📍 Price: ${service.price}, Latitude: ${service.latitude}, Longitude: ${service.longitude}');
+
     final response = await _apiClient!.put(
-      ApiConstants.serviceById(int.parse(service.id)),
-      data: service.toJson(),
+      ApiConstants.serviceById(service.id),
+      data: updateData,
     );
-    return ServiceModel.fromJson(response.data['service'] ?? response.data);
+
+    // Parse the response - API returns {success, message, data: {service: {...}}}
+    // The backend doesn't return all fields, so we use the original service and update only what's returned
+    try {
+      final serviceData = response.data['data']?['service'];
+
+      if (serviceData != null) {
+        // Parse only the fields that the backend returns and merge with original service
+        return service.copyWith(
+          id: serviceData['id']?.toString() ?? service.id,
+          name: serviceData['name'] as String? ?? service.name,
+          description: serviceData['description'] as String? ?? service.description,
+          imageUrl: serviceData['image_url'] as String? ?? service.imageUrl,
+          price: serviceData['price'] != null
+              ? (serviceData['price'] as num).toDouble()
+              : service.price,
+          category: serviceData['category'] as String? ?? service.category,
+          isActive: serviceData['is_active'] as bool? ?? service.isActive,
+          hasOffer: serviceData['has_offer'] as bool? ?? service.hasOffer,
+          offerApproved: serviceData['offer_approved'] as bool? ?? service.offerApproved,
+          discountPercentage: serviceData['discount_percentage'] != null
+              ? (serviceData['discount_percentage'] as num).toDouble()
+              : null,
+          rating: serviceData['rating'] != null
+              ? (serviceData['rating'] as num).toDouble()
+              : service.rating,
+          reviewCount: serviceData['review_count'] as int? ?? service.reviewCount,
+          chairCount: serviceData['chair_count'] as int? ?? service.chairCount,
+          city: serviceData['city'] as String? ?? service.city,
+          // Preserve fields that backend doesn't return
+          latitude: service.latitude,
+          longitude: service.longitude,
+          morningPrice: service.morningPrice,
+          eveningPrice: service.eveningPrice,
+          address: service.address,
+          offerExpiryDate: service.offerExpiryDate,
+        );
+      }
+    } catch (parseError) {
+      print('⚠️ Error parsing update response: $parseError');
+    }
+
+    // Fallback: If parsing fails but API call succeeded, return the original service
+    // The update was successful on the backend even if we couldn't parse the response
+    return service;
   }
 
   /// Delete a service (Provider only)
@@ -702,7 +1173,7 @@ class ServiceRepository {
 
   /// API implementation: Delete service
   Future<void> _apiDeleteService(String serviceId) async {
-    await _apiClient!.delete(ApiConstants.serviceById(int.parse(serviceId)));
+    await _apiClient!.delete(ApiConstants.serviceById(serviceId));
   }
 
   /// Toggle service active status
@@ -1043,6 +1514,73 @@ class ServiceRepository {
       print('⚠️ API Error in getHomeLayout: $e');
       print('📦 Falling back to mock layout');
       return _mockGetHomeLayout(screenName);
+    }
+  }
+
+  /// Get available and booked dates for a service
+  /// [month] is required in YYYY-MM format
+  /// [timeSlot] is optional ('morning' or 'evening') to filter by time slot
+  /// Returns a map with 'available_dates' and 'booked_dates' arrays
+  Future<Map<String, dynamic>> getServiceAvailableDates(
+    String serviceId,
+    String month, {
+    String? timeSlot,
+  }) async {
+    if (useMockData) {
+      return _mockGetServiceAvailableDates(serviceId, month, timeSlot: timeSlot);
+    } else {
+      return _apiGetServiceAvailableDates(serviceId, month, timeSlot: timeSlot);
+    }
+  }
+
+  /// Mock implementation: Get service available dates
+  Future<Map<String, dynamic>> _mockGetServiceAvailableDates(
+    String serviceId,
+    String month, {
+    String? timeSlot,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Parse month to generate mock booked dates for that month
+    final parts = month.split('-');
+    final year = int.parse(parts[0]);
+    final monthNum = int.parse(parts[1]);
+
+    // Generate some mock booked dates for the given month
+    final bookedDates = <String>[];
+    // Add a few booked dates in the month (5th, 12th, 18th, 25th)
+    for (final day in [5, 12, 18, 25]) {
+      final date = DateTime(year, monthNum, day);
+      if (date.month == monthNum) {
+        bookedDates.add('${year.toString().padLeft(4, '0')}-${monthNum.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}');
+      }
+    }
+
+    return {
+      'available_dates': [], // Empty means all dates except booked are available
+      'booked_dates': bookedDates,
+    };
+  }
+
+  /// API implementation: Get service available dates
+  Future<Map<String, dynamic>> _apiGetServiceAvailableDates(
+    String serviceId,
+    String month, {
+    String? timeSlot,
+  }) async {
+    try {
+      final response = await _apiClient!.get(
+        ApiConstants.getServiceAvailableDates(serviceId, month, timeSlot: timeSlot),
+      );
+      final responseData = response.data['data'] ?? response.data;
+      return {
+        'available_dates': responseData['available_dates'] ?? [],
+        'booked_dates': responseData['booked_dates'] ?? [],
+      };
+    } catch (e) {
+      print('⚠️ API Error in getServiceAvailableDates: $e');
+      print('📦 Falling back to mock data');
+      return _mockGetServiceAvailableDates(serviceId, month, timeSlot: timeSlot);
     }
   }
 }

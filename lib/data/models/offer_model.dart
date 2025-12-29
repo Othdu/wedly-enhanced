@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:wedly/data/models/service_model.dart';
 
 /// Model representing a promotional offer
-/// TODO: API Integration - Connect to real offers API endpoint
 class OfferModel extends Equatable {
   final String id;
   final String title;

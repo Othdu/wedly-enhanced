@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/data/models/category_model.dart';
 
 abstract class SearchState extends Equatable {
   const SearchState();
@@ -23,10 +24,11 @@ class SearchLoaded extends SearchState {
   final List<ServiceModel> services;
   final String query;
   final String? selectedCategory;
-  final List<String> availableCategories;
+  final List<CategoryModel> availableCategories;
   final List<String> suggestions; // Auto-complete suggestions
   final List<String> recentSearches; // Recent search history
   final List<String> popularSearches; // Popular/trending searches
+  final bool isRefreshing; // Loading new data but keeping UI visible
 
   const SearchLoaded({
     required this.services,
@@ -36,6 +38,7 @@ class SearchLoaded extends SearchState {
     this.suggestions = const [],
     this.recentSearches = const [],
     this.popularSearches = const [],
+    this.isRefreshing = false,
   });
 
   @override
@@ -47,16 +50,18 @@ class SearchLoaded extends SearchState {
         suggestions,
         recentSearches,
         popularSearches,
+        isRefreshing,
       ];
 
   SearchLoaded copyWith({
     List<ServiceModel>? services,
     String? query,
     String? selectedCategory,
-    List<String>? availableCategories,
+    List<CategoryModel>? availableCategories,
     List<String>? suggestions,
     List<String>? recentSearches,
     List<String>? popularSearches,
+    bool? isRefreshing,
   }) {
     return SearchLoaded(
       services: services ?? this.services,
@@ -66,6 +71,7 @@ class SearchLoaded extends SearchState {
       suggestions: suggestions ?? this.suggestions,
       recentSearches: recentSearches ?? this.recentSearches,
       popularSearches: popularSearches ?? this.popularSearches,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
     );
   }
 }

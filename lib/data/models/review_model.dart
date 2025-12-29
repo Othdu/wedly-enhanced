@@ -12,12 +12,6 @@ class ReviewModel extends Equatable {
   final String comment;
   final DateTime createdAt;
 
-  // TODO: API Integration - These fields will be populated from the backend
-  // Endpoint: GET /api/venues/:id/reviews
-  // Endpoint: POST /api/venues/:id/reviews (create new review)
-  // Endpoint: GET /api/services/:id/reviews
-  // Endpoint: POST /api/services/:id/reviews
-
   const ReviewModel({
     required this.id,
     required this.venueId,

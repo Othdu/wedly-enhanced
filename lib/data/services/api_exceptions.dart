@@ -164,3 +164,14 @@ class ConnectionException extends ApiException {
           statusCode: 0,
         );
 }
+
+/// Exception thrown when provider account is pending approval
+class ProviderPendingApprovalException extends ApiException {
+  ProviderPendingApprovalException({String? message})
+      : super(
+          message: message ??
+              'حسابك قيد المراجعة. يرجى الانتظار حتى يتم الموافقة على حسابك.\n'
+                  'Your account is pending approval. Please wait for your account to be approved.',
+          statusCode: 403,
+        );
+}

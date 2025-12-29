@@ -55,6 +55,72 @@ class VenueRepository {
     }
   }
 
+  /// Get available and booked dates for a venue
+  /// [month] is required in YYYY-MM format
+  /// [timeSlot] is optional ('morning' or 'evening') to filter by time slot
+  /// Returns a map with 'available_dates' and 'booked_dates' arrays
+  Future<Map<String, dynamic>> getVenueAvailableDates(
+    String venueId,
+    String month, {
+    String? timeSlot,
+  }) async {
+    if (useMockData || apiClient == null) {
+      return _mockGetVenueAvailableDates(venueId, month, timeSlot: timeSlot);
+    }
+    return _apiGetVenueAvailableDates(venueId, month, timeSlot: timeSlot);
+  }
+
+  /// API: Get venue available dates
+  Future<Map<String, dynamic>> _apiGetVenueAvailableDates(
+    String venueId,
+    String month, {
+    String? timeSlot,
+  }) async {
+    try {
+      final response = await apiClient!.get(
+        ApiConstants.getVenueAvailableDates(venueId, month, timeSlot: timeSlot),
+      );
+      final responseData = response.data['data'] ?? response.data;
+      return {
+        'available_dates': responseData['available_dates'] ?? [],
+        'booked_dates': responseData['booked_dates'] ?? [],
+      };
+    } catch (e) {
+      print('⚠️ API Error in getVenueAvailableDates: $e');
+      print('📦 Falling back to mock data');
+      return _mockGetVenueAvailableDates(venueId, month, timeSlot: timeSlot);
+    }
+  }
+
+  /// Mock: Get venue available dates
+  Future<Map<String, dynamic>> _mockGetVenueAvailableDates(
+    String venueId,
+    String month, {
+    String? timeSlot,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Parse month to generate mock booked dates for that month
+    final parts = month.split('-');
+    final year = int.parse(parts[0]);
+    final monthNum = int.parse(parts[1]);
+
+    // Generate some mock booked dates for the given month
+    final bookedDates = <String>[];
+    // Add a few booked dates in the month (5th, 12th, 18th, 25th)
+    for (final day in [5, 12, 18, 25]) {
+      final date = DateTime(year, monthNum, day);
+      if (date.month == monthNum) {
+        bookedDates.add('${year.toString().padLeft(4, '0')}-${monthNum.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}');
+      }
+    }
+
+    return {
+      'available_dates': [], // Empty means all dates except booked are available
+      'booked_dates': bookedDates,
+    };
+  }
+
   // ==================== MOCK METHODS ====================
 
   /// Mock: Get all venues

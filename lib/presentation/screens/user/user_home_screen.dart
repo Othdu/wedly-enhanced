@@ -220,12 +220,18 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Widget _buildAppBar(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
+        print('🏠 UserHomeScreen: Building app bar');
+        print('🔐 AuthState type: ${authState.runtimeType}');
+
         String userName = 'محمد';
         String? userImageUrl;
 
         if (authState is AuthAuthenticated) {
           userName = authState.user.name.split(' ').first;
           userImageUrl = authState.user.profileImageUrl;
+          print('👤 Authenticated user: $userName (full: ${authState.user.name})');
+        } else {
+          print('⚠️ Not authenticated - using default name');
         }
 
         return SliverToBoxAdapter(

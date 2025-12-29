@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../data/models/service_model.dart';
 import '../../../logic/blocs/provider_service/provider_service_bloc.dart';
 import '../../../logic/blocs/provider_service/provider_service_event.dart';
@@ -21,9 +23,15 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
   late TextEditingController _chairsController; // Optional for venue services
   final _morningPriceController = TextEditingController(); // Price for صباحي
   final _eveningPriceController = TextEditingController(); // Price for مسائي
+  final _discountController = TextEditingController();
 
-  String? _selectedCategory;
   String? _selectedTimeSlot; // 'morning' or 'evening'
+  bool _hasOffer = false;
+  DateTime? _offerExpiryDate;
+
+  // OpenStreetMap variables for venue location
+  final MapController _mapController = MapController();
+  late LatLng _pickedLocation;
 
   @override
   void initState() {
@@ -35,10 +43,21 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
     _chairsController = TextEditingController(
       text: widget.service.chairCount?.toString() ?? '',
     );
-    _selectedCategory = widget.service.category; // Set current category
     // Pre-fill appointment prices from service data
     _morningPriceController.text = widget.service.morningPrice?.toString() ?? '';
     _eveningPriceController.text = widget.service.eveningPrice?.toString() ?? '';
+
+    // Pre-fill offer data
+    _hasOffer = widget.service.hasOffer;
+    _discountController.text =
+        widget.service.discountPercentage?.toString() ?? '';
+    _offerExpiryDate = widget.service.offerExpiryDate;
+
+    // Initialize location from service data (default to Cairo if not set)
+    _pickedLocation = LatLng(
+      widget.service.latitude ?? 30.0444,
+      widget.service.longitude ?? 31.2357,
+    );
   }
 
   @override
@@ -47,6 +66,8 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
     _chairsController.dispose();
     _morningPriceController.dispose();
     _eveningPriceController.dispose();
+    _discountController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -433,8 +454,8 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
             ),
             const SizedBox(height: 24),
 
-            // عدد الكراسي - Only for قاعات أفراح category
-            if (_selectedCategory == 'قاعات أفراح') ...[
+            // عدد الكراسي - Only for venue services (services with chairCount)
+            if (widget.service.chairCount != null) ...[
               _buildSectionLabel('عدد الكراسي'),
               const SizedBox(height: 8),
               _buildNumberField(
@@ -443,8 +464,20 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
                 isOptional: true,
                 optionalErrorMessage: 'الرجاء إدخال عدد',
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+
+              // الموقع - Location Map
+              _buildSectionLabel('الموقع'),
+              const SizedBox(height: 12),
+              _buildMapWidget(),
+              const SizedBox(height: 24),
             ],
+
+            // العرض - Offer Section
+            _buildSectionLabel('العرض'),
+            const SizedBox(height: 12),
+            _buildOfferSection(),
+            const SizedBox(height: 32),
 
             // Submit Button
             SizedBox(
@@ -492,32 +525,30 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
   }
 
   Widget _buildReadOnlyImageDisplay(int index) {
-    return Expanded(
-      child: Container(
-        height: 145,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8E8E8),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade300, width: 1),
-        ),
-        child: SkeletonImage(
-          imageUrl: widget.service.imageUrl, // Same image for both (mock data)
-          width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.cover,
-          borderRadius: BorderRadius.circular(16),
-          errorWidget: Center(
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.image_outlined,
-                size: 36,
-                color: Colors.grey.shade400,
-              ),
+    return Container(
+      height: 145,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8E8E8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+      ),
+      child: SkeletonImage(
+        imageUrl: widget.service.imageUrl, // Same image for both (mock data)
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        borderRadius: BorderRadius.circular(16),
+        errorWidget: Center(
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.image_outlined,
+              size: 36,
+              color: Colors.grey.shade400,
             ),
           ),
         ),
@@ -579,12 +610,324 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
     );
   }
 
+  Widget _buildMapWidget() {
+    return Container(
+      height: 300,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            // OpenStreetMap
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _pickedLocation,
+                initialZoom: 14.0,
+                minZoom: 5.0,
+                maxZoom: 18.0,
+                onTap: (tapPosition, point) {
+                  setState(() {
+                    _pickedLocation = point;
+                  });
+                },
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.wedlyapp.services',
+                  tileProvider: NetworkTileProvider(),
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _pickedLocation,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.location_on,
+                        size: 40,
+                        color: Color(0xFFD4AF37),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            // Instructions overlay
+            Positioned(
+              top: 10,
+              right: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'اضغط على الخريطة لتعديل الموقع',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            // Current location info
+            Positioned(
+              bottom: 10,
+              right: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'الموقع: ${_pickedLocation.latitude.toStringAsFixed(5)}, ${_pickedLocation.longitude.toStringAsFixed(5)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOfferSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Enable/Disable Offer Toggle
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Switch(
+                value: _hasOffer,
+                onChanged: (value) {
+                  setState(() {
+                    _hasOffer = value;
+                  });
+                },
+                activeTrackColor: const Color(0xFFD4AF37),
+                activeThumbColor: Colors.white,
+              ),
+              const Text(
+                'تفعيل العرض',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+
+          if (_hasOffer) ...[
+            const SizedBox(height: 16),
+
+            // Discount Percentage
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'نسبة الخصم (%)',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _discountController,
+              textAlign: TextAlign.right,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 15),
+              decoration: InputDecoration(
+                hintText: 'مثال: 10',
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 14,
+                ),
+                suffixText: '%',
+                suffixStyle: const TextStyle(
+                  color: Color(0xFFD4AF37),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFD4AF37),
+                    width: 2,
+                  ),
+                ),
+              ),
+              validator: (value) {
+                if (_hasOffer && (value == null || value.isEmpty)) {
+                  return 'الرجاء إدخال نسبة الخصم';
+                }
+                if (_hasOffer && value != null && double.tryParse(value) == null) {
+                  return 'الرجاء إدخال رقم صحيح';
+                }
+                if (_hasOffer && value != null) {
+                  final discount = double.parse(value);
+                  if (discount < 0 || discount > 100) {
+                    return 'النسبة يجب أن تكون بين 0 و 100';
+                  }
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Offer Expiry Date
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'تاريخ انتهاء العرض',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _offerExpiryDate ?? DateTime.now().add(const Duration(days: 7)),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: Color(0xFFD4AF37),
+                          onPrimary: Colors.white,
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (date != null) {
+                  setState(() {
+                    _offerExpiryDate = date;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.grey.shade300,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Icon(
+                      Icons.calendar_today,
+                      color: Color(0xFFD4AF37),
+                      size: 20,
+                    ),
+                    Text(
+                      _offerExpiryDate != null
+                          ? '${_offerExpiryDate!.year}/${_offerExpiryDate!.month}/${_offerExpiryDate!.day}'
+                          : 'اختر التاريخ',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: _offerExpiryDate != null
+                            ? Colors.black87
+                            : Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   void _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
+      // Validate offer fields if offer is enabled
+      if (_hasOffer && _offerExpiryDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('الرجاء تحديد تاريخ انتهاء العرض'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       if (!mounted) return;
 
       // Create updated service model with new data
-      // IMPORTANT: Edits require admin approval, so set isPendingApproval = true
       final updatedService = widget.service.copyWith(
         price: double.tryParse(_priceController.text),
         morningPrice: _morningPriceController.text.isNotEmpty
@@ -596,13 +939,21 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
         chairCount: _chairsController.text.isNotEmpty
             ? int.tryParse(_chairsController.text)
             : null,
-        isPendingApproval: true, // Service edits need admin approval
+        latitude: widget.service.chairCount != null ? _pickedLocation.latitude : null,
+        longitude: widget.service.chairCount != null ? _pickedLocation.longitude : null,
+        hasOffer: _hasOffer,
+        discountPercentage: _hasOffer && _discountController.text.isNotEmpty
+            ? double.tryParse(_discountController.text)
+            : null,
+        offerExpiryDate: _hasOffer ? _offerExpiryDate : null,
+        offerApproved: _hasOffer ? false : widget.service.offerApproved,
+        isPendingApproval: false, // Updates are instant, no approval needed
       );
 
       // Dispatch UpdateService event to BLoC
       context.read<ProviderServiceBloc>().add(UpdateService(updatedService));
 
-      // Show success dialog with admin approval message
+      // Show success dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -621,14 +972,14 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.schedule_rounded,
+                  Icons.check_rounded,
                   color: Colors.white,
                   size: 40,
                 ),
               ),
               const SizedBox(height: 24),
               const Text(
-                'تم إرسال التعديلات للمراجعة',
+                'تم تحديث الخدمة بنجاح',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -638,7 +989,7 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'سيتم مراجعة التعديلات من قبل الإدارة وإشعارك بالنتيجة',
+                'تم حفظ جميع التعديلات وتحديث بيانات الخدمة',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -646,32 +997,13 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: Colors.orange,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'ستظهر علامة "تحت المراجعة" على الخدمة',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
       );
 
-      // Wait 3 seconds before closing (longer to read the message)
-      await Future.delayed(const Duration(seconds: 3));
+      // Wait 2 seconds before closing
+      await Future.delayed(const Duration(seconds: 2));
 
       // Close dialog and navigate back if still mounted
       if (mounted) {

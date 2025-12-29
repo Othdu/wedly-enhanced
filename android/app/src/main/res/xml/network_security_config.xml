@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext traffic for development and IP-based servers -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="user"/>
+        </trust-anchors>
+    </base-config>
+
+    <!-- Specific configuration for the API server IP -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">64.226.96.53</domain>
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="user"/>
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

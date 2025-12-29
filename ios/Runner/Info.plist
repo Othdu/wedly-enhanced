@@ -55,5 +55,17 @@
 	<string>نحتاج للوصول إلى موقعك لتحديد موقع الخدمة المقدمة</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>نحتاج للوصول إلى موقعك لتحديد موقع الخدمة المقدمة</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Reversed client ID from Google Cloud Console -->
+				<string>com.googleusercontent.apps.258355634687-t6lurbfodd4jg3dsipdgtsj06a0glkq2</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

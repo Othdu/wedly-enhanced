@@ -11,18 +11,15 @@ class VenueModel extends Equatable {
   final double rating;
   final int reviewCount;
   final int capacity; // Maximum number of chairs/guests
-  final double pricePerPerson; // Price per person in EGP
+  final double pricePerPerson; // Price per person in EGP (fallback if API prices not available)
+  final double? morningPrice; // Total price for morning slot (from API)
+  final double? eveningPrice; // Total price for evening slot (from API)
   final String providerId;
   final String? address;
   final double? latitude;
   final double? longitude;
   final bool isActive;
   final bool isPendingApproval;
-
-  // TODO: API Integration - These fields will be populated from the admin dashboard
-  // Endpoint: GET /api/venues
-  // Endpoint: POST /api/admin/venues (admin creates new venue)
-  // Endpoint: PUT /api/provider/venues/:id (provider edits their venue)
 
   const VenueModel({
     required this.id,
@@ -34,6 +31,8 @@ class VenueModel extends Equatable {
     required this.reviewCount,
     required this.capacity,
     required this.pricePerPerson,
+    this.morningPrice,
+    this.eveningPrice,
     required this.providerId,
     this.address,
     this.latitude,
@@ -53,6 +52,8 @@ class VenueModel extends Equatable {
         reviewCount,
         capacity,
         pricePerPerson,
+        morningPrice,
+        eveningPrice,
         providerId,
         address,
         latitude,
@@ -71,6 +72,8 @@ class VenueModel extends Equatable {
     int? reviewCount,
     int? capacity,
     double? pricePerPerson,
+    double? morningPrice,
+    double? eveningPrice,
     String? providerId,
     String? address,
     double? latitude,
@@ -88,6 +91,8 @@ class VenueModel extends Equatable {
       reviewCount: reviewCount ?? this.reviewCount,
       capacity: capacity ?? this.capacity,
       pricePerPerson: pricePerPerson ?? this.pricePerPerson,
+      morningPrice: morningPrice ?? this.morningPrice,
+      eveningPrice: eveningPrice ?? this.eveningPrice,
       providerId: providerId ?? this.providerId,
       address: address ?? this.address,
       latitude: latitude ?? this.latitude,
@@ -98,7 +103,6 @@ class VenueModel extends Equatable {
   }
 
   // JSON serialization for API integration
-  // TODO: API Integration - Implement when connecting to real backend
   factory VenueModel.fromJson(Map<String, dynamic> json) {
     return VenueModel(
       id: json['id']?.toString() ?? '',
@@ -116,6 +120,16 @@ class VenueModel extends Equatable {
           : json['pricePerPerson'] != null
               ? (json['pricePerPerson'] as num).toDouble()
               : 0.0,
+      morningPrice: json['morning_price'] != null
+          ? (json['morning_price'] as num).toDouble()
+          : json['morningPrice'] != null
+              ? (json['morningPrice'] as num).toDouble()
+              : null,
+      eveningPrice: json['evening_price'] != null
+          ? (json['evening_price'] as num).toDouble()
+          : json['eveningPrice'] != null
+              ? (json['eveningPrice'] as num).toDouble()
+              : null,
       providerId: json['provider_id'] as String? ?? json['providerId'] as String? ?? '',
       address: json['address'] as String?,
       latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
@@ -138,6 +152,8 @@ class VenueModel extends Equatable {
       'review_count': reviewCount,
       'capacity': capacity,
       'price_per_person': pricePerPerson,
+      'morning_price': morningPrice,
+      'evening_price': eveningPrice,
       'provider_id': providerId,
       'address': address,
       'latitude': latitude,

@@ -20,12 +20,38 @@ class ProviderServiceCard extends StatelessWidget {
   });
 
   String _formatNumber(double number) {
+    // Format without decimal places for cleaner display
     return number
-        .toStringAsFixed(2)
+        .toInt()
+        .toString()
         .replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
+  }
+
+  /// Check if this service is a venue (has morning/evening prices)
+  bool get _isVenue => service.morningPrice != null || service.eveningPrice != null;
+
+  /// Get the display price text based on service type
+  String get _priceDisplayText {
+    if (_isVenue) {
+      // For venues, show the minimum of morning/evening price
+      final morningPrice = service.morningPrice ?? double.infinity;
+      final eveningPrice = service.eveningPrice ?? double.infinity;
+      final minPrice = morningPrice < eveningPrice ? morningPrice : eveningPrice;
+      if (minPrice == double.infinity) {
+        return 'السعر غير محدد';
+      }
+      return 'من ${_formatNumber(minPrice)} جنيه';
+    } else {
+      // For non-venues, show the regular price
+      final price = service.price;
+      if (price == null || price <= 0) {
+        return 'السعر غير محدد';
+      }
+      return 'من ${_formatNumber(price)} جنيه';
+    }
   }
 
   @override
@@ -103,70 +129,87 @@ class ProviderServiceCard extends StatelessWidget {
           Expanded(
             flex: 5,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Service Name - Centered, 2 lines max
-                  Text(
-                    service.name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                      height: 1.3,
+                  // Service Name - Centered, 2 lines max, flexible
+                  Flexible(
+                    child: Text(
+                      service.name,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
 
                   // Rating and Price Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Price on the right
-                      Text(
-                        'من ${_formatNumber(service.price ?? 0)} جنيه',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black54,
+                      // Price on the right (shows morning/evening for venues, regular price for others)
+                      Flexible(
+                        child: Text(
+                          _priceDisplayText,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black54,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       // Rating on the left (only show if rating exists)
                       if (service.rating != null && service.rating! > 0)
-                        Row(
-                          children: [
-                            Text(
-                              service.rating!.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.star,
-                              color: AppColors.gold,
-                              size: 16,
-                            ),
-                            if (service.reviewCount != null)
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
                               Text(
-                                ' (${service.reviewCount})',
+                                service.rating!.toStringAsFixed(1),
                                 style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.black54,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
                                 ),
                               ),
-                          ],
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.star,
+                                color: AppColors.gold,
+                                size: 16,
+                              ),
+                              if (service.reviewCount != null)
+                                Flexible(
+                                  child: Text(
+                                    ' (${service.reviewCount})',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black54,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                          ),
                         )
                       else
-                        const Text(
-                          'لا توجد تقييمات',
-                          style: TextStyle(fontSize: 11, color: Colors.black38),
+                        const Flexible(
+                          child: Text(
+                            'لا توجد تقييمات',
+                            style: TextStyle(fontSize: 11, color: Colors.black38),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                     ],
                   ),

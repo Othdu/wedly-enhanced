@@ -6,41 +6,41 @@ class BannerModel extends Equatable {
   final String id;
   final String imageUrl;
   final String? link; // Optional external link
-  final String? title; // Optional title overlay
-  final String? titleAr; // Optional Arabic title overlay
-  final int order; // Display order (lower = shown first)
   final bool isActive; // Whether banner is currently active
+  final DateTime? expirationDate; // Optional expiration date
+  final DateTime? createdAt; // Creation timestamp
+  final DateTime? updatedAt; // Last update timestamp
 
   const BannerModel({
     required this.id,
     required this.imageUrl,
     this.link,
-    this.title,
-    this.titleAr,
-    this.order = 0,
     this.isActive = true,
+    this.expirationDate,
+    this.createdAt,
+    this.updatedAt,
   });
 
   @override
-  List<Object?> get props => [id, imageUrl, link, title, titleAr, order, isActive];
+  List<Object?> get props => [id, imageUrl, link, isActive, expirationDate, createdAt, updatedAt];
 
   BannerModel copyWith({
     String? id,
     String? imageUrl,
     String? link,
-    String? title,
-    String? titleAr,
-    int? order,
     bool? isActive,
+    DateTime? expirationDate,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return BannerModel(
       id: id ?? this.id,
       imageUrl: imageUrl ?? this.imageUrl,
       link: link ?? this.link,
-      title: title ?? this.title,
-      titleAr: titleAr ?? this.titleAr,
-      order: order ?? this.order,
       isActive: isActive ?? this.isActive,
+      expirationDate: expirationDate ?? this.expirationDate,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -50,10 +50,16 @@ class BannerModel extends Equatable {
       id: json['id']?.toString() ?? '',
       imageUrl: json['image_url'] as String? ?? '',
       link: json['link'] as String?,
-      title: json['title'] as String?,
-      titleAr: json['title_ar'] as String?,
-      order: json['order'] as int? ?? 0,
       isActive: json['is_active'] as bool? ?? true,
+      expirationDate: json['expiration_date'] != null
+          ? DateTime.tryParse(json['expiration_date'])
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
+          : null,
     );
   }
 
@@ -61,11 +67,11 @@ class BannerModel extends Equatable {
     return {
       'id': id,
       'image_url': imageUrl,
-      'link': link,
-      'title': title,
-      'title_ar': titleAr,
-      'order': order,
+      if (link != null) 'link': link,
       'is_active': isActive,
+      if (expirationDate != null) 'expiration_date': expirationDate!.toIso8601String(),
+      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+      if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };
   }
 }

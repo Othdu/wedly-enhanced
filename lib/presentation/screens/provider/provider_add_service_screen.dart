@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
@@ -11,6 +12,7 @@ import 'package:wedly/data/repositories/category_repository.dart';
 import 'package:wedly/data/models/category_model.dart';
 import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/data/services/api_exceptions.dart';
+import 'package:wedly/core/utils/permission_helper.dart' as permission;
 
 class ProviderAddServiceScreen extends StatefulWidget {
   const ProviderAddServiceScreen({super.key});
@@ -23,14 +25,17 @@ class ProviderAddServiceScreen extends StatefulWidget {
 class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
 
   // Venue-specific controllers
   final _chairsController = TextEditingController();
   final _morningPriceController = TextEditingController();
   final _eveningPriceController = TextEditingController();
 
+  // General price controller (for non-venue categories - optional)
+  final _generalPriceController = TextEditingController();
+
   final _discountPercentageController = TextEditingController();
+  DateTime? _offerExpiryDate;
 
   final List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
@@ -51,10 +56,9 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   // Venue decoration plans (radio button options)
   List<Map<String, dynamic>> _decorationPlans = [];
 
-  // Google Maps variables
-  LatLng _pickedLocation = const LatLng(30.0444, 31.2357);
-  GoogleMapController? _mapController;
-  final bool _useGoogleMaps = false;
+  // OpenStreetMap variables
+  LatLng _pickedLocation = LatLng(30.0444, 31.2357); // Cairo, Egypt (default)
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
@@ -108,6 +112,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           );
           break;
         case 'قاعات أفراح':
+        case 'القاعات':
           _initializeVenueDecorationPlans();
           print(
             '✅ Venue decoration plans initialized: ${_decorationPlans.length} plans',
@@ -249,12 +254,39 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     setState(() => _isPickingImage = true);
 
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
+      // Show dialog to choose between camera and gallery
+      final source = await permission.PermissionHelper.showImageSourceDialog(context);
+      if (source == null || !mounted) {
+        setState(() => _isPickingImage = false);
+        return;
+      }
+
+      // Request appropriate permission
+      bool hasPermission = false;
+      if (source == permission.ImageSource.camera) {
+        hasPermission = await permission.PermissionHelper.requestCameraPermission(context);
+      } else {
+        hasPermission = await permission.PermissionHelper.requestStoragePermission(context);
+      }
+
+      if (!hasPermission || !mounted) {
+        setState(() => _isPickingImage = false);
+        return;
+      }
+
+      // Pick image from selected source
+      final imageSource = source == permission.ImageSource.camera
+          ? ImageSource.camera
+          : ImageSource.gallery;
+
+      final XFile? image = await _picker.pickImage(source: imageSource);
+      if (image != null && mounted) {
         setState(() => _selectedImages.add(File(image.path)));
       }
     } finally {
-      setState(() => _isPickingImage = false);
+      if (mounted) {
+        setState(() => _isPickingImage = false);
+      }
     }
   }
 
@@ -265,12 +297,12 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _priceController.dispose();
     _chairsController.dispose();
     _morningPriceController.dispose();
     _eveningPriceController.dispose();
+    _generalPriceController.dispose();
     _discountPercentageController.dispose();
-    _mapController?.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -344,12 +376,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             _buildCategoryDropdown(),
             const SizedBox(height: 20),
 
-            // السعر الافتراضي - Default Price
-            _buildSectionLabel('السعر الافتراضي'),
-            const SizedBox(height: 8),
-            _buildNumberField(_priceController),
-            const SizedBox(height: 24),
-
             // Dynamic Category-Specific Fields
             ..._buildCategorySpecificFields(),
 
@@ -378,6 +404,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 
     switch (_selectedCategory) {
       case 'قاعات أفراح':
+      case 'القاعات':
         final fields = _buildVenueFields();
         print('✅ Built ${fields.length} venue fields');
         return fields;
@@ -455,6 +482,22 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   // DYNAMIC SECTION FIELDS (Photography, Cars, Dresses, Decoration)
   List<Widget> _buildDynamicSectionFields() {
     return [
+      // Optional General Price Field
+      _buildSectionLabel('السعر العام (اختياري)'),
+      const SizedBox(height: 8),
+      _buildOptionalPriceField(),
+      const SizedBox(height: 8),
+      Text(
+        'يمكنك إضافة سعر عام للخدمة أو ترك الأسعار في الأقسام أدناه',
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey.shade600,
+          fontStyle: FontStyle.italic,
+        ),
+        textAlign: TextAlign.right,
+      ),
+      const SizedBox(height: 24),
+
       // Add Section Button at top
       _buildAddSectionButton(),
       const SizedBox(height: 16),
@@ -462,6 +505,52 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       // All dynamic sections
       ..._dynamicSections.map((section) => _buildDynamicSection(section)),
     ];
+  }
+
+  Widget _buildOptionalPriceField() {
+    return TextFormField(
+      controller: _generalPriceController,
+      textAlign: TextAlign.right,
+      keyboardType: TextInputType.number,
+      style: const TextStyle(fontSize: 15),
+      decoration: InputDecoration(
+        hintText: 'أدخل السعر (اختياري)',
+        hintStyle: TextStyle(
+          color: Colors.grey.shade400,
+          fontSize: 14,
+        ),
+        suffixText: 'جنيه',
+        suffixStyle: TextStyle(
+          color: Colors.grey.shade600,
+          fontSize: 14,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
+        ),
+      ),
+      validator: (value) {
+        // Optional field - only validate if a value is entered
+        if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
+          return 'الرجاء إدخال رقم صحيح';
+        }
+        return null;
+      },
+    );
   }
 
   Widget _buildAddSectionButton() {
@@ -1467,61 +1556,113 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 
   Widget _buildMapWidget() {
     return Container(
-      height: 200,
+      height: 300,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: _useGoogleMaps
-            ? GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: _pickedLocation,
-                  zoom: 14,
-                ),
-                onMapCreated: (controller) => _mapController = controller,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                onCameraMove: (position) {
-                  setState(() => _pickedLocation = position.target);
+        child: Stack(
+          children: [
+            // OpenStreetMap
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _pickedLocation,
+                initialZoom: 14.0,
+                minZoom: 5.0,
+                maxZoom: 18.0,
+                onTap: (tapPosition, point) {
+                  setState(() {
+                    _pickedLocation = point;
+                  });
                 },
-                onTap: (LatLng location) {
-                  setState(() => _pickedLocation = location);
-                },
-              )
-            : Stack(
-                children: [
-                  Container(
-                    color: const Color(0xFFF5F5F5),
-                    child: Center(
-                      child: Icon(
-                        Icons.map_outlined,
-                        size: 60,
-                        color: Colors.grey.shade400,
-                      ),
-                    ),
-                  ),
-                  const Center(
-                    child: Icon(Icons.location_on, size: 36, color: Colors.red),
-                  ),
-                  Positioned(
-                    bottom: 10,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Text(
-                        'تكامل خرائط جوجل غير متاح',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.wedlyapp.services',
+                  tileProvider: NetworkTileProvider(),
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _pickedLocation,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.location_on,
+                        size: 40,
+                        color: Color(0xFFD4AF37),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            // Instructions overlay
+            Positioned(
+              top: 10,
+              right: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'اضغط على الخريطة لتحديد الموقع',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            // Current location info
+            Positioned(
+              bottom: 10,
+              right: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'الموقع: ${_pickedLocation.latitude.toStringAsFixed(5)}, ${_pickedLocation.longitude.toStringAsFixed(5)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1530,10 +1671,10 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _buildSectionLabel('عرض خاص (اختياري)'),
+        _buildSectionLabel('العرض'),
         const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.grey.shade50,
             borderRadius: BorderRadius.circular(12),
@@ -1542,65 +1683,84 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              // Enable/Disable Offer Toggle
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  
                   const Text(
-                    'هل تريد إضافة عرض خصم على هذه الخدمة؟',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                    textDirection: TextDirection.rtl,
-                  ),
-                  const SizedBox(width: 8),
-                  Checkbox(
+                    'تفعيل العرض',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),Switch(
                     value: _hasOffer,
                     onChanged: (value) {
                       setState(() {
-                        _hasOffer = value ?? false;
+                        _hasOffer = value;
                         if (!_hasOffer) {
                           _discountPercentageController.clear();
+                          _offerExpiryDate = null;
                         }
                       });
                     },
-                    activeColor: const Color(0xFFD4AF37),
+                    activeTrackColor: const Color(0xFFD4AF37),
+                    activeThumbColor: Colors.white,
                   ),
                 ],
               ),
+
               if (_hasOffer) ...[
                 const SizedBox(height: 16),
+
+                // Discount Percentage
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'نسبة الخصم (%)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: _discountPercentageController,
                   textAlign: TextAlign.right,
                   keyboardType: TextInputType.number,
+                  style: const TextStyle(fontSize: 15),
                   decoration: InputDecoration(
-                    labelText: 'نسبة الخصم',
-                    hintText: 'مثال: 20',
-                    suffixText: '%',
-                    suffixStyle: TextStyle(
-                      color: Colors.grey.shade600,
+                    hintText: 'مثال: 10',
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
                       fontSize: 14,
+                    ),
+                    suffixText: '%',
+                    suffixStyle: const TextStyle(
+                      color: Color(0xFFD4AF37),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 16,
+                      vertical: 14,
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade300,
-                        width: 1,
-                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade300,
-                        width: 1,
-                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(
                         color: Color(0xFFD4AF37),
                         width: 2,
@@ -1611,44 +1771,92 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                     if (_hasOffer && (value == null || value.isEmpty)) {
                       return 'الرجاء إدخال نسبة الخصم';
                     }
-                    if (_hasOffer && value != null && value.isNotEmpty) {
-                      final discount = double.tryParse(value);
-                      if (discount == null) {
-                        return 'رقم غير صحيح';
-                      }
-                      if (discount <= 0 || discount > 100) {
-                        return 'النسبة يجب أن تكون بين 1 و 100';
+                    if (_hasOffer && value != null && double.tryParse(value) == null) {
+                      return 'الرجاء إدخال رقم صحيح';
+                    }
+                    if (_hasOffer && value != null) {
+                      final discount = double.parse(value);
+                      if (discount < 0 || discount > 100) {
+                        return 'النسبة يجب أن تكون بين 0 و 100';
                       }
                     }
                     return null;
                   },
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 16),
+
+                // Offer Expiry Date
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'تاريخ انتهاء العرض',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.blue.shade700,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'العرض يحتاج موافقة الإدارة قبل ظهوره للعملاء',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue.shade700,
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _offerExpiryDate ?? DateTime.now().add(const Duration(days: 7)),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: Color(0xFFD4AF37),
+                              onPrimary: Colors.white,
+                            ),
                           ),
-                          textDirection: TextDirection.rtl,
-                        ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (date != null) {
+                      setState(() {
+                        _offerExpiryDate = date;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 1,
                       ),
-                    ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Color(0xFFD4AF37),
+                          size: 20,
+                        ),
+                        Text(
+                          _offerExpiryDate != null
+                              ? '${_offerExpiryDate!.year}/${_offerExpiryDate!.month}/${_offerExpiryDate!.day}'
+                              : 'اختر التاريخ',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: _offerExpiryDate != null
+                                ? Colors.black87
+                                : Colors.grey.shade400,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -1691,6 +1899,17 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       if (authState is! AuthAuthenticated) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('خطأ: يجب تسجيل الدخول أولاً')),
+        );
+        return;
+      }
+
+      // Validate offer expiry date if offer is enabled
+      if (_hasOffer && _offerExpiryDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('الرجاء تحديد تاريخ انتهاء العرض'),
+            backgroundColor: Colors.red,
+          ),
         );
         return;
       }
@@ -1768,27 +1987,34 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       try {
         final serviceRepository = getIt<ServiceRepository>();
 
+        // Determine if this is a venue category
+        final isVenueCategory = _selectedCategory == 'قاعات أفراح' || _selectedCategory == 'القاعات';
+
         // Create the service with image file (will be uploaded as part of service creation)
         final newService = ServiceModel(
           id: '',
           name: _nameController.text.trim(),
           description: 'خدمة ${_nameController.text.trim()}',
           imageUrl: '', // Will be set by the backend after upload
-          price: double.tryParse(_priceController.text),
           category: _selectedCategory!,
           providerId: authState.user.id,
           imageFile: _selectedImages.isNotEmpty ? _selectedImages[0] : null,
-          morningPrice: _morningPriceController.text.isNotEmpty
+          // General price for non-venue categories (optional)
+          price: !isVenueCategory && _generalPriceController.text.isNotEmpty
+              ? double.tryParse(_generalPriceController.text)
+              : null,
+          // Venue-specific pricing (morning/evening)
+          morningPrice: isVenueCategory && _morningPriceController.text.isNotEmpty
               ? double.tryParse(_morningPriceController.text)
               : null,
-          eveningPrice: _eveningPriceController.text.isNotEmpty
+          eveningPrice: isVenueCategory && _eveningPriceController.text.isNotEmpty
               ? double.tryParse(_eveningPriceController.text)
               : null,
-          chairCount: _chairsController.text.isNotEmpty
+          chairCount: isVenueCategory && _chairsController.text.isNotEmpty
               ? int.tryParse(_chairsController.text)
               : null,
-          latitude: _pickedLocation.latitude,
-          longitude: _pickedLocation.longitude,
+          latitude: isVenueCategory ? _pickedLocation.latitude : null,
+          longitude: isVenueCategory ? _pickedLocation.longitude : null,
           isActive: true,
           isPendingApproval: false,
           hasOffer: _hasOffer,
@@ -1796,54 +2022,38 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               _hasOffer && _discountPercentageController.text.isNotEmpty
               ? double.tryParse(_discountPercentageController.text)
               : null,
+          offerExpiryDate: _hasOffer ? _offerExpiryDate : null,
           offerApproved: false,
         );
 
         final createdService = await serviceRepository.addService(newService);
         final serviceId = createdService.id;
 
-        // Step 3: Add dynamic sections and their options
+        // Step 3: Add dynamic sections with their options
         for (final section in _dynamicSections) {
-          final sectionResponse = await serviceRepository.addDynamicSection(
-            serviceId: serviceId,
-            title: section['title'],
-            description: section['description'] ?? '',
-            selectionType: section['selectionType'],
-          );
-
-          final sectionId = sectionResponse['id']?.toString() ?? '';
-
-          // Add options for this section
           final options = section['options'] as List;
-          for (final option in options) {
-            await serviceRepository.addDynamicSectionOption(
-              serviceId: serviceId,
-              sectionId: sectionId,
-              text: option['text'],
-              price: option['price'],
-            );
-          }
+          await serviceRepository.addDynamicSection(
+            serviceId: serviceId,
+            sectionName: section['title'],
+            description: section['description'] ?? '',
+            options: options.map((option) => {
+              'text': option['text'],
+              'price': option['price'],
+            }).toList(),
+          );
         }
 
         // Step 4: Add decoration plans for venues (as a special dynamic section)
-        if (_selectedCategory == 'قاعات أفراح' && _decorationPlans.isNotEmpty) {
-          final decorationSection = await serviceRepository.addDynamicSection(
+        if ((_selectedCategory == 'قاعات أفراح' || _selectedCategory == 'القاعات') && _decorationPlans.isNotEmpty) {
+          await serviceRepository.addDynamicSection(
             serviceId: serviceId,
-            title: 'البلان',
+            sectionName: 'البلان',
             description: 'خطط الديكور المتاحة',
-            selectionType: 'single',
+            options: _decorationPlans.map((plan) => {
+              'text': plan['text'],
+              'price': '0', // Decoration plans don't have separate pricing
+            }).toList(),
           );
-
-          final decorationSectionId = decorationSection['id']?.toString() ?? '';
-
-          for (final plan in _decorationPlans) {
-            await serviceRepository.addDynamicSectionOption(
-              serviceId: serviceId,
-              sectionId: decorationSectionId,
-              text: plan['text'],
-              price: '0', // Decoration plans don't have separate pricing
-            );
-          }
         }
 
         // Close loading dialog

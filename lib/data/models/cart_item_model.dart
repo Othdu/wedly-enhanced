@@ -8,7 +8,6 @@ class CartItemModel extends Equatable {
   final String time; // e.g., "الساعة 8:00 مساءً"
   final double servicePrice; // Main service price
   final double photographerPrice; // Optional photographer price
-  final double serviceCharge; // Service charge (ضريبة)
   final DateTime addedAt;
 
   const CartItemModel({
@@ -18,11 +17,10 @@ class CartItemModel extends Equatable {
     required this.time,
     required this.servicePrice,
     this.photographerPrice = 0,
-    this.serviceCharge = 100, // Default service charge
     required this.addedAt,
   });
 
-  double get totalPrice => servicePrice + photographerPrice + serviceCharge;
+  double get totalPrice => servicePrice + photographerPrice;
 
   @override
   List<Object?> get props => [
@@ -32,7 +30,6 @@ class CartItemModel extends Equatable {
         time,
         servicePrice,
         photographerPrice,
-        serviceCharge,
         addedAt,
       ];
 
@@ -43,7 +40,6 @@ class CartItemModel extends Equatable {
     String? time,
     double? servicePrice,
     double? photographerPrice,
-    double? serviceCharge,
     DateTime? addedAt,
   }) {
     return CartItemModel(
@@ -53,25 +49,35 @@ class CartItemModel extends Equatable {
       time: time ?? this.time,
       servicePrice: servicePrice ?? this.servicePrice,
       photographerPrice: photographerPrice ?? this.photographerPrice,
-      serviceCharge: serviceCharge ?? this.serviceCharge,
       addedAt: addedAt ?? this.addedAt,
     );
   }
 
   // JSON serialization
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
+    // Handle partial service data from cart API
+    final serviceJson = json['service'] as Map<String, dynamic>;
+    final service = ServiceModel(
+      id: serviceJson['id']?.toString() ?? '',
+      name: serviceJson['name'] as String? ?? '',
+      description: '', // Cart API doesn't include description
+      imageUrl: serviceJson['image_url'] as String? ?? '',
+      price: serviceJson['price'] != null
+          ? (serviceJson['price'] as num).toDouble()
+          : null,
+      category: '', // Cart API doesn't include category
+      providerId: '', // Cart API doesn't include provider_id
+    );
+
     return CartItemModel(
       id: json['id'].toString(),
-      service: ServiceModel.fromJson(json['service'] as Map<String, dynamic>),
+      service: service,
       date: json['date'] as String,
       time: json['time'] as String,
       servicePrice: (json['service_price'] as num).toDouble(),
       photographerPrice: json['photographer_price'] != null
           ? (json['photographer_price'] as num).toDouble()
           : 0,
-      serviceCharge: json['service_charge'] != null
-          ? (json['service_charge'] as num).toDouble()
-          : 100,
       addedAt: DateTime.parse(json['added_at'] as String),
     );
   }
@@ -79,12 +85,11 @@ class CartItemModel extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'service': service.toJson(),
+      'service_id': service.id, // Send only service ID for API
       'date': date,
       'time': time,
       'service_price': servicePrice,
       'photographer_price': photographerPrice,
-      'service_charge': serviceCharge,
       'added_at': addedAt.toIso8601String(),
     };
   }
