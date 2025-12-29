@@ -428,9 +428,8 @@ The app includes 25+ reusable widgets:
 ### In Progress
 
 - [ ] Push notifications (FCM)
-- [ ] Real-time chat
 - [ ] Payment gateway integration
-- [ ] Provider analytics dashboard
+
 
 ---
 
