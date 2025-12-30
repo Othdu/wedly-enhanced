@@ -1573,9 +1573,45 @@ class ServiceRepository {
         ApiConstants.getServiceAvailableDates(serviceId, month, timeSlot: timeSlot),
       );
       final responseData = response.data['data'] ?? response.data;
+
+      // Parse the new API response structure
+      // API returns: { days: [ { date: "2025-12-29", booked_slots: ["morning"], available_slots: [] }, ... ] }
+      final days = responseData['days'] as List<dynamic>? ?? [];
+
+      // Extract booked dates - dates where the requested time_slot is in booked_slots
+      final List<String> bookedDates = [];
+      final List<String> availableDates = [];
+
+      for (final day in days) {
+        final date = day['date'] as String?;
+        if (date == null) continue;
+
+        final bookedSlots = (day['booked_slots'] as List<dynamic>?)?.cast<String>() ?? [];
+        final availableSlots = (day['available_slots'] as List<dynamic>?)?.cast<String>() ?? [];
+
+        // If timeSlot is specified, check if that specific slot is booked
+        // Otherwise check if any slot is booked
+        if (timeSlot != null) {
+          if (bookedSlots.contains(timeSlot)) {
+            bookedDates.add(date);
+          } else if (availableSlots.contains(timeSlot)) {
+            availableDates.add(date);
+          }
+        } else {
+          // No specific time slot - check overall availability
+          if (bookedSlots.isNotEmpty) {
+            bookedDates.add(date);
+          }
+          if (availableSlots.isNotEmpty) {
+            availableDates.add(date);
+          }
+        }
+      }
+
       return {
-        'available_dates': responseData['available_dates'] ?? [],
-        'booked_dates': responseData['booked_dates'] ?? [],
+        'available_dates': availableDates,
+        'booked_dates': bookedDates,
+        'days': days, // Include raw days data for more detailed use if needed
       };
     } catch (e) {
       print('⚠️ API Error in getServiceAvailableDates: $e');

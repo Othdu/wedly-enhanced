@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/category_model.dart';
-import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
@@ -18,6 +18,7 @@ import 'package:wedly/logic/blocs/banner/banner_state.dart';
 import 'package:wedly/logic/blocs/banner/banner_event.dart';
 import 'package:wedly/presentation/widgets/skeleton_loading.dart';
 import 'package:wedly/presentation/widgets/banners_carousel_widget.dart';
+import 'package:wedly/presentation/widgets/offers_carousel_widget.dart';
 import 'package:wedly/presentation/widgets/countdown_timer_widget.dart';
 import 'package:wedly/presentation/widgets/categories_grid_widget.dart';
 import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
@@ -138,6 +139,25 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       },
                     ),
                   ),
+
+                  // Offers Section - Shows active offers from API
+                  if (homeState.offers.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: OffersCarouselWidget(
+                          offers: homeState.offers,
+                          autoplay: true,
+                          autoplayDuration: const Duration(seconds: 5),
+                          showIndicators: true,
+                          showHeader: true,
+                          onOfferTap: (offer) => _handleOfferTap(context, offer),
+                          onSeeAllTap: () {
+                            Navigator.pushNamed(context, AppRouter.offersList);
+                          },
+                        ),
+                      ),
+                    ),
 
                   // Categories Section - HARDCODED STRUCTURE (always visible)
                   SliverToBoxAdapter(
@@ -443,20 +463,21 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     }
   }
 
-  /// Handle service/offer tap navigation based on service category
-  void _handleServiceOfferTap(BuildContext context, ServiceModel service) {
-    // Navigate to appropriate booking screen based on service category
-    final category = service.category.toLowerCase();
+  /// Handle offer tap navigation based on service type
+  void _handleOfferTap(BuildContext context, OfferModel offer) {
+    // Navigate to appropriate booking screen based on service type
+    final serviceType = offer.serviceType.toLowerCase();
 
     String? routeName;
 
-    // Map categories to their booking routes
-    switch (category) {
+    // Map service types to their booking routes
+    switch (serviceType) {
       case 'decoration':
         routeName = AppRouter.decorationBooking;
         break;
       case 'wedding dresses':
       case 'weddingdress':
+      case 'wedding_dress':
         routeName = AppRouter.weddingDressBooking;
         break;
       case 'wedding organizers':
@@ -497,7 +518,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'صفحة الحجز لخدمة ${service.name} قريباً',
+              'صفحة الحجز لخدمة ${offer.titleAr} قريباً',
               textDirection: TextDirection.rtl,
             ),
             backgroundColor: const Color(0xFFD4AF37),
@@ -505,6 +526,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         );
         return;
     }
+
+    // Convert offer to service model for booking screens
+    final service = offer.toService();
 
     // Navigate to the booking screen with service data
     Navigator.pushNamed(

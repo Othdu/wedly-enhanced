@@ -16,6 +16,97 @@ class CategoryServiceCard extends StatelessWidget {
     this.onTap,
   });
 
+  // Format price with thousand separators
+  String _formatPrice(double price) {
+    final intPrice = price.toInt();
+    return intPrice.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+  }
+
+  // Build price widget based on service type
+  Widget _buildPriceWidget() {
+    // For venues: show minimum of morning/evening price
+    if (service.morningPrice != null || service.eveningPrice != null) {
+      final morningPrice = service.morningPrice ?? double.infinity;
+      final eveningPrice = service.eveningPrice ?? double.infinity;
+      final minPrice = morningPrice < eveningPrice ? morningPrice : eveningPrice;
+
+      if (minPrice == double.infinity) {
+        return const Text(
+          'السعر غير متاح حالياً',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.black54,
+          ),
+          textDirection: TextDirection.rtl,
+        );
+      }
+
+      return Text(
+        'من ${_formatPrice(minPrice)} جنيه',
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+        textDirection: TextDirection.rtl,
+      );
+    }
+
+    // For other services: show price or unavailable message
+    if (service.price != null && service.price! > 0) {
+      // Check for discount
+      if (service.hasApprovedOffer && service.finalPrice != null) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              'من ${_formatPrice(service.finalPrice!)} جنيه',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFD4AF37),
+              ),
+              textDirection: TextDirection.rtl,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${_formatPrice(service.price!)} جنيه',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[500],
+                decoration: TextDecoration.lineThrough,
+              ),
+              textDirection: TextDirection.rtl,
+            ),
+          ],
+        );
+      }
+
+      return Text(
+        'من ${_formatPrice(service.price!)} جنيه',
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+        textDirection: TextDirection.rtl,
+      );
+    }
+
+    // No price available
+    return const Text(
+      'السعر غير متاح حالياً',
+      style: TextStyle(
+        fontSize: 14,
+        color: Colors.black54,
+      ),
+      textDirection: TextDirection.rtl,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -34,7 +125,7 @@ class CategoryServiceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Service Image with Discount Badge
+          // Service Image with Discount Badge and Rating
           Stack(
             children: [
               ClipRRect(
@@ -53,6 +144,66 @@ class CategoryServiceCard extends StatelessWidget {
                     Icons.image_not_supported,
                     size: 64,
                     color: Colors.grey,
+                  ),
+                ),
+              ),
+              // Rating Badge (top-left for RTL)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (service.rating != null && service.rating! > 0) ...[
+                        Text(
+                          '(${service.reviewCount ?? 0})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          service.rating!.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFFFFB400),
+                          size: 18,
+                        ),
+                      ] else ...[
+                        Text(
+                          'جديد',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -108,53 +259,6 @@ class CategoryServiceCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 12),
-
-                // Rating Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Empty spacer for alignment
-                    const Expanded(child: SizedBox()),
-
-                    // Rating on the right
-                    if (service.rating != null && service.rating! > 0)
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              color: Color(0xFFFFB400),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              service.rating!.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      const Expanded(
-                        child: Text(
-                          'جديد',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
-                          textDirection: TextDirection.rtl,
-                          textAlign: TextAlign.end,
-                        ),
-                      ),
-                  ],
-                ),
-
                 const SizedBox(height: 8),
 
                 // Venue-specific details (if chairCount exists)
@@ -208,59 +312,8 @@ class CategoryServiceCard extends StatelessWidget {
                   const SizedBox(height: 8),
                 ],
 
-                // Price Row (shows discount if available)
-                if (service.price != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      // Discounted Price (if offer exists)
-                      if (service.hasApprovedOffer && service.finalPrice != null)
-                        Text(
-                          'من ${service.finalPrice!.toInt()} جنيه',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFD4AF37),
-                          ),
-                          textDirection: TextDirection.rtl,
-                        )
-                      else
-                        Text(
-                          'من ${service.price!.toInt()} جنيه',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          textDirection: TextDirection.rtl,
-                        ),
-                      // Original Price (strikethrough if offer exists)
-                      if (service.hasApprovedOffer) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          '${service.price!.toInt()} جنيه',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[500],
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                          textDirection: TextDirection.rtl,
-                        ),
-                      ],
-                    ],
-                  )
-                else
-                  const Text(
-                    'السعر حسب الطلب',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.black54,
-                    ),
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.left,
-                  ),
+                // Price Row
+                _buildPriceWidget(),
 
                 const SizedBox(height: 16),
 

@@ -175,3 +175,12 @@ class ProviderPendingApprovalException extends ApiException {
           statusCode: 403,
         );
 }
+
+/// Exception thrown when user tries to submit a duplicate review
+class DuplicateReviewException extends ApiException {
+  DuplicateReviewException({String? message})
+      : super(
+          message: message ?? 'لقد قمت بتقييم هذه الخدمة مسبقاً',
+          statusCode: 400,
+        );
+}

@@ -154,9 +154,15 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
         child: Column(
           children: [
             Expanded(
-              child: BlocBuilder<BookingBloc, BookingState>(
+              child: BlocConsumer<BookingBloc, BookingState>(
+                listener: (context, state) {
+                  // When booking status is updated, reload the bookings list
+                  if (state is BookingStatusUpdated) {
+                    _loadBookings();
+                  }
+                },
                 builder: (context, state) {
-                  if (state is BookingLoading) {
+                  if (state is BookingInitial || state is BookingLoading || state is BookingStatusUpdated) {
                     return const Center(
                       child: CircularProgressIndicator(color: AppColors.gold),
                     );
@@ -304,10 +310,10 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                             getStatusTextColor: _getStatusTextColor,
                             getStatusText: _getStatusText,
                             getStatusTextAr: _getStatusTextAr,
-                            onReviewTap: booking.status == BookingStatus.completed && !booking.hasReviewed
+                            onReviewTap: (booking.status == BookingStatus.completed || booking.status == BookingStatus.confirmed) && !booking.hasReviewed
                                 ? () => _showReviewBottomSheet(booking)
                                 : null,
-                            onEditReviewTap: booking.status == BookingStatus.completed && booking.hasReviewed
+                            onEditReviewTap: (booking.status == BookingStatus.completed || booking.status == BookingStatus.confirmed) && booking.hasReviewed
                                 ? () => _showEditReviewBottomSheet(booking)
                                 : null,
                           );
@@ -433,8 +439,8 @@ class _BookingCard extends StatelessWidget {
               valueColor: Colors.black,
             ),
 
-            // Review button - only show for completed bookings that haven't been reviewed
-            if (booking.status == BookingStatus.completed && !booking.hasReviewed) ...[
+            // Review button - show for completed and confirmed bookings that haven't been reviewed
+            if ((booking.status == BookingStatus.completed || booking.status == BookingStatus.confirmed) && !booking.hasReviewed) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -462,7 +468,7 @@ class _BookingCard extends StatelessWidget {
             ],
 
             // Show "Edit Review" button for reviewed bookings
-            if (booking.status == BookingStatus.completed && booking.hasReviewed) ...[
+            if ((booking.status == BookingStatus.completed || booking.status == BookingStatus.confirmed) && booking.hasReviewed) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,

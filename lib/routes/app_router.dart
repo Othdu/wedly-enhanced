@@ -237,15 +237,13 @@ class AppRouter {
         final args = settings.arguments as Map<String, dynamic>?;
         final venue = args?['venue'];
         final timeSlot = args?['timeSlot'] as String?;
-        final decoration = args?['decoration'] as String?;
-        if (venue == null || timeSlot == null || decoration == null) {
+        if (venue == null || timeSlot == null) {
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
         return MaterialPageRoute(
           builder: (_) => VenueBookingScreen(
             venue: venue,
             timeSlot: timeSlot,
-            decoration: decoration,
           ),
         );
       case categoryServices:

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/home/home_state.dart';
 import 'package:wedly/logic/blocs/home/home_event.dart';
@@ -95,12 +95,9 @@ class _OffersListScreenState extends State<OffersListScreen> {
           }
 
           if (state is HomeLoaded) {
-            // Filter services that have approved offers
-            final servicesWithOffers = state.services
-                .where((service) => service.hasApprovedOffer)
-                .toList();
+            final offers = state.offers;
 
-            if (servicesWithOffers.isEmpty) {
+            if (offers.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -138,9 +135,9 @@ class _OffersListScreenState extends State<OffersListScreen> {
               },
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: servicesWithOffers.length,
+                itemCount: offers.length,
                 itemBuilder: (context, index) {
-                  return _buildOfferCard(servicesWithOffers[index]);
+                  return _buildOfferCard(offers[index]);
                 },
               ),
             );
@@ -154,12 +151,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
     );
   }
 
-  // --- REDESIGNED WIDGET ---
-  Widget _buildOfferCard(ServiceModel service) {
-    final discountText = service.discountPercentage != null
-        ? 'خصم ${service.discountPercentage!.toInt()}%'
-        : null;
-
+  Widget _buildOfferCard(OfferModel offer) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -180,7 +172,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
           Stack(
             children: [
               SkeletonImage(
-                imageUrl: service.imageUrl,
+                imageUrl: offer.imageUrl,
                 height: 180,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -189,7 +181,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
                 ),
               ),
               // White Pill Discount Badge (Top Right)
-              if (discountText != null)
+              if (offer.discount != null)
                 Positioned(
                   top: 12,
                   right: 12,
@@ -209,7 +201,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
                       ],
                     ),
                     child: Text(
-                      discountText,
+                      offer.discount!,
                       style: const TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
@@ -230,7 +222,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
               children: [
                 // Title
                 Text(
-                  service.name,
+                  offer.titleAr,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.right,
@@ -243,43 +235,42 @@ class _OffersListScreenState extends State<OffersListScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // Row: Rating (Left) vs Category (Right)
+                // Row: Rating (Left) vs Provider (Right)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     // Rating Star (Left)
-                    if (service.rating != null)
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Color(0xFFD4AF37),
-                            size: 18,
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          color: Color(0xFFD4AF37),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          offer.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            service.rating!.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${offer.reviewCount})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '(${service.reviewCount ?? 0})',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(width: 8),
-                    // Category (Right)
+                    // Provider Name (Right)
                     Expanded(
                       child: Text(
-                        service.category,
+                        offer.providerName,
                         textAlign: TextAlign.right,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -296,36 +287,34 @@ class _OffersListScreenState extends State<OffersListScreen> {
                 const SizedBox(height: 12),
 
                 // Price Row (Right Aligned)
-                // Combines Current and Old price in one line
-                if (service.price != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      // Old Price (Strikethrough)
-                      Text(
-                        '${service.price!.toInt()} جنيه',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[500],
-                          decoration: TextDecoration.lineThrough,
-                        ),
-                        textDirection: TextDirection.rtl,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    // Old Price (Strikethrough)
+                    Text(
+                      '${offer.originalPrice.toInt()} جنيه',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[500],
+                        decoration: TextDecoration.lineThrough,
                       ),
-                      const SizedBox(width: 8),
-                      // New Price (Bold)
-                      Text(
-                        '${service.finalPrice!.toInt()} جنيه',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        textDirection: TextDirection.rtl,
+                      textDirection: TextDirection.rtl,
+                    ),
+                    const SizedBox(width: 8),
+                    // New Price (Bold)
+                    Text(
+                      '${offer.discountedPrice.toInt()} جنيه',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
-                    ],
-                  ),
+                      textDirection: TextDirection.rtl,
+                    ),
+                  ],
+                ),
 
                 const SizedBox(height: 16),
 
@@ -338,7 +327,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
                       child: SizedBox(
                         height: 55,
                         child: ElevatedButton(
-                          onPressed: () => _handleOfferBooking(service),
+                          onPressed: () => _handleOfferBooking(offer),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFD4AF37),
                             foregroundColor: Colors.white,
@@ -400,20 +389,20 @@ class _OffersListScreenState extends State<OffersListScreen> {
     );
   }
 
-  /// Handle offer booking navigation based on service category
-  void _handleOfferBooking(ServiceModel service) {
-    // Navigate to appropriate booking screen based on service category
-    final category = service.category.toLowerCase();
+  /// Handle offer booking navigation based on service type
+  void _handleOfferBooking(OfferModel offer) {
+    final serviceType = offer.serviceType.toLowerCase();
 
     String? routeName;
 
-    // Map categories to their booking routes
-    switch (category) {
+    // Map service types to their booking routes
+    switch (serviceType) {
       case 'decoration':
         routeName = AppRouter.decorationBooking;
         break;
       case 'wedding dresses':
       case 'weddingdress':
+      case 'wedding_dress':
         routeName = AppRouter.weddingDressBooking;
         break;
       case 'wedding organizers':
@@ -449,23 +438,12 @@ class _OffersListScreenState extends State<OffersListScreen> {
         break;
       case 'catering':
       case 'food':
-        // TODO: Create catering booking screen
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'صفحة حجز الطعام قريباً - ${service.name}',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: const Color(0xFFD4AF37),
-          ),
-        );
-        return;
       default:
         // Show coming soon message for unsupported service types
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'صفحة الحجز لخدمة ${service.name} قريباً',
+              'صفحة الحجز لخدمة ${offer.titleAr} قريباً',
               textDirection: TextDirection.rtl,
             ),
             backgroundColor: const Color(0xFFD4AF37),
@@ -473,6 +451,9 @@ class _OffersListScreenState extends State<OffersListScreen> {
         );
         return;
     }
+
+    // Convert offer to service model for booking screens
+    final service = offer.toService();
 
     // Navigate to the booking screen with service data
     Navigator.pushNamed(

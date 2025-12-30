@@ -1,6 +1,7 @@
 import 'package:wedly/data/models/review_model.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/api_constants.dart';
+import 'package:wedly/data/services/api_exceptions.dart';
 
 /// Repository for managing reviews for venues and services
 ///
@@ -143,29 +144,37 @@ class ReviewRepository {
     required double rating,
     required String comment,
   }) async {
-    // Validation
+    // Validation - only rating is required, comment is optional
     if (rating < 1 || rating > 5) {
       throw Exception('التقييم يجب أن يكون بين 1 و 5 نجوم');
-    }
-    if (comment.trim().isEmpty) {
-      throw Exception('الرجاء كتابة تعليق');
     }
 
     final endpoint = targetType == 'venue'
         ? ApiConstants.createVenueReview(targetId)
         : ApiConstants.createServiceReview(targetId);
 
-    final response = await apiClient!.post(
-      endpoint,
-      data: {
-        'rating': rating.toInt(), // API expects integer rating
-        'comment': comment,
-      },
-    );
+    try {
+      final response = await apiClient!.post(
+        endpoint,
+        data: {
+          'rating': rating.toInt(), // API expects integer rating
+          'comment': comment,
+        },
+      );
 
-    final responseData = response.data['data'] ?? response.data;
-    final reviewData = responseData['review'] ?? responseData;
-    return ReviewModel.fromJson(reviewData);
+      final responseData = response.data['data'] ?? response.data;
+      final reviewData = responseData['review'] ?? responseData;
+      return ReviewModel.fromJson(reviewData);
+    } catch (e) {
+      // Check for duplicate review error
+      final errorMessage = e.toString().toLowerCase();
+      if (errorMessage.contains('already submitted') ||
+          errorMessage.contains('already reviewed') ||
+          errorMessage.contains('duplicate')) {
+        throw DuplicateReviewException();
+      }
+      rethrow;
+    }
   }
 
   /// API: Update review
@@ -174,12 +183,9 @@ class ReviewRepository {
     required double rating,
     required String comment,
   }) async {
-    // Validation
+    // Validation - only rating is required, comment is optional
     if (rating < 1 || rating > 5) {
       throw Exception('التقييم يجب أن يكون بين 1 و 5 نجوم');
-    }
-    if (comment.trim().isEmpty) {
-      throw Exception('الرجاء كتابة تعليق');
     }
 
     final response = await apiClient!.put(
@@ -234,12 +240,9 @@ class ReviewRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Validation
+    // Validation - only rating is required, comment is optional
     if (rating < 1 || rating > 5) {
       throw Exception('التقييم يجب أن يكون بين 1 و 5 نجوم');
-    }
-    if (comment.trim().isEmpty) {
-      throw Exception('الرجاء كتابة تعليق');
     }
 
     // Create new review (simulate backend creating it with ID)
@@ -265,12 +268,9 @@ class ReviewRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 700));
 
-    // Validation
+    // Validation - only rating is required, comment is optional
     if (rating < 1 || rating > 5) {
       throw Exception('التقييم يجب أن يكون بين 1 و 5 نجوم');
-    }
-    if (comment.trim().isEmpty) {
-      throw Exception('الرجاء كتابة تعليق');
     }
 
     // Find and update the review (mock)

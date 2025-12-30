@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/data/models/offer_model.dart';
 import 'skeleton_image.dart';
 
-/// Widget that displays a carousel of promotional offers (services with approved offers)
+/// Widget that displays a carousel of promotional offers from the API
 /// Responsive and reusable across different screens
 class OffersCarouselWidget extends StatefulWidget {
-  final List<ServiceModel> offers;
-  final Function(ServiceModel)? onOfferTap;
+  final List<OfferModel> offers;
+  final Function(OfferModel)? onOfferTap;
   final VoidCallback? onSeeAllTap;
   final double? height;
   final double viewportFraction;
@@ -189,11 +189,8 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
     );
   }
 
-  Widget _buildOfferCard(ServiceModel service, int index, Color accentColor) {
+  Widget _buildOfferCard(OfferModel offer, int index, Color accentColor) {
     final isActive = _currentPage == index;
-    final discountText = service.discountPercentage != null
-        ? 'خصم ${service.discountPercentage!.toInt()}%'
-        : null;
 
     return AnimatedScale(
       scale: isActive ? 1.0 : 0.95,
@@ -201,7 +198,7 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8),
         child: GestureDetector(
-          onTap: () => widget.onOfferTap?.call(service),
+          onTap: () => widget.onOfferTap?.call(offer),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Stack(
@@ -209,7 +206,7 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
               children: [
                 // Background image
                 SkeletonImage(
-                  imageUrl: service.imageUrl,
+                  imageUrl: offer.imageUrl,
                   fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(16),
                   errorWidget: const Icon(
@@ -239,7 +236,7 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      if (discountText != null)
+                      if (offer.discount != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -250,7 +247,7 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            discountText,
+                            offer.discount!,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -261,7 +258,7 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
                         ),
                       const SizedBox(height: 8),
                       Text(
-                        service.name,
+                        offer.titleAr,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -273,7 +270,7 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        service.description,
+                        offer.descriptionAr,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,

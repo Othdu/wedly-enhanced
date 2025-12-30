@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/repositories/review_repository.dart';
+import 'package:wedly/data/services/api_exceptions.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/review/review_event.dart';
@@ -121,6 +122,12 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
       } else {
         add(ServiceReviewsRequested(event.targetId));
       }
+    } on DuplicateReviewException {
+      // User already submitted a review - offer to edit instead
+      emit(ReviewDuplicateDetected(
+        targetId: event.targetId,
+        targetType: event.targetType,
+      ));
     } catch (e) {
       emit(ReviewError(
         message: 'فشل في إضافة التقييم: ${e.toString()}',

@@ -3,6 +3,7 @@ import 'package:wedly/data/models/widget_config_model.dart';
 import 'package:wedly/data/models/countdown_model.dart';
 import 'package:wedly/data/models/category_model.dart';
 import 'package:wedly/data/models/service_model.dart';
+import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/presentation/widgets/countdown_timer_widget.dart';
 import 'package:wedly/presentation/widgets/offers_carousel_widget.dart';
 import 'package:wedly/presentation/widgets/categories_grid_widget.dart';
@@ -14,7 +15,7 @@ class WidgetFactory {
   static Widget? buildWidget({
     required WidgetConfigModel config,
     CountdownModel? countdown,
-    List<ServiceModel>? offers,
+    List<OfferModel>? offers,
     List<CategoryModel>? categories,
     List<ServiceModel>? services,
     Function(dynamic)? onTap,
@@ -68,7 +69,7 @@ class WidgetFactory {
 
   static Widget? _buildOffersWidget(
     WidgetConfigModel config,
-    List<ServiceModel>? offers,
+    List<OfferModel>? offers,
     Function(dynamic)? onTap,
     VoidCallback? onSeeAllOffers,
   ) {
@@ -78,7 +79,7 @@ class WidgetFactory {
 
     return OffersCarouselWidget(
       offers: offers,
-      onOfferTap: onTap != null ? (service) => onTap(service) : null,
+      onOfferTap: onTap != null ? (offer) => onTap(offer) : null,
       onSeeAllTap: onSeeAllOffers,
       autoplay: settings['autoplay'] as bool? ?? false,
       autoplayDuration: Duration(

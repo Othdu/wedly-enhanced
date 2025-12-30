@@ -53,9 +53,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   // Each section has: {id, title, type (single/multiple), options: [{text, price}]}
   List<Map<String, dynamic>> _dynamicSections = [];
 
-  // Venue decoration plans (radio button options)
-  List<Map<String, dynamic>> _decorationPlans = [];
-
   // OpenStreetMap variables
   LatLng _pickedLocation = LatLng(30.0444, 31.2357); // Cairo, Egypt (default)
   final MapController _mapController = MapController();
@@ -96,7 +93,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 
     setState(() {
       _dynamicSections.clear();
-      _decorationPlans.clear();
 
       switch (_selectedCategory) {
         case 'تصوير فوتوغرافي':
@@ -113,10 +109,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           break;
         case 'قاعات أفراح':
         case 'القاعات':
-          _initializeVenueDecorationPlans();
-          print(
-            '✅ Venue decoration plans initialized: ${_decorationPlans.length} plans',
-          );
+          // Venues don't have dynamic sections, just fixed fields
+          print('✅ Venue category selected - using fixed fields only');
           break;
         // For all other categories, use generic dynamic sections
         default:
@@ -233,14 +227,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     ];
   }
 
-  void _initializeVenueDecorationPlans() {
-    _decorationPlans = [
-      {'text': 'ديكورة 1'},
-      {'text': 'ديكورة 2'},
-      {'text': 'ديكورة 3'},
-      {'text': 'خالي'},
-    ];
-  }
 
   Future<void> _pickImage() async {
     if (_isPickingImage) return;
@@ -400,7 +386,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 
     print('🔍 Building category-specific fields for: $_selectedCategory');
     print('🔍 Dynamic sections count: ${_dynamicSections.length}');
-    print('🔍 Decoration plans count: ${_decorationPlans.length}');
 
     switch (_selectedCategory) {
       case 'قاعات أفراح':
@@ -424,7 +409,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     }
   }
 
-  // VENUE FIELDS (Special case - fixed time slots, fixed chairs, dynamic decoration)
+  // VENUE FIELDS (Special case - fixed time slots, fixed chairs)
   List<Widget> _buildVenueFields() {
     return [
       // المواعيد - Fixed Time Slots with editable prices
@@ -451,24 +436,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         hintText: 'مثال: 400',
         isOptional: false,
       ),
-      const SizedBox(height: 24),
-
-      // البلان - Dynamic Decoration Plans with radio buttons
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(
-              Icons.add_circle_outline,
-              color: Color(0xFFD4AF37),
-            ),
-            onPressed: _addDecorationPlan,
-          ),
-          _buildSectionLabel('البلان'),
-        ],
-      ),
-      const SizedBox(height: 12),
-      ..._buildDecorationPlansList(),
       const SizedBox(height: 24),
 
       // الموقع - Location (only for venues)
@@ -791,50 +758,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     );
   }
 
-  List<Widget> _buildDecorationPlansList() {
-    return _decorationPlans.asMap().entries.map((entry) {
-      final index = entry.key;
-      final plan = entry.value;
-      return Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300, width: 1),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                color: Colors.red,
-                size: 20,
-              ),
-              onPressed: () => _confirmDeleteDecorationPlan(index),
-            ),
-            Expanded(
-              child: Text(
-                plan['text'],
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
-                textAlign: TextAlign.right,
-              ),
-            ),
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFD4AF37), width: 2),
-              ),
-            ),
-          ],
-        ),
-      );
-    }).toList();
-  }
-
   Widget _buildFixedTimeSlot(
     String title,
     String timeRange,
@@ -1111,45 +1034,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     );
   }
 
-  void _addDecorationPlan() {
-    final textController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('إضافة بلان', textAlign: TextAlign.right),
-        content: TextField(
-          controller: textController,
-          textAlign: TextAlign.right,
-          decoration: const InputDecoration(
-            labelText: 'اسم البلان',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (textController.text.isNotEmpty) {
-                setState(() {
-                  _decorationPlans.add({'text': textController.text});
-                });
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD4AF37),
-            ),
-            child: const Text('إضافة'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _confirmDeleteSection(String sectionId) {
     showDialog(
       context: context,
@@ -1197,32 +1081,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                   (s) => s['id'] == sectionId,
                 );
                 (section['options'] as List).removeAt(optionIndex);
-              });
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('حذف'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmDeleteDecorationPlan(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('هل أنت متأكد؟', textAlign: TextAlign.right),
-        content: const Text('سيتم حذف هذا البلان', textAlign: TextAlign.right),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _decorationPlans.removeAt(index);
               });
               Navigator.pop(context);
             },
@@ -1990,13 +1848,20 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         // Determine if this is a venue category
         final isVenueCategory = _selectedCategory == 'قاعات أفراح' || _selectedCategory == 'القاعات';
 
+        // Get the category ID from the selected Arabic name
+        final selectedCategoryModel = _categories.firstWhere(
+          (cat) => cat.nameAr == _selectedCategory,
+          orElse: () => _categories.first,
+        );
+        final categoryId = selectedCategoryModel.id;
+
         // Create the service with image file (will be uploaded as part of service creation)
         final newService = ServiceModel(
           id: '',
           name: _nameController.text.trim(),
           description: 'خدمة ${_nameController.text.trim()}',
           imageUrl: '', // Will be set by the backend after upload
-          category: _selectedCategory!,
+          category: categoryId, // Send the category ID, not the Arabic name
           providerId: authState.user.id,
           imageFile: _selectedImages.isNotEmpty ? _selectedImages[0] : null,
           // General price for non-venue categories (optional)
@@ -2039,19 +1904,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             options: options.map((option) => {
               'text': option['text'],
               'price': option['price'],
-            }).toList(),
-          );
-        }
-
-        // Step 4: Add decoration plans for venues (as a special dynamic section)
-        if ((_selectedCategory == 'قاعات أفراح' || _selectedCategory == 'القاعات') && _decorationPlans.isNotEmpty) {
-          await serviceRepository.addDynamicSection(
-            serviceId: serviceId,
-            sectionName: 'البلان',
-            description: 'خطط الديكور المتاحة',
-            options: _decorationPlans.map((plan) => {
-              'text': plan['text'],
-              'price': '0', // Decoration plans don't have separate pricing
             }).toList(),
           );
         }

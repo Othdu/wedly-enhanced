@@ -141,9 +141,22 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
                 onPageChanged: _onPageChanged,
                 itemCount: _tabTitles.length,
                 itemBuilder: (context, pageIndex) {
-                  return BlocBuilder<BookingBloc, BookingState>(
+                  return BlocConsumer<BookingBloc, BookingState>(
+                    listener: (context, state) {
+                      // When booking status is updated, reload the current tab
+                      if (state is BookingStatusUpdated) {
+                        // Ensure _providerId is set before fetching
+                        if (_providerId == null) {
+                          final authState = context.read<AuthBloc>().state;
+                          if (authState is AuthAuthenticated) {
+                            _providerId = authState.user.id;
+                          }
+                        }
+                        _fetchBookingsByStatus(_statusForIndex(_currentTabIndex));
+                      }
+                    },
                     builder: (context, state) {
-                      if (state is BookingLoading) {
+                      if (state is BookingInitial || state is BookingLoading || state is BookingStatusUpdated) {
                         return const Center(
                           child: CircularProgressIndicator(
                             color: AppColors.gold,

@@ -23,6 +23,10 @@ class BookingModel extends Equatable {
   final int guestCount;
   final String eventLocation;
   final double? discountPercentage; // Optional discount percentage from service
+  final String timeSlot; // "morning" or "evening"
+  final String paymentMethod; // "cash", "visa", "wallet"
+  final String? selectedSectionId; // Selected section ID from dynamic sections
+  final List<String>? selectedOptionIds; // Selected option IDs from dynamic sections
   final bool hasReviewed; // Whether the user has already reviewed this booking
   final String? reviewId; // The ID of the user's review if hasReviewed is true
   final double? reviewRating; // The rating of the user's review if hasReviewed is true
@@ -51,6 +55,10 @@ class BookingModel extends Equatable {
     required this.guestCount,
     required this.eventLocation,
     this.discountPercentage,
+    this.timeSlot = 'morning',
+    this.paymentMethod = 'cash',
+    this.selectedSectionId,
+    this.selectedOptionIds,
     this.hasReviewed = false,
     this.reviewId,
     this.reviewRating,
@@ -59,41 +67,74 @@ class BookingModel extends Equatable {
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
+    // Helper to get value from snake_case or camelCase key
+    // Handles null values properly without type cast issues
+    String? getStringField(String snakeCase, String camelCase) {
+      final value = json[snakeCase] ?? json[camelCase];
+      return value?.toString();
+    }
+
+    // Parse booking date - handle both snake_case and camelCase
+    final bookingDateStr = json['booking_date'] ?? json['bookingDate'];
+    final createdAtStr = json['created_at'] ?? json['createdAt'];
+
     return BookingModel(
-      id: json['id'] as String,
-      serviceId: json['serviceId'] as String,
-      serviceName: json['serviceName'] as String,
-      serviceImage: json['serviceImage'] as String,
-      providerId: json['providerId'] as String,
-      userId: json['userId'] as String,
-      customerName: json['customerName'] as String,
-      customerEmail: json['customerEmail'] as String,
-      customerPhone: json['customerPhone'] as String,
-      bookingDate: DateTime.parse(json['bookingDate'] as String),
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      serviceId: getStringField('service_id', 'serviceId') ?? '',
+      serviceName: getStringField('service_name', 'serviceName') ?? '',
+      serviceImage: getStringField('service_image', 'serviceImage') ?? '',
+      providerId: getStringField('provider_id', 'providerId') ?? '',
+      userId: getStringField('user_id', 'userId') ?? '',
+      customerName: getStringField('customer_name', 'customerName') ?? '',
+      customerEmail: getStringField('customer_email', 'customerEmail') ?? '',
+      customerPhone: getStringField('customer_phone', 'customerPhone') ?? '',
+      bookingDate: bookingDateStr != null
+          ? DateTime.parse(bookingDateStr.toString())
+          : DateTime.now(),
+      createdAt: createdAtStr != null
+          ? DateTime.parse(createdAtStr.toString())
+          : DateTime.now(),
       status: BookingStatus.values.firstWhere(
         (e) => e.toString().split('.').last == json['status'],
+        orElse: () => BookingStatus.pending,
       ),
-      totalAmount: (json['totalAmount'] as num).toDouble(),
+      totalAmount: json['total_amount'] != null
+          ? (json['total_amount'] as num).toDouble()
+          : json['totalAmount'] != null
+              ? (json['totalAmount'] as num).toDouble()
+              : 0.0,
       paymentStatus: PaymentStatus.values.firstWhere(
-        (e) => e.toString().split('.').last == json['paymentStatus'],
+        (e) => e.toString().split('.').last == (json['payment_status'] ?? json['paymentStatus']),
+        orElse: () => PaymentStatus.pending,
       ),
-      notes: json['notes'] as String?,
-      specialRequests: json['specialRequests'] as String?,
-      serviceCategory: json['serviceCategory'] as String?,
-      eventType: json['eventType'] as String,
-      guestCount: json['guestCount'] as int,
-      eventLocation: json['eventLocation'] as String,
-      discountPercentage: json['discountPercentage'] != null
-          ? (json['discountPercentage'] as num).toDouble()
-          : null,
-      hasReviewed: json['hasReviewed'] as bool? ?? false,
-      reviewId: json['reviewId'] as String?,
-      reviewRating: json['reviewRating'] != null
-          ? (json['reviewRating'] as num).toDouble()
-          : null,
-      reviewComment: json['reviewComment'] as String?,
-      serviceType: json['serviceType'] as String? ?? 'service',
+      notes: json['notes']?.toString(),
+      specialRequests: getStringField('special_requests', 'specialRequests'),
+      serviceCategory: getStringField('service_category', 'serviceCategory'),
+      eventType: getStringField('event_type', 'eventType') ?? '',
+      guestCount: json['guest_count'] as int? ?? json['guestCount'] as int? ?? 0,
+      eventLocation: getStringField('event_location', 'eventLocation') ?? '',
+      discountPercentage: json['discount_percentage'] != null
+          ? (json['discount_percentage'] as num).toDouble()
+          : json['discountPercentage'] != null
+              ? (json['discountPercentage'] as num).toDouble()
+              : null,
+      timeSlot: getStringField('time_slot', 'timeSlot') ?? 'morning',
+      paymentMethod: getStringField('payment_method', 'paymentMethod') ?? 'cash',
+      selectedSectionId: getStringField('selected_section_id', 'selectedSectionId'),
+      selectedOptionIds: json['selected_option_id'] != null
+          ? (json['selected_option_id'] as List).map((e) => e.toString()).toList()
+          : json['selectedOptionIds'] != null
+              ? (json['selectedOptionIds'] as List).map((e) => e.toString()).toList()
+              : null,
+      hasReviewed: json['has_reviewed'] as bool? ?? json['hasReviewed'] as bool? ?? false,
+      reviewId: getStringField('review_id', 'reviewId'),
+      reviewRating: json['review_rating'] != null
+          ? (json['review_rating'] as num).toDouble()
+          : json['reviewRating'] != null
+              ? (json['reviewRating'] as num).toDouble()
+              : null,
+      reviewComment: getStringField('review_comment', 'reviewComment'),
+      serviceType: getStringField('service_type', 'serviceType') ?? 'service',
     );
   }
 
@@ -120,6 +161,10 @@ class BookingModel extends Equatable {
       'guestCount': guestCount,
       'eventLocation': eventLocation,
       'discountPercentage': discountPercentage,
+      'timeSlot': timeSlot,
+      'paymentMethod': paymentMethod,
+      'selectedSectionId': selectedSectionId,
+      'selectedOptionIds': selectedOptionIds,
       'hasReviewed': hasReviewed,
       'reviewId': reviewId,
       'reviewRating': reviewRating,
@@ -150,6 +195,10 @@ class BookingModel extends Equatable {
     int? guestCount,
     String? eventLocation,
     double? discountPercentage,
+    String? timeSlot,
+    String? paymentMethod,
+    String? selectedSectionId,
+    List<String>? selectedOptionIds,
     bool? hasReviewed,
     String? reviewId,
     double? reviewRating,
@@ -178,6 +227,10 @@ class BookingModel extends Equatable {
       guestCount: guestCount ?? this.guestCount,
       eventLocation: eventLocation ?? this.eventLocation,
       discountPercentage: discountPercentage ?? this.discountPercentage,
+      timeSlot: timeSlot ?? this.timeSlot,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      selectedSectionId: selectedSectionId ?? this.selectedSectionId,
+      selectedOptionIds: selectedOptionIds ?? this.selectedOptionIds,
       hasReviewed: hasReviewed ?? this.hasReviewed,
       reviewId: reviewId ?? this.reviewId,
       reviewRating: reviewRating ?? this.reviewRating,
@@ -215,6 +268,10 @@ class BookingModel extends Equatable {
         guestCount,
         eventLocation,
         discountPercentage,
+        timeSlot,
+        paymentMethod,
+        selectedSectionId,
+        selectedOptionIds,
         hasReviewed,
         reviewId,
         reviewRating,

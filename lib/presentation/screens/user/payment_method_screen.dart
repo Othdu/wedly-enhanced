@@ -66,7 +66,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
                     const SizedBox(height: 30),
 
-                    // Cash on Delivery
+                    // Cash on Delivery (Only available option for now)
                     _buildPaymentOption(
                       value: 'cash',
                       title: 'نقداً عند التنفيذ',
@@ -75,21 +75,24 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Visa
+                    // Visa (Coming soon)
                     _buildPaymentOption(
                       value: 'visa',
                       title: 'فيزا',
                       icon: Icons.credit_card,
-                      subtitle: 'VISA',
+                      subtitle: 'قريباً',
+                      isDisabled: true,
                     ),
 
                     const SizedBox(height: 16),
 
-                    // E-Wallet
+                    // E-Wallet (Coming soon)
                     _buildPaymentOption(
                       value: 'wallet',
                       title: 'محفظة إلكترونية',
                       icon: Icons.account_balance_wallet,
+                      subtitle: 'قريباً',
+                      isDisabled: true,
                     ),
 
                     const SizedBox(height: 40),
@@ -142,104 +145,119 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     required String title,
     required IconData icon,
     String? subtitle,
+    bool isDisabled = false,
   }) {
     final isSelected = _selectedPaymentMethod == value;
 
     return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedPaymentMethod = value;
-        });
-      },
+      onTap: isDisabled
+          ? null
+          : () {
+              setState(() {
+                _selectedPaymentMethod = value;
+              });
+            },
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFD4AF37) : Colors.transparent,
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              // Use withOpacity for clarity
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+      child: Opacity(
+        opacity: isDisabled ? 0.5 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDisabled ? Colors.grey[100] : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected && !isDisabled ? const Color(0xFFD4AF37) : Colors.transparent,
+              width: 2,
             ),
-          ],
-        ),
-        // Row for LTR: [Icon, Text, Spacer, Radio]
-        child: Row(
-          children: [
-            // Icon
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                // Use withOpacity for clarity
-                color: const Color(0xFFD4AF37).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
-              child: Icon(icon, color: const Color(0xFFD4AF37), size: 24),
-            ),
-
-            const SizedBox(width: 16),
-
-            // Title and subtitle
-            Column(
-              // Align text to the start (left)
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.black : Colors.grey[800],
-                  ),
-                  textAlign: TextAlign.left,
+            ],
+          ),
+          // Row for LTR: [Icon, Text, Spacer, Radio]
+          child: Row(
+            children: [
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDisabled
+                      ? Colors.grey.withValues(alpha: 0.1)
+                      : const Color(0xFFD4AF37).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
+                child: Icon(
+                  icon,
+                  color: isDisabled ? Colors.grey : const Color(0xFFD4AF37),
+                  size: 24,
+                ),
+              ),
+
+              const SizedBox(width: 16),
+
+              // Title and subtitle
+              Column(
+                // Align text to the start (left)
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isDisabled
+                          ? Colors.grey
+                          : (isSelected ? Colors.black : Colors.grey[800]),
+                    ),
                     textAlign: TextAlign.left,
                   ),
-                ],
-              ],
-            ),
-
-            const Spacer(),
-
-            // Radio button
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFFD4AF37)
-                      : Colors.grey[400]!,
-                  width: 2,
-                ),
-              ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFFD4AF37),
-                        ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDisabled ? Colors.grey : Colors.grey[600],
                       ),
-                    )
-                  : null,
-            ),
-          ],
+                      textAlign: TextAlign.left,
+                    ),
+                  ],
+                ],
+              ),
+
+              const Spacer(),
+
+              // Radio button
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDisabled
+                        ? Colors.grey[300]!
+                        : (isSelected ? const Color(0xFFD4AF37) : Colors.grey[400]!),
+                    width: 2,
+                  ),
+                ),
+                child: isSelected && !isDisabled
+                    ? Center(
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFFD4AF37),
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -252,8 +270,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            // Use withOpacity for clarity
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

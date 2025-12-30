@@ -168,9 +168,13 @@ class BookingRepository {
 
   /// API: Create a new booking
   Future<BookingModel> _apiCreateBooking(Map<String, dynamic> bookingData) async {
+    // Remove any null values from the booking data before sending
+    final cleanedData = Map<String, dynamic>.from(bookingData)
+      ..removeWhere((key, value) => value == null);
+
     final response = await apiClient!.post(
       ApiConstants.createBooking,
-      data: bookingData,
+      data: cleanedData,
     );
     final responseData = response.data['data'] ?? response.data;
     final booking = responseData['booking'] ?? responseData;
@@ -263,26 +267,48 @@ class BookingRepository {
 
   Future<BookingModel> _mockCreateBooking(Map<String, dynamic> bookingData) async {
     await Future.delayed(const Duration(milliseconds: 800));
+
+    // Handle both snake_case (from API) and camelCase (from legacy code)
+    final serviceId = bookingData['service_id'] ?? bookingData['serviceId'] ?? '';
+    final bookingDateStr = bookingData['booking_date'] ?? bookingData['bookingDate'];
+    final customerName = bookingData['customer_name'] ?? bookingData['customerName'] ?? '';
+    final customerEmail = bookingData['customer_email'] ?? bookingData['customerEmail'] ?? '';
+    final customerPhone = bookingData['customer_phone'] ?? bookingData['customerPhone'] ?? '';
+    final eventType = bookingData['event_type'] ?? bookingData['eventType'] ?? '';
+    final guestCount = bookingData['guest_count'] ?? bookingData['guestCount'] ?? 0;
+    final eventLocation = bookingData['event_location'] ?? bookingData['eventLocation'] ?? '';
+    final specialRequests = bookingData['special_requests'] ?? bookingData['specialRequests'];
+    final timeSlot = bookingData['time_slot'] ?? bookingData['timeSlot'] ?? 'morning';
+    final paymentMethod = bookingData['payment_method'] ?? bookingData['paymentMethod'] ?? 'cash';
+    final selectedSectionId = bookingData['selected_section_id'] ?? bookingData['selectedSectionId'];
+    final selectedOptionIds = bookingData['selected_option_id'] ?? bookingData['selectedOptionIds'];
+
     final newBooking = BookingModel(
       id: 'booking_${DateTime.now().millisecondsSinceEpoch}',
-      serviceId: bookingData['serviceId'],
-      serviceName: bookingData['serviceName'],
-      serviceImage: bookingData['serviceImage'] ?? '',
-      providerId: bookingData['providerId'],
-      userId: bookingData['userId'],
-      customerName: bookingData['customerName'],
-      customerEmail: bookingData['customerEmail'],
-      customerPhone: bookingData['customerPhone'],
-      bookingDate: DateTime.parse(bookingData['bookingDate']),
+      serviceId: serviceId,
+      serviceName: bookingData['serviceName'] ?? bookingData['service_name'] ?? 'خدمة',
+      serviceImage: bookingData['serviceImage'] ?? bookingData['service_image'] ?? '',
+      providerId: bookingData['providerId'] ?? bookingData['provider_id'] ?? '',
+      userId: bookingData['userId'] ?? bookingData['user_id'] ?? '',
+      customerName: customerName,
+      customerEmail: customerEmail,
+      customerPhone: customerPhone,
+      bookingDate: bookingDateStr != null ? DateTime.parse(bookingDateStr) : DateTime.now(),
       createdAt: DateTime.now(),
       status: BookingStatus.pending,
-      totalAmount: bookingData['totalAmount'],
+      totalAmount: (bookingData['totalAmount'] ?? bookingData['total_amount'] ?? 0).toDouble(),
       paymentStatus: PaymentStatus.pending,
-      eventType: bookingData['eventType'],
-      guestCount: bookingData['guestCount'],
-      eventLocation: bookingData['eventLocation'],
+      eventType: eventType,
+      guestCount: guestCount is int ? guestCount : int.tryParse(guestCount.toString()) ?? 0,
+      eventLocation: eventLocation,
       notes: bookingData['notes'],
-      specialRequests: bookingData['specialRequests'],
+      specialRequests: specialRequests,
+      timeSlot: timeSlot,
+      paymentMethod: paymentMethod,
+      selectedSectionId: selectedSectionId,
+      selectedOptionIds: selectedOptionIds is List
+          ? selectedOptionIds.map((e) => e.toString()).toList()
+          : null,
     );
     _mockBookings.add(newBooking);
     return newBooking;

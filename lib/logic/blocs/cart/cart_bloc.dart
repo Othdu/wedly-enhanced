@@ -1,10 +1,14 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/cart_repository.dart';
 import 'package:wedly/logic/blocs/cart/cart_event.dart';
 import 'package:wedly/logic/blocs/cart/cart_state.dart';
 
 class CartBloc extends Bloc<CartEvent, CartState> {
   final CartRepository cartRepository;
+
+  // Local cache to preserve timeSlot and other fields that API might not return correctly
+  final Map<String, CartItemModel> _localItemCache = {};
 
   CartBloc({required this.cartRepository}) : super(const CartInitial()) {
     on<CartItemsRequested>(_onCartItemsRequested);
@@ -22,12 +26,40 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     try {
       emit(const CartLoading());
 
-      final items = await cartRepository.getCartItems(event.userId);
-      final itemCount = await cartRepository.getCartItemCount();
-      final totalPrice = await cartRepository.getTotalPrice();
+      final apiItems = await cartRepository.getCartItems(event.userId);
+
+      print('🛒 CartBloc._onCartItemsRequested - Loaded ${apiItems.length} items from API');
+
+      // Merge API items with local cache to preserve timeSlot
+      final List<CartItemModel> mergedItems = [];
+      for (final apiItem in apiItems) {
+        final cachedItem = _localItemCache[apiItem.id];
+        if (cachedItem != null) {
+          // Use cached item's timeSlot if API returned empty/default
+          final preservedTimeSlot = (apiItem.timeSlot.isEmpty || apiItem.timeSlot == 'morning')
+              && cachedItem.timeSlot.isNotEmpty
+              ? cachedItem.timeSlot
+              : apiItem.timeSlot;
+
+          final mergedItem = apiItem.copyWith(timeSlot: preservedTimeSlot);
+          mergedItems.add(mergedItem);
+          print('   - ${mergedItem.service.name}: timeSlot="${mergedItem.timeSlot}" (preserved from cache: ${preservedTimeSlot != apiItem.timeSlot})');
+        } else {
+          mergedItems.add(apiItem);
+          // Cache API item for future reference
+          _localItemCache[apiItem.id] = apiItem;
+          print('   - ${apiItem.service.name}: timeSlot="${apiItem.timeSlot}" (from API, no cache)');
+        }
+      }
+
+      final itemCount = mergedItems.length;
+      final totalPrice = mergedItems.fold<double>(
+        0.0,
+        (sum, item) => sum + item.totalPrice,
+      );
 
       emit(CartLoaded(
-        items: items,
+        items: mergedItems,
         itemCount: itemCount,
         totalPrice: totalPrice,
       ));
@@ -41,15 +73,38 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     Emitter<CartState> emit,
   ) async {
     try {
+      print('🛒 CartBloc._onCartItemAdded - Adding item with timeSlot: "${event.item.timeSlot}"');
+
+      // Cache the item with correct timeSlot BEFORE adding to API
+      _localItemCache[event.item.id] = event.item;
+      print('🛒 CartBloc - Cached item ${event.item.id} with timeSlot: "${event.item.timeSlot}"');
+
+      // Get current items before adding (to preserve local data)
+      List<CartItemModel> currentItems = [];
+      if (state is CartLoaded) {
+        currentItems = List.from((state as CartLoaded).items);
+      }
+
+      // Add to API/storage
       await cartRepository.addToCart(event.item);
 
-      // Reload cart
-      final items = await cartRepository.getCartItems('current_user');
-      final itemCount = await cartRepository.getCartItemCount();
-      final totalPrice = await cartRepository.getTotalPrice();
+      // IMPORTANT: Use the original item with correct timeSlot
+      // Don't reload from API because API might not return time_slot correctly
+      currentItems.add(event.item);
+
+      print('🛒 CartBloc - Items after add:');
+      for (final item in currentItems) {
+        print('   - ${item.service.name}: timeSlot="${item.timeSlot}"');
+      }
+
+      final itemCount = currentItems.length;
+      final totalPrice = currentItems.fold<double>(
+        0.0,
+        (sum, item) => sum + (item.totalPrice),
+      );
 
       emit(CartLoaded(
-        items: items,
+        items: currentItems,
         itemCount: itemCount,
         totalPrice: totalPrice,
       ));
@@ -63,10 +118,13 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     Emitter<CartState> emit,
   ) async {
     try {
+      // Keep track of updated items locally (to preserve timeSlot and other local data)
+      List<CartItemModel> updatedItems = [];
+
       // Optimistically update UI by removing item from current state
       if (state is CartLoaded) {
         final currentState = state as CartLoaded;
-        final updatedItems = currentState.items
+        updatedItems = currentState.items
             .where((item) => item.id != event.itemId)
             .toList();
 
@@ -88,19 +146,15 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       // Perform actual deletion in background
       await cartRepository.removeFromCart(event.itemId);
 
-      // Add small delay to allow backend to process deletion
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Remove from local cache
+      _localItemCache.remove(event.itemId);
 
-      // Reload cart from backend to ensure consistency
-      final items = await cartRepository.getCartItems('current_user');
-      final itemCount = await cartRepository.getCartItemCount();
-      final totalPrice = await cartRepository.getTotalPrice();
-
-      emit(CartLoaded(
-        items: items,
-        itemCount: itemCount,
-        totalPrice: totalPrice,
-      ));
+      // DON'T reload from API - keep using local items to preserve timeSlot
+      // The API might not return time_slot correctly
+      print('🛒 CartBloc._onCartItemRemoved - Keeping local items (not reloading from API):');
+      for (final item in updatedItems) {
+        print('   - ${item.service.name}: timeSlot="${item.timeSlot}"');
+      }
     } catch (e) {
       emit(CartError(message: 'فشل حذف العنصر: ${e.toString()}'));
     }
@@ -111,18 +165,33 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     Emitter<CartState> emit,
   ) async {
     try {
+      // Update local cache first
+      _localItemCache[event.item.id] = event.item;
+
       await cartRepository.updateCartItem(event.item);
 
-      // Reload cart
-      final items = await cartRepository.getCartItems('current_user');
-      final itemCount = await cartRepository.getCartItemCount();
-      final totalPrice = await cartRepository.getTotalPrice();
+      // Update locally instead of reloading from API
+      if (state is CartLoaded) {
+        final currentState = state as CartLoaded;
+        final updatedItems = currentState.items.map((item) {
+          if (item.id == event.item.id) {
+            return event.item;
+          }
+          return item;
+        }).toList();
 
-      emit(CartLoaded(
-        items: items,
-        itemCount: itemCount,
-        totalPrice: totalPrice,
-      ));
+        final itemCount = updatedItems.length;
+        final totalPrice = updatedItems.fold<double>(
+          0.0,
+          (sum, item) => sum + item.totalPrice,
+        );
+
+        emit(CartLoaded(
+          items: updatedItems,
+          itemCount: itemCount,
+          totalPrice: totalPrice,
+        ));
+      }
     } catch (e) {
       emit(CartError(message: 'فشل تحديث العنصر: ${e.toString()}'));
     }
@@ -134,6 +203,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   ) async {
     try {
       await cartRepository.clearCart();
+
+      // Clear local cache
+      _localItemCache.clear();
 
       emit(const CartLoaded(
         items: [],

@@ -35,10 +35,56 @@ class _DynamicServiceBookingScreenState
   List<Map<String, dynamic>>? _dynamicSections;
   List<Map<String, dynamic>>? _packages;
 
+  // Booked dates for the calendar (non-venue services: any booking blocks the day)
+  Set<String> _bookedDates = {};
+  bool _isLoadingDates = false;
+
   @override
   void initState() {
     super.initState();
     _loadServiceData();
+    _fetchBookedDates();
+  }
+
+  /// Fetch booked dates for the current displayed month
+  /// For non-venue services, any booking (morning or evening) blocks the entire day
+  Future<void> _fetchBookedDates() async {
+    setState(() {
+      _isLoadingDates = true;
+    });
+
+    try {
+      final serviceRepository = getIt<ServiceRepository>();
+      final monthStr = '${_displayedMonth.year}-${_displayedMonth.month.toString().padLeft(2, '0')}';
+
+      // Don't pass timeSlot - we want ALL bookings for this service
+      // Any booking (morning or evening) will block the entire day
+      final result = await serviceRepository.getServiceAvailableDates(
+        widget.service.id,
+        monthStr,
+        // No timeSlot parameter - get all bookings
+      );
+
+      final bookedDates = (result['booked_dates'] as List<dynamic>?)
+          ?.map((d) => d.toString())
+          .toSet() ?? {};
+
+      setState(() {
+        _bookedDates = bookedDates;
+        _isLoadingDates = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching booked dates: $e');
+      setState(() {
+        _isLoadingDates = false;
+      });
+    }
+  }
+
+  /// Check if a date is booked
+  bool _isDateBooked(DateTime date) {
+    final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return _bookedDates.contains(dateStr);
   }
 
   @override
@@ -200,7 +246,11 @@ class _DynamicServiceBookingScreenState
     // Format date (guaranteed to be non-null at this point)
     final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
 
-    // Create cart item
+    // Get selected section and option IDs for booking API
+    final selectedSectionId = _getSelectedSectionId();
+    final selectedOptionIds = _getSelectedOptionIds();
+
+    // Create cart item with timeSlot="morning" for non-venue services
     final cartItem = CartItemModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       service: widget.service,
@@ -208,6 +258,9 @@ class _DynamicServiceBookingScreenState
       time: selectedDetails.isNotEmpty ? selectedDetails : 'الخيارات الأساسية',
       servicePrice: totalPrice,
       addedAt: DateTime.now(),
+      timeSlot: 'morning', // Default to morning for non-venue services
+      selectedSectionId: selectedSectionId,
+      selectedOptionIds: selectedOptionIds,
     );
 
     // Add to cart
@@ -266,6 +319,64 @@ class _DynamicServiceBookingScreenState
         Navigator.of(context).pop(); // Go back to home
       }
     });
+  }
+
+  /// Extract selected section ID (first section with selections)
+  String? _getSelectedSectionId() {
+    if (_dynamicSections == null || _dynamicSections!.isEmpty) return null;
+
+    for (final section in _dynamicSections!) {
+      final sectionId = section['id']?.toString() ?? '';
+      final selectionType = section['selectionType'] ?? section['selection_type'] ?? 'single';
+
+      if (selectionType == 'multiple') {
+        final selectedIndices = _selectedOptions[sectionId] as Set<int>? ?? {};
+        if (selectedIndices.isNotEmpty) {
+          return sectionId;
+        }
+      } else {
+        final selectedIndex = _selectedOptions[sectionId] as int?;
+        if (selectedIndex != null) {
+          return sectionId;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Extract all selected option IDs from all sections
+  List<String>? _getSelectedOptionIds() {
+    if (_dynamicSections == null || _dynamicSections!.isEmpty) return null;
+
+    final List<String> optionIds = [];
+
+    for (final section in _dynamicSections!) {
+      final sectionId = section['id']?.toString() ?? '';
+      final selectionType = section['selectionType'] ?? section['selection_type'] ?? 'single';
+      final options = section['options'] as List? ?? [];
+
+      if (selectionType == 'multiple') {
+        final selectedIndices = _selectedOptions[sectionId] as Set<int>? ?? {};
+        for (final index in selectedIndices) {
+          if (index < options.length) {
+            final optionId = options[index]['id']?.toString() ?? options[index]['_id']?.toString();
+            if (optionId != null && optionId.isNotEmpty) {
+              optionIds.add(optionId);
+            }
+          }
+        }
+      } else {
+        final selectedIndex = _selectedOptions[sectionId] as int?;
+        if (selectedIndex != null && selectedIndex < options.length) {
+          final optionId = options[selectedIndex]['id']?.toString() ?? options[selectedIndex]['_id']?.toString();
+          if (optionId != null && optionId.isNotEmpty) {
+            optionIds.add(optionId);
+          }
+        }
+      }
+    }
+
+    return optionIds.isNotEmpty ? optionIds : null;
   }
 
   String _buildSelectedDetailsText() {
@@ -879,16 +990,34 @@ class _DynamicServiceBookingScreenState
                       _displayedMonth.month + 1,
                     );
                   });
+                  _fetchBookedDates(); // Fetch dates for new month
                 },
                 color: const Color(0xFFD4AF37),
               ),
-              Text(
-                '${_getMonthName(_displayedMonth.month)} ${_displayedMonth.year}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_isLoadingDates)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+                        ),
+                      ),
+                    ),
+                  Text(
+                    '${_getMonthName(_displayedMonth.month)} ${_displayedMonth.year}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
@@ -899,6 +1028,7 @@ class _DynamicServiceBookingScreenState
                       _displayedMonth.month - 1,
                     );
                   });
+                  _fetchBookedDates(); // Fetch dates for new month
                 },
                 color: const Color(0xFFD4AF37),
               ),
@@ -942,8 +1072,54 @@ class _DynamicServiceBookingScreenState
 
           // Calendar grid
           _buildCalendarGrid(),
+
+          const SizedBox(height: 16),
+
+          // Calendar legend
+          
         ],
       ),
+    );
+  }
+
+
+  Widget _buildLegendItem({
+    required Color color,
+    required String label,
+    bool hasStrikethrough = false,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: hasStrikethrough
+              ? Center(
+                  child: Text(
+                    '—',
+                    style: TextStyle(
+                      color: Colors.red.shade400,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
     );
   }
 
@@ -987,9 +1163,12 @@ class _DynamicServiceBookingScreenState
         DateTime.now().subtract(const Duration(days: 1)),
       );
 
+      final isBooked = _isDateBooked(date);
+      final isDisabled = isPast || isBooked;
+
       dayWidgets.add(
         GestureDetector(
-          onTap: isPast
+          onTap: isDisabled
               ? null
               : () {
                   setState(() {
@@ -1003,10 +1182,15 @@ class _DynamicServiceBookingScreenState
             decoration: BoxDecoration(
               color: isSelected
                   ? const Color(0xFFD4AF37)
-                  : (isToday
-                        ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
-                        : Colors.transparent),
+                  : isBooked
+                      ? Colors.red.withValues(alpha: 0.1)
+                      : (isToday
+                            ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
+                            : Colors.transparent),
               borderRadius: BorderRadius.circular(8),
+              border: isBooked && !isSelected
+                  ? Border.all(color: Colors.red.withValues(alpha: 0.3))
+                  : null,
             ),
             child: Center(
               child: Text(
@@ -1016,11 +1200,14 @@ class _DynamicServiceBookingScreenState
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isPast
                       ? Colors.grey.shade300
-                      : (isSelected
-                            ? Colors.white
-                            : (isToday
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.black87)),
+                      : isBooked
+                          ? Colors.red.shade300
+                          : (isSelected
+                                ? Colors.white
+                                : (isToday
+                                      ? const Color(0xFFD4AF37)
+                                      : Colors.black87)),
+                  decoration: isBooked ? TextDecoration.lineThrough : null,
                 ),
               ),
             ),

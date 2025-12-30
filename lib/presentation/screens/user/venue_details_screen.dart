@@ -5,9 +5,12 @@ import 'package:wedly/data/models/review_model.dart';
 import 'package:wedly/presentation/widgets/skeleton_image.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_event.dart';
 import 'package:wedly/logic/blocs/review/review_state.dart';
+import 'package:wedly/presentation/widgets/review_bottom_sheet.dart';
 import 'package:wedly/routes/app_router.dart';
 import 'package:wedly/core/utils/city_translator.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,7 +31,6 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
 
   // User selections
   String? _selectedTimeSlot; // 'morning' or 'evening'
-  String? _selectedDecoration; // 'ديكور1', 'ديكور2', 'ديكورة', 'خالي'
 
   @override
   void initState() {
@@ -118,11 +120,6 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
 
                 // عدد الكراسي Section
                 _buildChairsSection(),
-
-                const SizedBox(height: 16),
-
-                // الديان Section with radio buttons
-                _buildDecorationSection(),
 
                 const SizedBox(height: 24),
 
@@ -421,84 +418,6 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDecorationSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'خطط الديكور المتاحة',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFD4AF37),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Decoration options display
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200, width: 1),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              textDirection: TextDirection.rtl,
-              children: [
-                _buildDecorationBadge('ديكور1'),
-                const SizedBox(width: 22),
-                _buildDecorationBadge('ديكور2'),
-                const SizedBox(width: 22),
-                _buildDecorationBadge('ديكورة'),
-                const SizedBox(width: 22),
-                _buildDecorationBadge('خالي'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDecorationBadge(String option) {
-    final isSelected = _selectedDecoration == option;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedDecoration = option;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFD4AF37)
-              : const Color(0xFFD4AF37).withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFFD4AF37)
-                : const Color(0xFFD4AF37).withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Text(
-          option,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFFD4AF37),
-          ),
         ),
       ),
     );
@@ -844,81 +763,150 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
   }
 
   Widget _buildReviewCard(ReviewModel review) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // Rating stars
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: List.generate(5, (index) {
-              return Icon(
-                index < review.rating ? Icons.star : Icons.star_border,
-                color: const Color(0xFFFFB400),
-                size: 18,
-              );
-            }),
-          ),
-          const SizedBox(height: 12),
+    // Check if this review belongs to the current user
+    final authState = context.read<AuthBloc>().state;
+    final isCurrentUserReview = authState is AuthAuthenticated &&
+        authState.user.id == review.userId;
 
-          // Review comment
-          Text(
-            review.comment,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              height: 1.5,
-            ),
-            textDirection: TextDirection.ltr,
-            textAlign: TextAlign.right,
+    return GestureDetector(
+      onTap: isCurrentUserReview ? () => _showEditReviewSheet(review) : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isCurrentUserReview
+              ? const Color(0xFFFFF8E7) // Light gold for user's review
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isCurrentUserReview
+                ? const Color(0xFFD4AF37)
+                : Colors.grey.shade200,
+            width: isCurrentUserReview ? 1.5 : 1,
           ),
-          const SizedBox(height: 12),
-
-          // User info
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            textDirection: TextDirection.rtl,
-            children: [
-              // User avatar
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color(0xFFD4AF37),
-                backgroundImage: review.userImageUrl != null
-                    ? NetworkImage(review.userImageUrl!)
-                    : null,
-                child: review.userImageUrl == null
-                    ? Text(
-                        review.userName[0],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // "Your review" badge + Rating stars
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              textDirection: TextDirection.rtl,
+              children: [
+                // User's review badge
+                if (isCurrentUserReview)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4AF37),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.edit, color: Colors.white, size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          'تقييمك - اضغط للتعديل',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 8),
+                      ],
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
 
-              // User name
+                // Rating stars
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < review.rating ? Icons.star : Icons.star_border,
+                      color: const Color(0xFFFFB400),
+                      size: 18,
+                    );
+                  }),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Review comment
+            if (review.comment.isNotEmpty)
               Text(
-                review.userName,
+                review.comment,
                 style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFD4AF37),
+                  fontSize: 14,
+                  color: Colors.black87,
+                  height: 1.5,
                 ),
                 textDirection: TextDirection.rtl,
+                textAlign: TextAlign.right,
               ),
-            ],
-          ),
-        ],
+            if (review.comment.isNotEmpty)
+              const SizedBox(height: 12),
+
+            // User info
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              textDirection: TextDirection.rtl,
+              children: [
+                // User avatar
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: const Color(0xFFD4AF37),
+                  backgroundImage: review.userImageUrl != null
+                      ? NetworkImage(review.userImageUrl!)
+                      : null,
+                  child: review.userImageUrl == null
+                      ? Text(
+                          review.userName.isNotEmpty ? review.userName[0] : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 8),
+
+                // User name
+                Text(
+                  isCurrentUserReview ? 'أنت' : review.userName,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isCurrentUserReview
+                        ? const Color(0xFFD4AF37)
+                        : const Color(0xFFD4AF37),
+                  ),
+                  textDirection: TextDirection.rtl,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _showEditReviewSheet(ReviewModel review) {
+    ReviewBottomSheet.showEdit(
+      context: context,
+      targetId: widget.venue.id,
+      targetType: 'venue',
+      serviceName: widget.venue.name,
+      reviewId: review.id,
+      existingRating: review.rating,
+      existingComment: review.comment,
+      onReviewSubmitted: () {
+        // Refresh reviews after edit
+        context.read<ReviewBloc>().add(VenueReviewsRequested(widget.venue.id));
+      },
     );
   }
 
@@ -944,27 +932,14 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
               return;
             }
 
-            if (_selectedDecoration == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'الرجاء اختيار نوع الديكور',
-                    textAlign: TextAlign.center,
-                  ),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-
             // Navigate to booking screen with selections
+            debugPrint('Navigating to venue booking with timeSlot: $_selectedTimeSlot');
             Navigator.pushNamed(
               context,
               AppRouter.venueBooking,
               arguments: {
                 'venue': widget.venue,
                 'timeSlot': _selectedTimeSlot!,
-                'decoration': _selectedDecoration!,
               },
             );
           },

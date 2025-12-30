@@ -102,8 +102,7 @@ Future<void> setupDependencyInjection() async {
 
   getIt.registerLazySingleton<OfferRepository>(
     () => OfferRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
+      apiClient: getIt<ApiClient>(),
     ),
   );
 

@@ -180,9 +180,15 @@ class CartRepository {
 
   /// API: Add item to cart
   Future<void> _apiAddToCart(CartItemModel item) async {
+    final jsonData = item.toJson();
+    print('🛒 CartRepository._apiAddToCart - Sending to API:');
+    print('   time_slot: "${jsonData['time_slot']}"');
+    jsonData.forEach((key, value) {
+      print('   $key: $value');
+    });
     await apiClient!.post(
       ApiConstants.addToCart,
-      data: item.toJson(),
+      data: jsonData,
     );
   }
 

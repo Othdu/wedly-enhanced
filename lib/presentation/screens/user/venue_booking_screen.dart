@@ -3,24 +3,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/venue_model.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
-import 'package:wedly/data/repositories/venue_repository.dart';
+import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/logic/blocs/cart/cart_event.dart';
 import 'package:wedly/core/di/injection_container.dart';
-import 'package:intl/intl.dart';
 
 /// Venue booking confirmation screen matching the screenshot design
 /// Shows booking summary receipt, calendar date picker, and personal info form
 class VenueBookingScreen extends StatefulWidget {
   final VenueModel venue;
   final String timeSlot; // 'morning' or 'evening'
-  final String decoration; // 'ديكور1', 'ديكور2', 'ديكورة', 'خالي'
 
   const VenueBookingScreen({
     super.key,
     required this.venue,
     required this.timeSlot,
-    required this.decoration,
   });
 
   @override
@@ -41,6 +38,7 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('VenueBookingScreen initialized with timeSlot: ${widget.timeSlot}');
     _fetchBookedDates();
   }
 
@@ -51,24 +49,31 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
     });
 
     try {
-      final venueRepository = getIt<VenueRepository>();
+      final serviceRepository = getIt<ServiceRepository>();
       final monthStr = '${_displayedMonth.year}-${_displayedMonth.month.toString().padLeft(2, '0')}';
 
-      final result = await venueRepository.getVenueAvailableDates(
+      debugPrint('Fetching booked dates for venue: ${widget.venue.id}, month: $monthStr, timeSlot: ${widget.timeSlot}');
+
+      final result = await serviceRepository.getServiceAvailableDates(
         widget.venue.id,
         monthStr,
         timeSlot: widget.timeSlot,
       );
 
+      debugPrint('API result: $result');
+
       final bookedDates = (result['booked_dates'] as List<dynamic>?)
           ?.map((d) => d.toString())
           .toSet() ?? {};
+
+      debugPrint('Parsed booked dates: $bookedDates');
 
       setState(() {
         _bookedDates = bookedDates;
         _isLoadingDates = false;
       });
     } catch (e) {
+      debugPrint('Error fetching booked dates: $e');
       setState(() {
         _isLoadingDates = false;
       });
@@ -103,10 +108,7 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
       basePrice = 0;
     }
 
-    // TODO: Decoration costs should come from API based on selected decoration package
-    double decorationCost = 0;
-
-    return basePrice + decorationCost;
+    return basePrice;
   }
 
   @override
@@ -313,15 +315,6 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
             label: 'عدد الكراسي',
             value: '${widget.venue.capacity}',
           ),
-
-          const SizedBox(height: 12),
-
-          // Decoration detail
-          _buildDetailRow(
-            icon: Icons.palette_outlined,
-            label: 'البلان',
-            value: widget.decoration,
-          ),
         ],
       ),
     );
@@ -491,8 +484,85 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
 
           // Calendar grid
           _buildCalendarGrid(),
+
+          const SizedBox(height: 16),
+
+          // Calendar legend
+          _buildCalendarLegend(),
         ],
       ),
+    );
+  }
+
+  Widget _buildCalendarLegend() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildLegendItem(
+            color: const Color(0xFFD4AF37),
+            label: 'المحدد',
+          ),
+          _buildLegendItem(
+            color: Colors.red.withValues(alpha: 0.3),
+            label: 'محجوز',
+            hasStrikethrough: true,
+          ),
+          _buildLegendItem(
+            color: Colors.grey.shade300,
+            label: 'ماضي',
+          ),
+          _buildLegendItem(
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+            label: 'اليوم',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendItem({
+    required Color color,
+    required String label,
+    bool hasStrikethrough = false,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: hasStrikethrough
+              ? Center(
+                  child: Text(
+                    '—',
+                    style: TextStyle(
+                      color: Colors.red.shade400,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
     );
   }
 
@@ -624,6 +694,52 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
     return monthNames[month - 1];
   }
 
+  /// Shows a styled error dialog with icon
+  void _showErrorDialog({
+    required String title,
+    required String message,
+    required IconData icon,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(icon, color: Colors.orange, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(fontSize: 15, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'حسناً',
+                style: TextStyle(color: Color(0xFFD4AF37)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildConfirmButton() {
     return Padding(
@@ -634,14 +750,34 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
         child: ElevatedButton(
           onPressed: () {
             if (_selectedDate == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'الرجاء اختيار تاريخ الحجز',
-                    textAlign: TextAlign.center,
-                  ),
-                  backgroundColor: Colors.red,
-                ),
+              _showErrorDialog(
+                title: 'لم يتم اختيار تاريخ',
+                message: 'الرجاء اختيار تاريخ الحجز من التقويم',
+                icon: Icons.calendar_today,
+              );
+              return;
+            }
+
+            // Check if selected date is in the past
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+            final selectedDay = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
+
+            if (selectedDay.isBefore(today)) {
+              _showErrorDialog(
+                title: 'تاريخ غير صالح',
+                message: 'لا يمكنك حجز تاريخ في الماضي. الرجاء اختيار تاريخ في المستقبل.',
+                icon: Icons.event_busy,
+              );
+              return;
+            }
+
+            // Check if selected date is booked
+            if (_isDateBooked(_selectedDate!)) {
+              _showErrorDialog(
+                title: 'الموعد محجوز',
+                message: 'هذا التاريخ محجوز بالفعل. الرجاء اختيار تاريخ آخر.',
+                icon: Icons.block,
               );
               return;
             }
@@ -664,10 +800,16 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
               reviewCount: widget.venue.reviewCount,
             );
 
-            // Format date for display
-            final formattedDate = DateFormat('d MMMM', 'ar').format(_selectedDate!);
+            // Format date as DD/MM/YYYY for proper parsing in payment confirmation
+            final formattedDate = '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
 
-            // Create cart item
+            // Create cart item with timeSlot for booking API
+            debugPrint('🎯 VenueBookingScreen - Creating cart item');
+            debugPrint('🎯 widget.timeSlot value: "${widget.timeSlot}"');
+            debugPrint('🎯 widget.timeSlot isEmpty: ${widget.timeSlot.isEmpty}');
+            debugPrint('🎯 widget.timeSlot == "evening": ${widget.timeSlot == "evening"}');
+            debugPrint('🎯 widget.timeSlot == "morning": ${widget.timeSlot == "morning"}');
+
             final cartItem = CartItemModel(
               id: DateTime.now().millisecondsSinceEpoch.toString(),
               service: venueAsService,
@@ -675,7 +817,10 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
               time: _timeSlotText,
               servicePrice: _totalPrice,
               addedAt: DateTime.now(),
+              timeSlot: widget.timeSlot, // "morning" or "evening" for venue booking API
             );
+            debugPrint('🎯 Cart item created with timeSlot: "${cartItem.timeSlot}"');
+            debugPrint('🎯 Cart item toJson: ${cartItem.toJson()}');
 
             // Add to cart
             context.read<CartBloc>().add(CartItemAdded(item: cartItem));

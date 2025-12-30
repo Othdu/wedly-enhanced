@@ -119,6 +119,23 @@ class ReviewError extends ReviewState {
   List<Object?> get props => [message, errorCode];
 }
 
+/// State when user tries to submit a duplicate review
+/// This state allows the UI to offer editing the existing review
+class ReviewDuplicateDetected extends ReviewState {
+  final String targetId;
+  final String targetType;
+  final String message;
+
+  const ReviewDuplicateDetected({
+    required this.targetId,
+    required this.targetType,
+    this.message = 'لقد قمت بتقييم هذه الخدمة مسبقاً. هل تريد تعديل تقييمك؟',
+  });
+
+  @override
+  List<Object?> get props => [targetId, targetType, message];
+}
+
 /// State when reviews are empty (no reviews found)
 class ReviewsEmpty extends ReviewState {
   final String message;

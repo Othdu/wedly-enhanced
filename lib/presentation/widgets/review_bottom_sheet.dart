@@ -113,9 +113,7 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
       return;
     }
 
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    // Comment is optional, no form validation needed
 
     if (widget.isEditMode && widget.reviewId != null) {
       // Update existing review
@@ -183,6 +181,149 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
     );
   }
 
+  void _showDuplicateReviewDialog(BuildContext context, ReviewDuplicateDetected state) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Animated icon container
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AppColors.gold.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.star_rounded,
+                      color: AppColors.gold,
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'لديك تقييم بالفعل!',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+
+              // Message
+              Text(
+                'لقد قمت بتقييم هذه الخدمة من قبل.\nيمكنك تعديل تقييمك أو حذفه من قسم التقييمات أدناه.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+
+              // Primary button - View reviews
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    Navigator.of(context).pop(false);
+                    // Trigger a refresh of reviews
+                    if (state.targetType == 'venue') {
+                      context.read<ReviewBloc>().add(VenueReviewsRequested(state.targetId));
+                    } else {
+                      context.read<ReviewBloc>().add(ServiceReviewsRequested(state.targetId));
+                    }
+                    // Show guidance snackbar
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(Icons.arrow_downward, color: Colors.white, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'مرر لأسفل للوصول إلى تقييمك واضغط عليه للتعديل',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: AppColors.gold,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.rate_review_outlined, size: 20),
+                  label: const Text(
+                    'عرض تقييمي',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Secondary button - Close
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    Navigator.of(context).pop(false);
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                    'إغلاق',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<ReviewBloc, ReviewState>(
@@ -214,6 +355,8 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
               backgroundColor: Colors.green,
             ),
           );
+        } else if (state is ReviewDuplicateDetected) {
+          _showDuplicateReviewDialog(context, state);
         } else if (state is ReviewError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -296,7 +439,7 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Comment field
+                  // Comment field (optional)
                   TextFormField(
                     controller: _commentController,
                     maxLines: 4,
@@ -304,7 +447,7 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
                     textAlign: TextAlign.right,
                     textDirection: TextDirection.rtl,
                     decoration: InputDecoration(
-                      hintText: 'اكتب تعليقك هنا...',
+                      hintText: 'اكتب تعليقك هنا (اختياري)...',
                       hintStyle: TextStyle(color: Colors.grey.shade400),
                       filled: true,
                       fillColor: Colors.grey.shade50,
@@ -326,15 +469,7 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
                       ),
                       contentPadding: const EdgeInsets.all(16),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'الرجاء كتابة تعليق';
-                      }
-                      if (value.trim().length < 10) {
-                        return 'التعليق يجب أن يكون 10 أحرف على الأقل';
-                      }
-                      return null;
-                    },
+                    // Comment is now optional - no validator needed
                   ),
                   const SizedBox(height: 24),
 
