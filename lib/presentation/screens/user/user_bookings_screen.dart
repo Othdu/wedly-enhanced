@@ -310,10 +310,10 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                             getStatusTextColor: _getStatusTextColor,
                             getStatusText: _getStatusText,
                             getStatusTextAr: _getStatusTextAr,
-                            onReviewTap: (booking.status == BookingStatus.completed || booking.status == BookingStatus.confirmed) && !booking.hasReviewed
+                            onReviewTap: booking.status == BookingStatus.completed && !booking.hasReviewed
                                 ? () => _showReviewBottomSheet(booking)
                                 : null,
-                            onEditReviewTap: (booking.status == BookingStatus.completed || booking.status == BookingStatus.confirmed) && booking.hasReviewed
+                            onEditReviewTap: booking.status == BookingStatus.completed && booking.hasReviewed
                                 ? () => _showEditReviewBottomSheet(booking)
                                 : null,
                           );
@@ -439,8 +439,8 @@ class _BookingCard extends StatelessWidget {
               valueColor: Colors.black,
             ),
 
-            // Review button - show for completed and confirmed bookings that haven't been reviewed
-            if ((booking.status == BookingStatus.completed || booking.status == BookingStatus.confirmed) && !booking.hasReviewed) ...[
+            // Review button - show only for completed bookings that haven't been reviewed
+            if (booking.status == BookingStatus.completed && !booking.hasReviewed) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -467,8 +467,8 @@ class _BookingCard extends StatelessWidget {
               ),
             ],
 
-            // Show "Edit Review" button for reviewed bookings
-            if ((booking.status == BookingStatus.completed || booking.status == BookingStatus.confirmed) && booking.hasReviewed) ...[
+            // Show "Edit Review" button only for completed and reviewed bookings
+            if (booking.status == BookingStatus.completed && booking.hasReviewed) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,

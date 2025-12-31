@@ -72,6 +72,11 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       final allServices = await serviceRepository.getServices();
       final categories = await serviceRepository.getCategoriesWithDetails();
 
+      // Create a map for category ID to Arabic name lookup
+      final categoryIdToNameMap = Map.fromEntries(
+        categories.map((cat) => MapEntry(cat.id, cat.nameAr)),
+      );
+
       // الفلترة حسب الفئة إذا تم تحديدها
       List<ServiceModel> filteredServices = allServices;
       if (event.category != null && event.category!.isNotEmpty) {
@@ -82,11 +87,31 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
       // الفلترة حسب كلمة البحث
       if (event.query.isNotEmpty) {
-        final query = event.query.toLowerCase();
+        final query = event.query.toLowerCase().trim();
         filteredServices = filteredServices.where((service) {
-          return service.name.toLowerCase().contains(query) ||
-              service.description.toLowerCase().contains(query) ||
-              service.category.toLowerCase().contains(query);
+          final serviceName = service.name.toLowerCase();
+          final serviceDescription = service.description.toLowerCase();
+          final categoryArabicName = categoryIdToNameMap[service.category]?.toLowerCase() ?? '';
+
+          // Direct match in name, description, or category
+          if (serviceName.contains(query) ||
+              serviceDescription.contains(query) ||
+              categoryArabicName.contains(query)) {
+            return true;
+          }
+
+          // Smart keyword matching for Arabic search terms
+          // Extract keywords from search query
+          final searchKeywords = _extractArabicKeywords(query);
+
+          // Check if service name or description contains any of the keywords
+          for (final keyword in searchKeywords) {
+            if (serviceName.contains(keyword) || serviceDescription.contains(keyword)) {
+              return true;
+            }
+          }
+
+          return false;
         }).toList();
       }
 
@@ -99,6 +124,71 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     } catch (e) {
       emit(const SearchError('حدث خطأ في البحث'));
     }
+  }
+
+  /// Extract keywords from Arabic search terms for smart matching
+  /// For example: "قاعات أفراح" -> ["قاعة", "قاعات", "قاعه", "أفراح", "فرح"]
+  List<String> _extractArabicKeywords(String query) {
+    final keywords = <String>[];
+    final words = query.split(' ');
+
+    for (final word in words) {
+      if (word.isEmpty) continue;
+
+      // Add the original word
+      keywords.add(word);
+
+      // Smart variations for common Arabic words
+      if (word.contains('قاعات')) {
+        keywords.addAll(['قاعة', 'قاعه', 'قاعات']);
+      } else if (word.contains('قاعة')) {
+        keywords.addAll(['قاعة', 'قاعه', 'قاعات']);
+      } else if (word.contains('قاعه')) {
+        keywords.addAll(['قاعة', 'قاعه', 'قاعات']);
+      }
+
+      if (word.contains('أفراح')) {
+        keywords.addAll(['فرح', 'أفراح', 'افراح']);
+      } else if (word.contains('فرح')) {
+        keywords.addAll(['فرح', 'أفراح', 'افراح']);
+      }
+
+      if (word.contains('تصوير')) {
+        keywords.addAll(['تصوير', 'مصور', 'مصورين', 'صور']);
+      } else if (word.contains('مصور')) {
+        keywords.addAll(['تصوير', 'مصور', 'مصورين', 'صور']);
+      }
+
+      if (word.contains('فوتوغراف')) {
+        keywords.addAll(['فوتوغراف', 'فوتوغرافي', 'فوتوغرافيا']);
+      }
+
+      if (word.contains('كوافير')) {
+        keywords.addAll(['كوافير', 'كوافيرة', 'تجميل', 'ميك', 'ميكب']);
+      } else if (word.contains('تجميل')) {
+        keywords.addAll(['كوافير', 'تجميل', 'ميك', 'ميكب']);
+      }
+
+      if (word.contains('ديكور')) {
+        keywords.addAll(['ديكور', 'كوش', 'زينة', 'تزيين']);
+      } else if (word.contains('كوش')) {
+        keywords.addAll(['ديكور', 'كوش', 'زينة', 'تزيين']);
+      }
+
+      if (word.contains('موسيق')) {
+        keywords.addAll(['موسيقى', 'موسيقي', 'فرقة', 'فرق']);
+      } else if (word.contains('فرق')) {
+        keywords.addAll(['موسيقى', 'فرقة', 'فرق']);
+      }
+
+      if (word.contains('حلويات')) {
+        keywords.addAll(['حلويات', 'كيك', 'حلوى']);
+      } else if (word.contains('كيك')) {
+        keywords.addAll(['حلويات', 'كيك', 'حلوى']);
+      }
+    }
+
+    return keywords.toSet().toList(); // Remove duplicates
   }
 
   /// الفلترة حسب الفئة فقط

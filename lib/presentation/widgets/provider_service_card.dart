@@ -8,6 +8,7 @@ class ProviderServiceCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onToggleStatus;
   final bool showActions;
 
   const ProviderServiceCard({
@@ -16,6 +17,7 @@ class ProviderServiceCard extends StatelessWidget {
     this.onTap,
     this.onEdit,
     this.onDelete,
+    this.onToggleStatus,
     this.showActions = true,
   });
 
@@ -71,7 +73,7 @@ class ProviderServiceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Service Image with Pending Approval Badge
+          // Service Image with Status Badges
           Expanded(
             flex: 6,
             child: Stack(
@@ -90,6 +92,25 @@ class ProviderServiceCard extends StatelessWidget {
                     size: 40,
                   ),
                 ),
+                // Inactive overlay when service is deactivated
+                if (!service.isActive)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.visibility_off,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
                 // Pending Approval Badge
                 if (service.isPendingApproval)
                   Positioned(
@@ -104,9 +125,9 @@ class ProviderServiceCard extends StatelessWidget {
                         color: Colors.orange,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(Icons.schedule, color: Colors.white, size: 12),
                           SizedBox(width: 4),
                           Text(
@@ -121,6 +142,43 @@ class ProviderServiceCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                // Active/Inactive Status Badge (top left)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: GestureDetector(
+                    onTap: onToggleStatus,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: service.isActive ? Colors.green : Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            service.isActive ? Icons.visibility : Icons.visibility_off,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            service.isActive ? 'مفعّل' : 'معطّل',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

@@ -125,6 +125,7 @@ class ApiConstants {
   static String updateOffer(String id) => '/api/offers/$id'; // PUT
   static String deleteOffer(String id) => '/api/offers/$id'; // DELETE
   static String getProviderOffers(String providerId) => '/api/providers/$providerId/offers';
+  static String submitServiceOffer(String serviceId) => '/api/offers/services/$serviceId'; // PATCH - Submit offer for service
 
   // Reviews Endpoints
   static String updateReview(String id) => '/api/reviews/$id';

@@ -1200,10 +1200,44 @@ class ServiceRepository {
 
   /// API implementation: Toggle service status
   Future<ServiceModel> _apiToggleServiceStatus(String serviceId) async {
+    // First, get the current service to know its current state
+    final currentService = await getServiceById(serviceId);
+    if (currentService == null) {
+      throw Exception('Service not found: $serviceId');
+    }
+
+    // Make the API call to toggle status
     final response = await _apiClient!.patch(
-      ApiConstants.toggleServiceStatus(int.parse(serviceId)),
+      ApiConstants.toggleServiceStatus(serviceId),
     );
-    return ServiceModel.fromJson(response.data['service'] ?? response.data);
+
+    print('🔄 Toggle status response: ${response.data}');
+
+    // Try to parse the response if it contains the full service
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      try {
+        // Try different possible response structures
+        if (data.containsKey('service') && data['service'] != null) {
+          return ServiceModel.fromJson(data['service'] as Map<String, dynamic>);
+        } else if (data.containsKey('data') && data['data'] != null) {
+          return ServiceModel.fromJson(data['data'] as Map<String, dynamic>);
+        } else if (data.containsKey('id') && data.containsKey('name')) {
+          // Response is the service object directly with required fields
+          return ServiceModel.fromJson(data);
+        } else if (data.containsKey('is_active') || data.containsKey('isActive')) {
+          // Response only contains the new status - use it to update our local model
+          final newIsActive = data['is_active'] as bool? ?? data['isActive'] as bool? ?? !currentService.isActive;
+          return currentService.copyWith(isActive: newIsActive);
+        }
+      } catch (e) {
+        print('⚠️ Failed to parse toggle response, using toggled local state: $e');
+      }
+    }
+
+    // If we can't parse the response, just toggle the local state
+    // The API call succeeded (no exception), so we assume the toggle worked
+    return currentService.copyWith(isActive: !currentService.isActive);
   }
 
   /// Get all categories with images and service counts
@@ -1617,6 +1651,99 @@ class ServiceRepository {
       print('⚠️ API Error in getServiceAvailableDates: $e');
       print('📦 Falling back to mock data');
       return _mockGetServiceAvailableDates(serviceId, month, timeSlot: timeSlot);
+    }
+  }
+
+  // ==================== OFFER METHODS ====================
+
+  /// Submit an offer for a service (provider only, pending admin approval)
+  /// Returns the updated service with offer details
+  Future<ServiceModel?> submitServiceOffer({
+    required String serviceId,
+    required double discountPercentage,
+    required DateTime offerExpiryDate,
+  }) async {
+    // Check if we're in mock mode or have no API client
+    if (useMockData || _apiClient == null) {
+      print('⚠️ ServiceRepository: Cannot submit offer - useMockData=$useMockData, apiClient=${_apiClient != null}');
+      throw Exception('Cannot submit offer: API client not available');
+    }
+
+    print('🎁 ========================================');
+    print('🎁 SUBMITTING OFFER FOR SERVICE');
+    print('🎁 ========================================');
+    print('🎁 Service ID: $serviceId');
+    print('🎁 Discount: $discountPercentage%');
+    print('🎁 Expiry Date: ${offerExpiryDate.toIso8601String()}');
+    print('🎁 Endpoint: ${ApiConstants.submitServiceOffer(serviceId)}');
+    print('🎁 ========================================');
+
+    try {
+      // Format date as ISO 8601 with UTC timezone (Z suffix)
+      // The API expects format like: 2026-01-07T00:00:00.000Z
+      final utcDate = offerExpiryDate.toUtc();
+      final formattedDate = '${utcDate.toIso8601String().split('.')[0]}.000Z';
+
+      final requestData = {
+        'discount_percentage': discountPercentage,
+        'offer_expiry_date': formattedDate,
+      };
+      print('🎁 Request data: $requestData');
+
+      final response = await _apiClient.patch(
+        ApiConstants.submitServiceOffer(serviceId),
+        data: requestData,
+      );
+
+      print('🎁 ========================================');
+      print('🎁 OFFER API RESPONSE');
+      print('🎁 ========================================');
+      print('🎁 Status code: ${response.statusCode}');
+      print('🎁 Response data: ${response.data}');
+      print('🎁 ========================================');
+
+      // Check if response indicates success
+      if (response.data != null) {
+        final success = response.data['success'] as bool? ??
+                        (response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300);
+
+        if (!success) {
+          final message = response.data['message'] as String? ?? 'Unknown error';
+          print('❌ Offer submission failed: $message');
+          throw Exception('Offer submission failed: $message');
+        }
+      }
+
+      // Try to parse the service from response
+      try {
+        final responseData = response.data['data'] ?? response.data;
+        final serviceData = responseData['service'] ?? responseData;
+        print('✅ Offer submitted successfully for service $serviceId (pending approval)');
+        return ServiceModel.fromJson(serviceData as Map<String, dynamic>);
+      } catch (parseError) {
+        // Even if we can't parse the response, the offer was submitted
+        print('⚠️ Could not parse response, but offer was submitted: $parseError');
+        return null;
+      }
+    } on DioException catch (e) {
+      print('❌ ========================================');
+      print('❌ DIO ERROR IN SUBMIT OFFER');
+      print('❌ ========================================');
+      print('❌ Error type: ${e.type}');
+      print('❌ Error message: ${e.message}');
+      print('❌ Response status: ${e.response?.statusCode}');
+      print('❌ Response data: ${e.response?.data}');
+      print('❌ ========================================');
+
+      // Extract error message from response if available
+      String errorMessage = 'Failed to submit offer';
+      if (e.response?.data != null && e.response!.data is Map) {
+        errorMessage = e.response!.data['message'] as String? ?? errorMessage;
+      }
+      throw Exception(errorMessage);
+    } catch (e) {
+      print('❌ API Error in submitServiceOffer: $e');
+      rethrow;
     }
   }
 }

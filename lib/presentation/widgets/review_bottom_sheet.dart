@@ -6,7 +6,8 @@ import 'package:wedly/logic/blocs/review/review_event.dart';
 import 'package:wedly/logic/blocs/review/review_state.dart';
 
 /// Bottom sheet widget for submitting, editing, and deleting reviews
-/// Used in completed bookings to allow users to rate services/venues
+/// Used ONLY in completed bookings to allow users to rate services/venues
+/// Reviews cannot be submitted for confirmed bookings - only completed ones
 class ReviewBottomSheet extends StatefulWidget {
   final String targetId; // Service or Venue ID
   final String targetType; // 'service' or 'venue'

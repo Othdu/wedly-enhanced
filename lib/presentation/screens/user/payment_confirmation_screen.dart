@@ -6,12 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/booking_repository.dart';
+import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/data/services/api_exceptions.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/logic/blocs/cart/cart_event.dart';
+import 'package:wedly/logic/blocs/home/home_bloc.dart';
+import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 import 'package:wedly/core/di/injection_container.dart';
 import 'package:intl/intl.dart';
@@ -907,6 +910,35 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
         context.read<CartBloc>().add(CartCleared());
       }
 
+      // Set wedding date if user booked a venue
+      // This triggers the countdown timer to appear on home screen
+      final venueBooking = widget.cartItems.firstWhere(
+        (item) => item.service.category == '2' || // Category ID 2 is venues
+                  item.service.category.toLowerCase() == 'venue' ||
+                  item.service.category.toLowerCase() == 'venues' ||
+                  item.service.category == 'قاعات الأفراح',
+        orElse: () => widget.cartItems.first, // fallback (shouldn't happen)
+      );
+
+      // Check if we actually found a venue booking
+      final isVenueBooking = venueBooking.service.category == '2' ||
+                             venueBooking.service.category.toLowerCase() == 'venue' ||
+                             venueBooking.service.category.toLowerCase() == 'venues' ||
+                             venueBooking.service.category == 'قاعات الأفراح';
+
+      if (isVenueBooking && mounted) {
+        final weddingDate = _parseBookingDate(venueBooking.date);
+        final authRepository = getIt<AuthRepository>();
+
+        try {
+          await authRepository.setWeddingDate(weddingDate);
+          debugPrint('✅ Wedding date set successfully: $weddingDate');
+        } catch (e) {
+          debugPrint('⚠️ Failed to set wedding date: $e');
+          // Don't fail the whole booking if setting wedding date fails
+        }
+      }
+
       // Update user profile with any edited customer details
       if (mounted) {
         final nameChanged = _nameController.text.trim() != user.name;
@@ -996,6 +1028,14 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                     Navigator.of(context).pop(); // Close dialog
                     // Navigate to home
                     Navigator.of(context).popUntil((route) => route.isFirst);
+
+                    // Refresh HomeBloc to fetch updated countdown (if venue was booked)
+                    final authState = context.read<AuthBloc>().state;
+                    String? userId;
+                    if (authState is AuthAuthenticated) {
+                      userId = authState.user.id;
+                    }
+                    context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD4AF37),

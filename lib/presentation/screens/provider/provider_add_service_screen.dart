@@ -34,15 +34,11 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   // General price controller (for non-venue categories - optional)
   final _generalPriceController = TextEditingController();
 
-  final _discountPercentageController = TextEditingController();
-  DateTime? _offerExpiryDate;
-
   final List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
   bool _isPickingImage = false;
 
   String? _selectedCategory;
-  bool _hasOffer = false;
 
   // Category loading state
   List<CategoryModel> _categories = [];
@@ -287,7 +283,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     _morningPriceController.dispose();
     _eveningPriceController.dispose();
     _generalPriceController.dispose();
-    _discountPercentageController.dispose();
     _mapController.dispose();
     super.dispose();
   }
@@ -304,7 +299,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           backgroundColor: Colors.transparent,
           flexibleSpace: Container(
             decoration: const BoxDecoration(
-              color: Color(0xFFD4AF37),
+              color: Color(0xFFD4AF37), 
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(24),
                 bottomRight: Radius.circular(24),
@@ -365,8 +360,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             // Dynamic Category-Specific Fields
             ..._buildCategorySpecificFields(),
 
-            // Offer Section
-            _buildOfferSection(),
             const SizedBox(height: 32),
 
             // Submit Button
@@ -1525,206 +1518,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     );
   }
 
-  Widget _buildOfferSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        _buildSectionLabel('العرض'),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200, width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // Enable/Disable Offer Toggle
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  
-                  const Text(
-                    'تفعيل العرض',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),Switch(
-                    value: _hasOffer,
-                    onChanged: (value) {
-                      setState(() {
-                        _hasOffer = value;
-                        if (!_hasOffer) {
-                          _discountPercentageController.clear();
-                          _offerExpiryDate = null;
-                        }
-                      });
-                    },
-                    activeTrackColor: const Color(0xFFD4AF37),
-                    activeThumbColor: Colors.white,
-                  ),
-                ],
-              ),
-
-              if (_hasOffer) ...[
-                const SizedBox(height: 16),
-
-                // Discount Percentage
-                const Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'نسبة الخصم (%)',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _discountPercentageController,
-                  textAlign: TextAlign.right,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(fontSize: 15),
-                  decoration: InputDecoration(
-                    hintText: 'مثال: 10',
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 14,
-                    ),
-                    suffixText: '%',
-                    suffixStyle: const TextStyle(
-                      color: Color(0xFFD4AF37),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: Color(0xFFD4AF37),
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (_hasOffer && (value == null || value.isEmpty)) {
-                      return 'الرجاء إدخال نسبة الخصم';
-                    }
-                    if (_hasOffer && value != null && double.tryParse(value) == null) {
-                      return 'الرجاء إدخال رقم صحيح';
-                    }
-                    if (_hasOffer && value != null) {
-                      final discount = double.parse(value);
-                      if (discount < 0 || discount > 100) {
-                        return 'النسبة يجب أن تكون بين 0 و 100';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Offer Expiry Date
-                const Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'تاريخ انتهاء العرض',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _offerExpiryDate ?? DateTime.now().add(const Duration(days: 7)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                      builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: const ColorScheme.light(
-                              primary: Color(0xFFD4AF37),
-                              onPrimary: Colors.white,
-                            ),
-                          ),
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (date != null) {
-                      setState(() {
-                        _offerExpiryDate = date;
-                      });
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          color: Color(0xFFD4AF37),
-                          size: 20,
-                        ),
-                        Text(
-                          _offerExpiryDate != null
-                              ? '${_offerExpiryDate!.year}/${_offerExpiryDate!.month}/${_offerExpiryDate!.day}'
-                              : 'اختر التاريخ',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: _offerExpiryDate != null
-                                ? Colors.black87
-                                : Colors.grey.shade400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSubmitButton() {
     return SizedBox(
       width: double.infinity,
@@ -1757,17 +1550,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       if (authState is! AuthAuthenticated) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('خطأ: يجب تسجيل الدخول أولاً')),
-        );
-        return;
-      }
-
-      // Validate offer expiry date if offer is enabled
-      if (_hasOffer && _offerExpiryDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('الرجاء تحديد تاريخ انتهاء العرض'),
-            backgroundColor: Colors.red,
-          ),
         );
         return;
       }
@@ -1882,12 +1664,10 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           longitude: isVenueCategory ? _pickedLocation.longitude : null,
           isActive: true,
           isPendingApproval: false,
-          hasOffer: _hasOffer,
-          discountPercentage:
-              _hasOffer && _discountPercentageController.text.isNotEmpty
-              ? double.tryParse(_discountPercentageController.text)
-              : null,
-          offerExpiryDate: _hasOffer ? _offerExpiryDate : null,
+          // Offers are not set during creation - only via edit screen
+          hasOffer: false,
+          discountPercentage: null,
+          offerExpiryDate: null,
           offerApproved: false,
         );
 

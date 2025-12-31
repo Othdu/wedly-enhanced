@@ -1323,19 +1323,56 @@ class _ProviderEditGeneralServiceScreenState
           }
         }
 
-        // 7. Update the service itself (price, offer, etc.)
+        // 7. Update the service itself (price only - offers handled separately)
         final updatedService = widget.service.copyWith(
           price: _priceController.text.isNotEmpty
               ? double.tryParse(_priceController.text)
               : null,
-          hasOffer: _hasOffer,
-          discountPercentage: _hasOffer && _discountController.text.isNotEmpty
-              ? double.tryParse(_discountController.text)
-              : null,
-          offerExpiryDate: _hasOffer ? _offerExpiryDate : null,
-          offerApproved: _hasOffer ? false : widget.service.offerApproved,
           isPendingApproval: false,
         );
+
+        // 8. Submit offer via separate API if enabled
+        if (_hasOffer && _discountController.text.isNotEmpty && _offerExpiryDate != null) {
+          debugPrint('🎁 Attempting to submit offer...');
+          debugPrint('🎁 Has offer: $_hasOffer');
+          debugPrint('🎁 Discount: ${_discountController.text}');
+          debugPrint('🎁 Expiry: $_offerExpiryDate');
+
+          try {
+            final result = await serviceRepository.submitServiceOffer(
+              serviceId: serviceId,
+              discountPercentage: double.parse(_discountController.text),
+              offerExpiryDate: _offerExpiryDate!,
+            );
+            debugPrint('✅ Offer submitted successfully for service $serviceId');
+            debugPrint('✅ Result: $result');
+
+            // Show success message for offer submission
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم تقديم العرض بنجاح! سيتم مراجعته من قبل الإدارة.'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            }
+          } catch (e) {
+            debugPrint('❌ Error submitting offer: $e');
+            // Show error but don't fail the whole operation
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('فشل تقديم العرض: $e'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            }
+          }
+        } else {
+          debugPrint('ℹ️ Offer not submitted - hasOffer: $_hasOffer, discount: ${_discountController.text}, expiry: $_offerExpiryDate');
+        }
 
         // Dispatch UpdateService event to BLoC
         if (mounted) {

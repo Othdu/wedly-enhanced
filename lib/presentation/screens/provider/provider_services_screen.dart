@@ -85,6 +85,21 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
             }
           }
 
+          if (state is ServiceStatusToggled) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: state.service.isActive ? Colors.green : Colors.orange,
+              ),
+            );
+            // Refresh services list
+            if (_providerId != null) {
+              context.read<ProviderServiceBloc>().add(
+                RefreshProviderServices(_providerId!),
+              );
+            }
+          }
+
           if (state is ProviderServiceError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -273,6 +288,12 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                                 const SnackBar(
                                   content: Text('قريباً: تفاصيل الخدمة'),
                                 ),
+                              );
+                            },
+                            onToggleStatus: () {
+                              // Toggle service active status
+                              context.read<ProviderServiceBloc>().add(
+                                ToggleServiceStatus(service.id),
                               );
                             },
                             onEdit: () async {

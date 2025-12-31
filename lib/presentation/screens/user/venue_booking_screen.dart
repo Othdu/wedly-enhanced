@@ -6,6 +6,10 @@ import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/logic/blocs/cart/cart_event.dart';
+import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_state.dart';
+import 'package:wedly/logic/blocs/home/home_bloc.dart';
+import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/core/di/injection_container.dart';
 
 /// Venue booking confirmation screen matching the screenshot design
@@ -73,10 +77,39 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
         _isLoadingDates = false;
       });
     } catch (e) {
-      debugPrint('Error fetching booked dates: $e');
-      setState(() {
-        _isLoadingDates = false;
-      });
+      debugPrint('❌ Error fetching booked dates: $e');
+      debugPrint('❌ Error type: ${e.runtimeType}');
+
+      // Check if it's an authentication error
+      final errorMessage = e.toString();
+      final isAuthError = errorMessage.contains('Unauthorized') ||
+                          errorMessage.contains('401') ||
+                          errorMessage.contains('غير مصرح');
+
+      if (mounted) {
+        setState(() {
+          _isLoadingDates = false;
+        });
+
+        // Show error message to user
+        if (isAuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('خطأ في تحميل التواريخ: $e'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -880,6 +913,14 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
 
                             // Go back to home screen (navigation wrapper)
                             // This will show the bottom nav with updated cart badge
+
+                            // Refresh HomeBloc to fetch updated countdown (if venue was booked)
+                            final authState = context.read<AuthBloc>().state;
+                            String? userId;
+                            if (authState is AuthAuthenticated) {
+                              userId = authState.user.id;
+                            }
+                            context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFD4AF37),
