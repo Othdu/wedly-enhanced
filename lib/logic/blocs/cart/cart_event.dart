@@ -51,3 +51,12 @@ class CartCleared extends CartEvent {
 class CartInitializeMockData extends CartEvent {
   const CartInitializeMockData();
 }
+
+class CartPricesValidated extends CartEvent {
+  final String userId;
+
+  const CartPricesValidated({required this.userId});
+
+  @override
+  List<Object?> get props => [userId];
+}

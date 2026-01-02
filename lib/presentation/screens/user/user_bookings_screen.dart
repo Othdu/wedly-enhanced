@@ -66,8 +66,20 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
   }
 
   String _formatDate(DateTime date) {
-    final formatter = DateFormat('d نوفمبر - الساعة h:mm a', 'ar');
-    return formatter.format(date);
+    // Manual Arabic month names to avoid intl package issues
+    const arabicMonths = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+
+    // Format manually: day + month + time
+    final day = date.day;
+    final month = arabicMonths[date.month - 1];
+    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'م' : 'ص';
+
+    return '$day $month - الساعة $hour:$minute $period';
   }
 
   String _formatNumber(double number) {

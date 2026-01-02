@@ -198,7 +198,10 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8),
         child: GestureDetector(
-          onTap: () => widget.onOfferTap?.call(offer),
+          onTap: () {
+            print('🎨 OffersCarouselWidget: Offer card tapped: ${offer.titleAr}');
+            widget.onOfferTap?.call(offer);
+          },
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Stack(

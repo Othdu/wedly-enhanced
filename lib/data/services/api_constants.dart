@@ -29,6 +29,7 @@ class ApiConstants {
   static const String uploadProfileImage = '/api/users/profile/image';
   static const String changePassword = '/api/users/change-password';
   static const String switchRole = '/api/users/switch-role';
+  static const String getWeddingDate = '/api/users/wedding-date';
   static const String setWeddingDate = '/api/users/wedding-date';
 
   // Service Endpoints

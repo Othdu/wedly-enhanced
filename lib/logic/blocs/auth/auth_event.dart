@@ -170,3 +170,16 @@ class AuthSocialLoginRequested extends AuthEvent {
   List<Object?> get props => [provider];
 }
 
+class AuthSetWeddingDateRequested extends AuthEvent {
+  final DateTime weddingDate;
+
+  const AuthSetWeddingDateRequested({required this.weddingDate});
+
+  @override
+  List<Object?> get props => [weddingDate];
+}
+
+class AuthGetWeddingDateRequested extends AuthEvent {
+  const AuthGetWeddingDateRequested();
+}
+

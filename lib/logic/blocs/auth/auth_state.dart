@@ -126,3 +126,27 @@ class AuthProfileUpdateSuccess extends AuthState {
   List<Object?> get props => [user, message];
 }
 
+class AuthSetWeddingDateSuccess extends AuthState {
+  final String message;
+
+  const AuthSetWeddingDateSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class AuthGetWeddingDateSuccess extends AuthState {
+  final DateTime? weddingDate;
+  final int? daysRemaining;
+  final String message;
+
+  const AuthGetWeddingDateSuccess({
+    required this.weddingDate,
+    required this.daysRemaining,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [weddingDate, daysRemaining, message];
+}
+

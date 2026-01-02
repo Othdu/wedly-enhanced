@@ -48,16 +48,29 @@ class OfferModel extends Equatable {
   /// Convert offer to a ServiceModel for booking screens that don't support offers yet
   /// This is a temporary solution until all booking screens are updated
   ServiceModel toService() {
+    // Check if this is a venue offer (service type contains 'venue' or 'قاعات')
+    final isVenue = serviceType.toLowerCase().contains('venue') ||
+                    serviceType.toLowerCase().contains('قاعات') ||
+                    serviceType.toLowerCase().contains('hall');
+
     return ServiceModel(
       id: serviceId ?? id,
       name: titleAr,
       description: descriptionAr,
       imageUrl: imageUrl,
-      price: discountedPrice,
+      price: isVenue ? null : discountedPrice, // Venues don't use 'price' field
       category: serviceType,
       providerId: providerId,
       rating: rating,
       reviewCount: reviewCount,
+      // Venue-specific fields
+      morningPrice: isVenue ? discountedPrice : null,
+      eveningPrice: isVenue ? discountedPrice : null,
+      chairCount: isVenue ? 500 : null, // Default capacity for venue offers
+      hasOffer: true,
+      offerApproved: true,
+      discountPercentage: ((originalPrice - discountedPrice) / originalPrice * 100),
+      offerExpiryDate: expiryDate,
     );
   }
 

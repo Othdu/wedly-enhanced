@@ -14,9 +14,26 @@ class BookingCard extends StatelessWidget {
   const BookingCard({super.key, required this.booking, this.onViewDetails});
 
   String _formatDate(DateTime date) {
-    // Format date in Arabic using intl package
-    final formatter = DateFormat('d MMMM - h:mm a', 'ar');
-    return formatter.format(date);
+    // Debug: Print the raw date to see what we're getting
+    print('📅 BookingCard: Raw date = $date (isUtc: ${date.isUtc})');
+    print('📅 BookingCard: Year=${date.year}, Month=${date.month}, Day=${date.day}, Hour=${date.hour}');
+
+    // Manual Arabic month names to avoid intl package issues
+    const arabicMonths = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+
+    // Format manually: day + month + time
+    final day = date.day;
+    final month = arabicMonths[date.month - 1];
+    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'م' : 'ص';
+
+    final formatted = '$day $month - الساعة $hour:$minute $period';
+    print('📅 BookingCard: Formatted date = $formatted');
+    return formatted;
   }
 
   String _formatNumber(double number) {

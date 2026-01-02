@@ -78,6 +78,15 @@ class BookingModel extends Equatable {
     final bookingDateStr = json['booking_date'] ?? json['bookingDate'];
     final createdAtStr = json['created_at'] ?? json['createdAt'];
 
+    // Debug date parsing
+    if (bookingDateStr != null) {
+      print('🔍 BookingModel.fromJson: Raw booking_date string = $bookingDateStr');
+      final parsedUtc = DateTime.parse(bookingDateStr.toString());
+      final parsedLocal = parsedUtc.toLocal();
+      print('🔍 BookingModel.fromJson: Parsed UTC = $parsedUtc');
+      print('🔍 BookingModel.fromJson: Parsed Local = $parsedLocal');
+    }
+
     return BookingModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       serviceId: getStringField('service_id', 'serviceId') ?? '',
@@ -89,10 +98,10 @@ class BookingModel extends Equatable {
       customerEmail: getStringField('customer_email', 'customerEmail') ?? '',
       customerPhone: getStringField('customer_phone', 'customerPhone') ?? '',
       bookingDate: bookingDateStr != null
-          ? DateTime.parse(bookingDateStr.toString())
+          ? DateTime.parse(bookingDateStr.toString()).toLocal()
           : DateTime.now(),
       createdAt: createdAtStr != null
-          ? DateTime.parse(createdAtStr.toString())
+          ? DateTime.parse(createdAtStr.toString()).toLocal()
           : DateTime.now(),
       status: BookingStatus.values.firstWhere(
         (e) => e.toString().split('.').last == json['status'],

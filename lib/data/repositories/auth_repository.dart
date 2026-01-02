@@ -495,6 +495,10 @@ class AuthRepository {
       throw Exception('No user logged in');
     }
 
+    // Update user with wedding date
+    _currentUser = _currentUser!.copyWith(weddingDate: weddingDate);
+    await _saveUserToCache(_currentUser!);
+
     return {
       'success': true,
       'message': 'تم حفظ تاريخ الزفاف بنجاح',
@@ -515,6 +519,58 @@ class AuthRepository {
       'success': responseData['success'] ?? true,
       'message': responseData['message'] ?? 'تم حفظ تاريخ الزفاف بنجاح',
       'wedding_date': weddingDate.toIso8601String(),
+    };
+  }
+
+  /// Get wedding date
+  /// GET /api/users/wedding-date
+  /// Returns wedding date and days remaining
+  Future<Map<String, dynamic>> getWeddingDate() async {
+    if (useMockData || _apiClient == null) {
+      return _mockGetWeddingDate();
+    } else {
+      return _apiGetWeddingDate();
+    }
+  }
+
+  Future<Map<String, dynamic>> _mockGetWeddingDate() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (_currentUser == null) {
+      throw Exception('No user logged in');
+    }
+
+    // Check if user has a wedding date set
+    if (_currentUser!.weddingDate == null) {
+      return {
+        'success': true,
+        'message': 'لم يتم تحديد تاريخ الزفاف',
+        'wedding_date': null,
+        'days_remaining': null,
+      };
+    }
+
+    // Calculate days remaining
+    final now = DateTime.now();
+    final daysRemaining = _currentUser!.weddingDate!.difference(now).inDays;
+
+    return {
+      'success': true,
+      'message': 'تم جلب تاريخ الزفاف بنجاح',
+      'wedding_date': _currentUser!.weddingDate!.toIso8601String(),
+      'days_remaining': daysRemaining,
+    };
+  }
+
+  Future<Map<String, dynamic>> _apiGetWeddingDate() async {
+    final response = await _apiClient!.get(ApiConstants.getWeddingDate);
+
+    final responseData = response.data['data'] ?? response.data;
+    return {
+      'success': responseData['success'] ?? true,
+      'message': responseData['message'] ?? 'تم جلب تاريخ الزفاف بنجاح',
+      'wedding_date': responseData['wedding_date'],
+      'days_remaining': responseData['days_remaining'],
     };
   }
 

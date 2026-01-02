@@ -18,6 +18,22 @@ class UserCartScreen extends StatefulWidget {
 }
 
 class _UserCartScreenState extends State<UserCartScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Validate prices when cart screen opens
+    _validatePrices();
+  }
+
+  void _validatePrices() {
+    // Trigger price validation after a short delay to let cart load first
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        context.read<CartBloc>().add(const CartPricesValidated(userId: 'current_user'));
+      }
+    });
+  }
+
   void _showDeleteConfirmationDialog(BuildContext context, CartItemModel item) {
     showDialog(
       context: context,
@@ -169,6 +185,12 @@ class _UserCartScreenState extends State<UserCartScreen> {
               );
             }
 
+            // Calculate total for consistency
+            double calculatedTotal = 0;
+            for (var item in state.items) {
+              calculatedTotal += item.servicePrice;
+            }
+
             return Column(
               children: [
                 Expanded(
@@ -186,8 +208,8 @@ class _UserCartScreenState extends State<UserCartScreen> {
                   ),
                 ),
 
-                // Bottom button
-                _buildBottomButton(state.totalPrice),
+                // Bottom button - use calculated total for consistency
+                _buildBottomButton(calculatedTotal),
               ],
             );
           }
@@ -204,12 +226,18 @@ class _UserCartScreenState extends State<UserCartScreen> {
   }
 
   Widget _buildCartItem(CartItemModel item) {
+    // Safely check priceChanged with null fallback
+    final hasPriceChanged = item.priceChanged == true;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: hasPriceChanged
+            ? Border.all(color: const Color(0xFFFFB300), width: 2)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -245,57 +273,45 @@ class _UserCartScreenState extends State<UserCartScreen> {
           // Service details
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // Service name
-                Directionality(
-                  textDirection: ui.TextDirection.rtl,
-                  child: Text(
-                    item.service.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFD4AF37),
-                    ),
-                    textAlign: TextAlign.right,
+                Text(
+                  item.service.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFD4AF37),
                   ),
+                  textAlign: TextAlign.right,
                 ),
                 const SizedBox(height: 8),
 
                 // Date
-                Directionality(
-                  textDirection: ui.TextDirection.rtl,
-                  child: Text(
-                    item.date,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                    textAlign: TextAlign.right,
-                  ),
+                Text(
+                  item.date,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  textAlign: TextAlign.right,
                 ),
                 const SizedBox(height: 4),
 
                 // Time
-                Directionality(
-                  textDirection: ui.TextDirection.rtl,
-                  child: Text(
-                    item.time,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                    textAlign: TextAlign.right,
-                  ),
+                Text(
+                  item.time,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  textAlign: TextAlign.right,
                 ),
                 const SizedBox(height: 8),
 
                 // Price
-                Directionality(
-                  textDirection: ui.TextDirection.rtl,
-                  child: Text(
-                    '${NumberFormat('#,###').format(item.servicePrice)} جنيه',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                    textAlign: TextAlign.right,
+                Text(
+                  '${NumberFormat('#,###').format(item.servicePrice)} جنيه',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
+                  textAlign: TextAlign.right,
                 ),
               ],
             ),
@@ -321,19 +337,17 @@ class _UserCartScreenState extends State<UserCartScreen> {
   }
 
   Widget _buildPriceBreakdown(CartLoaded state) {
-    // Group items by category and calculate totals
-    final Map<String, double> categoryTotals = {};
+    // Calculate actual total from items
+    double calculatedTotal = 0;
     for (var item in state.items) {
-      final category = item.service.category;
-      categoryTotals[category] =
-          (categoryTotals[category] ?? 0.0) + item.servicePrice;
+      calculatedTotal += item.servicePrice;
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -342,110 +356,184 @@ class _UserCartScreenState extends State<UserCartScreen> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          // Header row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            textDirection: ui.TextDirection.rtl,
-            children: [
-              Text(
-                'البند',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
+      child: Directionality(
+        textDirection: ui.TextDirection.rtl,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title
+            Row(
+              children: [
+                const Icon(
+                  Icons.receipt_long_outlined,
+                  color: Color(0xFFD4AF37),
+                  size: 22,
                 ),
-              ),
-              Text(
-                'القيمة',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
+                const SizedBox(width: 8),
+                Text(
+                  'ملخص الطلب',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Category rows - dynamically generated
-          ...categoryTotals.entries.map(
-            (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _buildPriceRow(
-                entry.key,
-                entry.value,
-                const Color(0xFFD4AF37),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Date row (using first item's date as example)
-          if (state.items.isNotEmpty)
-            _buildPriceRow(
-              'الموعد',
-              null,
-              Colors.grey[700]!,
-              customValue:
-                  state.items.first.date + ' - ' + state.items.first.time,
+              ],
             ),
 
-          const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-          // Divider
-          Divider(color: Colors.grey[300], thickness: 1),
+            // Item rows
+            ...state.items.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              final isLast = index == state.items.length - 1;
 
-          const SizedBox(height: 12),
+              return Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Item number badge
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFD4AF37),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Item details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.service.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${item.date} • ${item.time}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Price
+                      Text(
+                        '${NumberFormat('#,###').format(item.servicePrice)} جنيه',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!isLast) ...[
+                    const SizedBox(height: 12),
+                    Divider(color: Colors.grey[200], thickness: 1),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+              );
+            }),
 
-          // Total row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            textDirection: ui.TextDirection.rtl,
-            children: [
-              Text(
-                'المبلغ الإجمالي',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+            const SizedBox(height: 16),
+
+            // Total section
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4AF37).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
               ),
-              Text(
-                '${NumberFormat('#,###').format(state.totalPrice)} جنيه',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.shopping_bag_outlined,
+                        color: Color(0xFFD4AF37),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'الإجمالي',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _getItemCountText(state.items.length),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFD4AF37),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${NumberFormat('#,###').format(calculatedTotal)} جنيه',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFD4AF37),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPriceRow(
-    String label,
-    double? value,
-    Color labelColor, {
-    String? customValue,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      textDirection: ui.TextDirection.rtl,
-      children: [
-        Text(label, style: TextStyle(fontSize: 14, color: labelColor)),
-        Text(
-          customValue ?? '${NumberFormat('#,###').format(value)} جنيه',
-          style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-        ),
-      ],
-    );
+  String _getItemCountText(int count) {
+    if (count == 1) {
+      return 'عنصر واحد';
+    } else if (count == 2) {
+      return 'عنصران';
+    } else if (count >= 3 && count <= 10) {
+      return '$count عناصر';
+    } else {
+      return '$count عنصر';
+    }
   }
 
   Widget _buildBottomButton(double totalPrice) {

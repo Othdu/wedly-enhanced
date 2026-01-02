@@ -168,50 +168,15 @@ class _OffersListScreenState extends State<OffersListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Image & Badge Section
-          Stack(
-            children: [
-              SkeletonImage(
-                imageUrl: offer.imageUrl,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-              ),
-              // White Pill Discount Badge (Top Right)
-              if (offer.discount != null)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      offer.discount!,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                      textDirection: TextDirection.rtl,
-                    ),
-                  ),
-                ),
-            ],
+          // 1. Image Section
+          SkeletonImage(
+            imageUrl: offer.imageUrl,
+            height: 180,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(16),
+            ),
           ),
 
           // 2. Info Section
@@ -391,6 +356,9 @@ class _OffersListScreenState extends State<OffersListScreen> {
 
   /// Handle offer booking navigation based on service type
   void _handleOfferBooking(OfferModel offer) {
+    print('🎯 [OffersListScreen] Offer booking: ${offer.titleAr}');
+    print('📦 [OffersListScreen] Service type: "${offer.serviceType}"');
+
     final serviceType = offer.serviceType.toLowerCase();
 
     String? routeName;
@@ -429,7 +397,9 @@ class _OffersListScreenState extends State<OffersListScreen> {
       case 'venue':
       case 'قاعات':
       case 'hall':
-        routeName = AppRouter.venueBooking;
+        // For venue offers, navigate directly to dynamic booking screen
+        // The booking screen will handle time slot selection
+        routeName = AppRouter.dynamicServiceBooking;
         break;
       case 'cars':
       case 'car':

@@ -259,6 +259,9 @@ class ServiceModel extends Equatable {
       longitude: longitude,
       isActive: isActive,
       isPendingApproval: isPendingApproval,
+      discountPercentage: discountPercentage,
+      hasOffer: hasOffer,
+      offerApproved: offerApproved,
     );
   }
 }

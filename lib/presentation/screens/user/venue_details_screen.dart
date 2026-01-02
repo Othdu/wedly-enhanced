@@ -284,15 +284,40 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                               ),
                             ),
                             const Spacer(),
-                            Text(
-                              widget.venue.morningPrice != null
-                                  ? 'تبدأ من ${widget.venue.morningPrice!.toInt()} جنيه'
-                                  : 'السعر غير متاح', // TODO: Backend should provide morning_price in API
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.black87,
+                            // Show discounted price if available
+                            if (widget.venue.hasApprovedOffer &&
+                                widget.venue.discountedMorningPrice != null)
+                              Row(
+                                children: [
+                                  Text(
+                                    'تبدأ من ${widget.venue.discountedMorningPrice!.toInt()} جنيه',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFD4AF37),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${widget.venue.morningPrice!.toInt()}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Text(
+                                widget.venue.morningPrice != null
+                                    ? 'تبدأ من ${widget.venue.morningPrice!.toInt()} جنيه'
+                                    : 'السعر غير متاح',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black87,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ],
@@ -362,15 +387,40 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                               ),
                             ),
                             const Spacer(),
-                            Text(
-                              widget.venue.eveningPrice != null
-                                  ? 'تبدأ من ${widget.venue.eveningPrice!.toInt()} جنيه'
-                                  : 'السعر غير متاح', // TODO: Backend should provide evening_price in API
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.black87,
+                            // Show discounted price if available
+                            if (widget.venue.hasApprovedOffer &&
+                                widget.venue.discountedEveningPrice != null)
+                              Row(
+                                children: [
+                                  Text(
+                                    'تبدأ من ${widget.venue.discountedEveningPrice!.toInt()} جنيه',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFD4AF37),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${widget.venue.eveningPrice!.toInt()}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Text(
+                                widget.venue.eveningPrice != null
+                                    ? 'تبدأ من ${widget.venue.eveningPrice!.toInt()} جنيه'
+                                    : 'السعر غير متاح',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black87,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ],

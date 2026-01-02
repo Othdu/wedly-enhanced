@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/category_model.dart';
-import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
@@ -18,7 +17,6 @@ import 'package:wedly/logic/blocs/banner/banner_state.dart';
 import 'package:wedly/logic/blocs/banner/banner_event.dart';
 import 'package:wedly/presentation/widgets/skeleton_loading.dart';
 import 'package:wedly/presentation/widgets/banners_carousel_widget.dart';
-import 'package:wedly/presentation/widgets/offers_carousel_widget.dart';
 import 'package:wedly/presentation/widgets/countdown_timer_widget.dart';
 import 'package:wedly/presentation/widgets/categories_grid_widget.dart';
 import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
@@ -91,12 +89,43 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: CountdownTimerWidget(
-                          countdown: homeState.countdown!,
-                          showWeeks: true,
-                          showDays: true,
-                          showHours: true,
-                          showSeconds: true,
+                        child: Builder(
+                          builder: (context) {
+                            final totalDays = homeState.countdown!.timeRemaining.inDays;
+
+                            // Smart display based on time remaining:
+                            // >= 7 days: Weeks, Days, Hours
+                            // 1-6 days: Days, Hours, Minutes
+                            // < 1 day: Hours, Minutes, Seconds
+                            if (totalDays >= 7) {
+                              return CountdownTimerWidget(
+                                countdown: homeState.countdown!,
+                                showWeeks: true,
+                                showDays: true,
+                                showHours: true,
+                                showMinutes: false,
+                                showSeconds: false,
+                              );
+                            } else if (totalDays >= 1) {
+                              return CountdownTimerWidget(
+                                countdown: homeState.countdown!,
+                                showWeeks: false,
+                                showDays: true,
+                                showHours: true,
+                                showMinutes: true,
+                                showSeconds: false,
+                              );
+                            } else {
+                              return CountdownTimerWidget(
+                                countdown: homeState.countdown!,
+                                showWeeks: false,
+                                showDays: false,
+                                showHours: true,
+                                showMinutes: true,
+                                showSeconds: true,
+                              );
+                            }
+                          },
                         ),
                       ),
                     ),
@@ -139,25 +168,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       },
                     ),
                   ),
-
-                  // Offers Section - Shows active offers from API
-                  if (homeState.offers.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: OffersCarouselWidget(
-                          offers: homeState.offers,
-                          autoplay: true,
-                          autoplayDuration: const Duration(seconds: 5),
-                          showIndicators: true,
-                          showHeader: true,
-                          onOfferTap: (offer) => _handleOfferTap(context, offer),
-                          onSeeAllTap: () {
-                            Navigator.pushNamed(context, AppRouter.offersList);
-                          },
-                        ),
-                      ),
-                    ),
 
                   // Categories Section - HARDCODED STRUCTURE (always visible)
                   SliverToBoxAdapter(
@@ -461,80 +471,5 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         arguments: {'category': category},
       );
     }
-  }
-
-  /// Handle offer tap navigation based on service type
-  void _handleOfferTap(BuildContext context, OfferModel offer) {
-    // Navigate to appropriate booking screen based on service type
-    final serviceType = offer.serviceType.toLowerCase();
-
-    String? routeName;
-
-    // Map service types to their booking routes
-    switch (serviceType) {
-      case 'decoration':
-        routeName = AppRouter.decorationBooking;
-        break;
-      case 'wedding dresses':
-      case 'weddingdress':
-      case 'wedding_dress':
-        routeName = AppRouter.weddingDressBooking;
-        break;
-      case 'wedding organizers':
-      case 'weddingplanner':
-      case 'wedding_planner':
-        routeName = AppRouter.weddingPlannerBooking;
-        break;
-      case 'photography':
-      case 'photographer':
-        routeName = AppRouter.photographerBooking;
-        break;
-      case 'entertainment':
-      case 'videography':
-      case 'videographer':
-        routeName = AppRouter.videographerBooking;
-        break;
-      case 'beauty':
-      case 'makeup':
-      case 'makeupartist':
-      case 'makeup_artist':
-        routeName = AppRouter.makeupArtistBooking;
-        break;
-      case 'venues':
-      case 'venue':
-      case 'قاعات':
-      case 'hall':
-        routeName = AppRouter.venueBooking;
-        break;
-      case 'cars':
-      case 'car':
-      case 'transportation':
-        routeName = AppRouter.carBooking;
-        break;
-      case 'catering':
-      case 'food':
-      default:
-        // Show coming soon message for unsupported service types
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'صفحة الحجز لخدمة ${offer.titleAr} قريباً',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: const Color(0xFFD4AF37),
-          ),
-        );
-        return;
-    }
-
-    // Convert offer to service model for booking screens
-    final service = offer.toService();
-
-    // Navigate to the booking screen with service data
-    Navigator.pushNamed(
-      context,
-      routeName,
-      arguments: {'service': service},
-    );
   }
 }

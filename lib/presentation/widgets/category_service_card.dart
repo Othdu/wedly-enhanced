@@ -44,6 +44,35 @@ class CategoryServiceCard extends StatelessWidget {
         );
       }
 
+      // Check for discount on venue prices
+      if (service.hasApprovedOffer && service.discountPercentage != null) {
+        final discountedPrice = minPrice * (1 - service.discountPercentage! / 100);
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              'من ${_formatPrice(discountedPrice)} جنيه',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFD4AF37),
+              ),
+              textDirection: TextDirection.rtl,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${_formatPrice(minPrice)} جنيه',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[500],
+                decoration: TextDecoration.lineThrough,
+              ),
+              textDirection: TextDirection.rtl,
+            ),
+          ],
+        );
+      }
+
       return Text(
         'من ${_formatPrice(minPrice)} جنيه',
         style: const TextStyle(

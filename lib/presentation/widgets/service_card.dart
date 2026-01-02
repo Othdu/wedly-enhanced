@@ -61,13 +61,35 @@ class ServiceCard extends StatelessWidget {
                   ),
                   if (service.price != null) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      '\$${service.price!.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
+                    // Show discounted price if service has an approved offer
+                    if (service.hasApprovedOffer && service.finalPrice != null)
+                      Row(
+                        children: [
+                          Text(
+                            '\$${service.finalPrice!.toStringAsFixed(2)}',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  color: const Color(0xFFD4AF37),
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
-                    ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '\$${service.price!.toStringAsFixed(2)}',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                          ),
+                        ],
+                      )
+                    else
+                      Text(
+                        '\$${service.price!.toStringAsFixed(2)}',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
                   ],
                   const SizedBox(height: 4),
                   Chip(

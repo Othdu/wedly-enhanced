@@ -1,8 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/cart_repository.dart';
+import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/logic/blocs/cart/cart_event.dart';
 import 'package:wedly/logic/blocs/cart/cart_state.dart';
+import 'package:wedly/core/di/injection_container.dart';
 
 class CartBloc extends Bloc<CartEvent, CartState> {
   final CartRepository cartRepository;
@@ -17,6 +19,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     on<CartItemUpdated>(_onCartItemUpdated);
     on<CartCleared>(_onCartCleared);
     on<CartInitializeMockData>(_onCartInitializeMockData);
+    on<CartPricesValidated>(_onCartPricesValidated);
   }
 
   Future<void> _onCartItemsRequested(
@@ -237,6 +240,124 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       ));
     } catch (e) {
       emit(CartError(message: 'فشل تحميل البيانات التجريبية: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onCartPricesValidated(
+    CartPricesValidated event,
+    Emitter<CartState> emit,
+  ) async {
+    try {
+      // Only validate if we have items in cart
+      if (state is! CartLoaded) return;
+
+      final currentState = state as CartLoaded;
+      if (currentState.items.isEmpty) return;
+
+      print('💰 CartBloc - Validating prices for ${currentState.items.length} items');
+
+      // Get service repository to fetch current prices
+      final serviceRepository = getIt<ServiceRepository>();
+
+      // Validate and update each item's price to current price
+      final List<CartItemModel> updatedItems = [];
+
+      for (final item in currentState.items) {
+        try {
+          // Fetch current service data
+          final currentService = await serviceRepository.getServiceById(item.service.id);
+
+          if (currentService == null) {
+            // Service not found, keep original item
+            updatedItems.add(item);
+            continue;
+          }
+
+          // Calculate current price based on service type
+          double currentPrice;
+
+          // Determine actual time slot - use timeSlot field, but also check the 'time' display field
+          // because API might not return time_slot correctly
+          String effectiveTimeSlot = item.timeSlot;
+
+          // If timeSlot is default 'morning' but time display shows evening, use evening
+          if (item.timeSlot == 'morning' &&
+              (item.time.contains('مسائي') || item.time.contains('مساء'))) {
+            effectiveTimeSlot = 'evening';
+            print('   ⚠️ Correcting timeSlot from "morning" to "evening" based on time display: "${item.time}"');
+          } else if (item.timeSlot == 'evening' &&
+              (item.time.contains('صباحي') || item.time.contains('صباح'))) {
+            effectiveTimeSlot = 'morning';
+            print('   ⚠️ Correcting timeSlot from "evening" to "morning" based on time display: "${item.time}"');
+          }
+
+          print('   🔍 Item: ${item.service.name}');
+          print('   🔍 TimeSlot field: "${item.timeSlot}"');
+          print('   🔍 Time display: "${item.time}"');
+          print('   🔍 Effective TimeSlot: "$effectiveTimeSlot"');
+          print('   🔍 Morning price: ${currentService.morningPrice}');
+          print('   🔍 Evening price: ${currentService.eveningPrice}');
+          print('   🔍 Has offer: ${currentService.hasApprovedOffer}');
+          print('   🔍 Discount: ${currentService.discountPercentage}%');
+
+          if (effectiveTimeSlot == 'morning' && currentService.morningPrice != null) {
+            // For venues with morning slot - check for discount
+            if (currentService.hasApprovedOffer && currentService.discountPercentage != null) {
+              currentPrice = currentService.morningPrice! * (1 - currentService.discountPercentage! / 100);
+              print('   💰 Using discounted morning price: $currentPrice');
+            } else {
+              currentPrice = currentService.morningPrice!;
+              print('   💰 Using regular morning price: $currentPrice');
+            }
+          } else if (effectiveTimeSlot == 'evening' && currentService.eveningPrice != null) {
+            // For venues with evening slot - check for discount
+            if (currentService.hasApprovedOffer && currentService.discountPercentage != null) {
+              currentPrice = currentService.eveningPrice! * (1 - currentService.discountPercentage! / 100);
+              print('   💰 Using discounted evening price: $currentPrice');
+            } else {
+              currentPrice = currentService.eveningPrice!;
+              print('   💰 Using regular evening price: $currentPrice');
+            }
+          } else {
+            // Regular service - use finalPrice (with discount) if available, otherwise use regular price
+            currentPrice = currentService.finalPrice ?? currentService.price ?? item.servicePrice;
+            print('   💰 Using finalPrice/price: $currentPrice');
+          }
+
+          print('   📊 Stored price in cart: ${item.servicePrice}');
+          print('   📊 Current price from service: $currentPrice');
+
+          // Always update to current price (no warning, just update)
+          updatedItems.add(item.copyWith(
+            servicePrice: currentPrice,
+            service: currentService, // Update service data too
+            priceChanged: false, // Never show as changed
+          ));
+
+          print('   ✅ Updated cart item to current price: ${currentPrice.toInt()} EGP');
+        } catch (e) {
+          print('   ❌ Error validating ${item.service.name}: $e');
+          // Keep original item if validation fails
+          updatedItems.add(item);
+        }
+      }
+
+      // Recalculate total price
+      final newTotalPrice = updatedItems.fold<double>(
+        0.0,
+        (sum, item) => sum + item.totalPrice,
+      );
+
+      print('✅ Cart prices synced with current service prices');
+
+      emit(CartLoaded(
+        items: updatedItems,
+        itemCount: updatedItems.length,
+        totalPrice: newTotalPrice,
+      ));
+    } catch (e) {
+      print('❌ Error validating cart prices: $e');
+      // Don't emit error - just keep current state
     }
   }
 }

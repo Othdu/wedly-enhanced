@@ -9,9 +9,15 @@ class CartItemModel extends Equatable {
   final double servicePrice; // Main service price
   final double photographerPrice; // Optional photographer price
   final DateTime addedAt;
-  final String timeSlot; // "morning" or "evening" - for venues from user selection, "morning" for other services
+  final String
+  timeSlot; // "morning" or "evening" - for venues from user selection, "morning" for other services
   final String? selectedSectionId; // Selected section ID from dynamic sections
-  final List<String>? selectedOptionIds; // Selected option IDs from dynamic sections
+  final List<String>?
+  selectedOptionIds; // Selected option IDs from dynamic sections
+  final double?
+  originalPrice; // Original price when added to cart (for price change detection)
+  final bool
+  priceChanged; // Whether the current price differs from original price
 
   const CartItemModel({
     required this.id,
@@ -24,23 +30,27 @@ class CartItemModel extends Equatable {
     this.timeSlot = 'morning',
     this.selectedSectionId,
     this.selectedOptionIds,
+    this.originalPrice,
+    this.priceChanged = false,
   });
 
   double get totalPrice => servicePrice + photographerPrice;
 
   @override
   List<Object?> get props => [
-        id,
-        service,
-        date,
-        time,
-        servicePrice,
-        photographerPrice,
-        addedAt,
-        timeSlot,
-        selectedSectionId,
-        selectedOptionIds,
-      ];
+    id,
+    service,
+    date,
+    time,
+    servicePrice,
+    photographerPrice,
+    addedAt,
+    timeSlot,
+    selectedSectionId,
+    selectedOptionIds,
+    originalPrice,
+    priceChanged,
+  ];
 
   CartItemModel copyWith({
     String? id,
@@ -53,6 +63,8 @@ class CartItemModel extends Equatable {
     String? timeSlot,
     String? selectedSectionId,
     List<String>? selectedOptionIds,
+    double? originalPrice,
+    bool? priceChanged,
   }) {
     return CartItemModel(
       id: id ?? this.id,
@@ -65,6 +77,8 @@ class CartItemModel extends Equatable {
       timeSlot: timeSlot ?? this.timeSlot,
       selectedSectionId: selectedSectionId ?? this.selectedSectionId,
       selectedOptionIds: selectedOptionIds ?? this.selectedOptionIds,
+      originalPrice: originalPrice ?? this.originalPrice,
+      priceChanged: priceChanged ?? this.priceChanged,
     );
   }
 
@@ -86,7 +100,9 @@ class CartItemModel extends Equatable {
 
     // Debug: Print time_slot value from JSON
     final rawTimeSlot = json['time_slot'];
-    print('🔍 CartItemModel.fromJson - raw time_slot: "$rawTimeSlot" (type: ${rawTimeSlot?.runtimeType})');
+    print(
+      '🔍 CartItemModel.fromJson - raw time_slot: "$rawTimeSlot" (type: ${rawTimeSlot?.runtimeType})',
+    );
     final timeSlot = json['time_slot'] as String? ?? 'morning';
     print('🔍 CartItemModel.fromJson - parsed timeSlot: "$timeSlot"');
 
@@ -103,8 +119,14 @@ class CartItemModel extends Equatable {
       timeSlot: timeSlot,
       selectedSectionId: json['selected_section_id'] as String?,
       selectedOptionIds: json['selected_option_ids'] != null
-          ? (json['selected_option_ids'] as List).map((e) => e.toString()).toList()
+          ? (json['selected_option_ids'] as List)
+                .map((e) => e.toString())
+                .toList()
           : null,
+      originalPrice: json['original_price'] != null
+          ? (json['original_price'] as num).toDouble()
+          : null,
+      priceChanged: json['price_changed'] as bool? ?? false,
     );
   }
 
@@ -120,6 +142,8 @@ class CartItemModel extends Equatable {
       'time_slot': timeSlot,
       'selected_section_id': selectedSectionId,
       'selected_option_ids': selectedOptionIds,
+      'original_price': originalPrice,
+      'price_changed': priceChanged,
     };
   }
 }

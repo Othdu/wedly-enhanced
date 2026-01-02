@@ -9,6 +9,7 @@ class CountdownTimerWidget extends StatefulWidget {
   final bool showWeeks;
   final bool showDays;
   final bool showHours;
+  final bool showMinutes;
   final bool showSeconds;
   final EdgeInsetsGeometry? padding;
   final Color? backgroundColor;
@@ -21,6 +22,7 @@ class CountdownTimerWidget extends StatefulWidget {
     this.showWeeks = true,
     this.showDays = true,
     this.showHours = true,
+    this.showMinutes = true,
     this.showSeconds = true,
     this.padding,
     this.backgroundColor,
@@ -75,6 +77,11 @@ class _CountdownTimerWidgetState extends State<CountdownTimerWidget> {
     if (widget.showHours) {
       timeUnits.add(
         _buildTimeUnit('ساعات', 'Hours', _countdown.hoursRemaining),
+      );
+    }
+    if (widget.showMinutes) {
+      timeUnits.add(
+        _buildTimeUnit('دقائق', 'Minutes', _countdown.minutesRemaining),
       );
     }
     if (widget.showSeconds) {

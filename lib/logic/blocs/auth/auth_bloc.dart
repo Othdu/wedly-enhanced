@@ -24,6 +24,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthChangePasswordRequested>(_onAuthChangePasswordRequested);
     on<AuthUpdateProfileImageRequested>(_onAuthUpdateProfileImageRequested);
     on<AuthSocialLoginRequested>(_onAuthSocialLoginRequested);
+    on<AuthSetWeddingDateRequested>(_onAuthSetWeddingDateRequested);
+    on<AuthGetWeddingDateRequested>(_onAuthGetWeddingDateRequested);
 
     // Listen to session expiry events from repository
     authRepository.sessionExpiredStream.listen((_) {
@@ -325,6 +327,62 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthAuthenticated(user));
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'social_login')));
+    }
+  }
+
+  Future<void> _onAuthSetWeddingDateRequested(
+    AuthSetWeddingDateRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    emit(const AuthLoading());
+    try {
+      final result = await authRepository.setWeddingDate(event.weddingDate);
+
+      // Update user with new wedding date
+      final updatedUser = currentState.user.copyWith(weddingDate: event.weddingDate);
+
+      emit(AuthSetWeddingDateSuccess(
+        result['message'] ?? 'تم حفظ تاريخ الزفاف بنجاح',
+      ));
+      // Emit updated authenticated state with new wedding date
+      emit(AuthAuthenticated(updatedUser));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'set_wedding_date')));
+      // Re-emit current authenticated state after error
+      emit(currentState);
+    }
+  }
+
+  Future<void> _onAuthGetWeddingDateRequested(
+    AuthGetWeddingDateRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    emit(const AuthLoading());
+    try {
+      final result = await authRepository.getWeddingDate();
+
+      DateTime? weddingDate;
+      if (result['wedding_date'] != null) {
+        weddingDate = DateTime.parse(result['wedding_date'] as String);
+      }
+
+      emit(AuthGetWeddingDateSuccess(
+        weddingDate: weddingDate,
+        daysRemaining: result['days_remaining'] as int?,
+        message: result['message'] ?? 'تم جلب تاريخ الزفاف بنجاح',
+      ));
+      // Re-emit current authenticated state
+      emit(currentState);
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'get_wedding_date')));
+      // Re-emit current authenticated state after error
+      emit(currentState);
     }
   }
 }

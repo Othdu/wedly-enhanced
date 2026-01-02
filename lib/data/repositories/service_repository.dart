@@ -9,6 +9,7 @@ import 'package:wedly/data/models/home_layout_model.dart';
 import 'package:wedly/data/models/widget_config_model.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/api_constants.dart';
+import 'package:wedly/data/repositories/booking_repository.dart';
 
 class ServiceRepository {
   final ApiClient? _apiClient;
@@ -1359,19 +1360,95 @@ class ServiceRepository {
   Future<CountdownModel?> _mockGetUserCountdown(String userId) async {
     await Future.delayed(const Duration(milliseconds: 200));
 
-    // Return null by default - countdown only shows after user books a venue
-    // The API will return the actual countdown when a venue is booked
-    return null;
+    // Import BookingRepository to access bookings
+    // We need to find the closest upcoming confirmed venue booking for this user
+    final bookingRepository = BookingRepository(useMockData: true);
+    final userBookings = await bookingRepository.getUserBookings(userId);
+
+    // Filter for confirmed venue bookings only
+    // Venues have serviceCategory == 'venue' or serviceName contains 'قاعة'
+    final confirmedVenueBookings = userBookings.where((booking) {
+      final isConfirmed = booking.status.toString().split('.').last == 'confirmed';
+      final isVenue = booking.serviceCategory?.toLowerCase() == 'venue' ||
+                      booking.serviceName.contains('قاعة');
+      return isConfirmed && isVenue;
+    }).toList();
+
+    // If no confirmed venue bookings, return null
+    if (confirmedVenueBookings.isEmpty) {
+      return null;
+    }
+
+    // Filter out past bookings (only future bookings)
+    final now = DateTime.now();
+    final upcomingVenueBookings = confirmedVenueBookings
+        .where((booking) => booking.bookingDate.isAfter(now))
+        .toList();
+
+    // If no upcoming venue bookings, return null
+    if (upcomingVenueBookings.isEmpty) {
+      return null;
+    }
+
+    // Sort by booking date ascending to get the closest upcoming one
+    upcomingVenueBookings.sort((a, b) => a.bookingDate.compareTo(b.bookingDate));
+    final closestVenueBooking = upcomingVenueBookings.first;
+
+    // Return countdown for the closest upcoming confirmed venue booking
+    return CountdownModel(
+      userId: userId,
+      weddingDate: closestVenueBooking.bookingDate,
+      titleAr: 'العد التنازلي لحفل ${closestVenueBooking.serviceName}',
+      title: 'Countdown to ${closestVenueBooking.serviceName}',
+    );
   }
 
   /// API implementation: Get user countdown
   Future<CountdownModel?> _apiGetUserCountdown(String userId) async {
     try {
-      final response = await _apiClient!.get(
-        ApiConstants.userCountdown(userId),
+      // Get user bookings from API
+      final bookingRepository = BookingRepository(
+        apiClient: _apiClient,
+        useMockData: false,
       );
-      return CountdownModel.fromJson(
-        response.data['countdown'] ?? response.data,
+      final userBookings = await bookingRepository.getUserBookings(userId);
+
+      // Filter for confirmed venue bookings only
+      // Venues have serviceCategory == 'venue' or serviceName contains 'قاعة' or 'قاعه'
+      final confirmedVenueBookings = userBookings.where((booking) {
+        final isConfirmed = booking.status.toString().split('.').last == 'confirmed';
+        final isVenue = booking.serviceCategory?.toLowerCase() == 'venue' ||
+                        booking.serviceName.contains('قاعة') ||
+                        booking.serviceName.contains('قاعه');
+        return isConfirmed && isVenue;
+      }).toList();
+
+      // If no confirmed venue bookings, return null
+      if (confirmedVenueBookings.isEmpty) {
+        return null;
+      }
+
+      // Filter out past bookings (only future bookings)
+      final now = DateTime.now();
+      final upcomingVenueBookings = confirmedVenueBookings
+          .where((booking) => booking.bookingDate.isAfter(now))
+          .toList();
+
+      // If no upcoming venue bookings, return null
+      if (upcomingVenueBookings.isEmpty) {
+        return null;
+      }
+
+      // Sort by booking date ascending to get the closest upcoming one
+      upcomingVenueBookings.sort((a, b) => a.bookingDate.compareTo(b.bookingDate));
+      final closestVenueBooking = upcomingVenueBookings.first;
+
+      // Return countdown for the closest upcoming confirmed venue booking
+      return CountdownModel(
+        userId: userId,
+        weddingDate: closestVenueBooking.bookingDate,
+        titleAr: 'العد التنازلي لحفل ${closestVenueBooking.serviceName}',
+        title: 'Countdown to ${closestVenueBooking.serviceName}',
       );
     } catch (e) {
       print('⚠️ API Error in getUserCountdown: $e');

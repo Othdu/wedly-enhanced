@@ -10,6 +10,7 @@ class UserModel extends Equatable {
   final String? profileImageUrl;
   final String? phone; // Phone number field
   final String? city; // City field
+  final DateTime? weddingDate; // Wedding date field
 
   const UserModel({
     required this.id,
@@ -20,10 +21,11 @@ class UserModel extends Equatable {
     this.profileImageUrl,
     this.phone,
     this.city,
+    this.weddingDate,
   });
 
   @override
-  List<Object?> get props => [id, email, name, role, gender, profileImageUrl, phone, city];
+  List<Object?> get props => [id, email, name, role, gender, profileImageUrl, phone, city, weddingDate];
 
   UserModel copyWith({
     String? id,
@@ -34,6 +36,7 @@ class UserModel extends Equatable {
     String? profileImageUrl,
     String? phone,
     String? city,
+    DateTime? weddingDate,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -44,6 +47,7 @@ class UserModel extends Equatable {
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       phone: phone ?? this.phone,
       city: city ?? this.city,
+      weddingDate: weddingDate ?? this.weddingDate,
     );
   }
 
@@ -60,6 +64,9 @@ class UserModel extends Equatable {
       profileImageUrl: json['profile_image_url'] as String?,
       phone: json['phone'] as String?,
       city: json['city'] as String?,
+      weddingDate: json['wedding_date'] != null
+          ? DateTime.parse(json['wedding_date'] as String)
+          : null,
     );
   }
 
@@ -73,6 +80,7 @@ class UserModel extends Equatable {
       'profile_image_url': profileImageUrl,
       'phone': phone,
       'city': city,
+      'wedding_date': weddingDate?.toIso8601String(),
     };
   }
 

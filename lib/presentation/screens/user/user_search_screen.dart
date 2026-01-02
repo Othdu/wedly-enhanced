@@ -494,15 +494,38 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
 
                     const Spacer(),
 
-                    // السعر
-                    Text(
-                      'من ${_formatPrice(service.price)} جنيه',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
+                    // السعر - with discount if applicable
+                    if (service.hasApprovedOffer && service.finalPrice != null)
+                      Row(
+                        children: [
+                          Text(
+                            'من ${_formatPrice(service.finalPrice)} جنيه',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFFD4AF37),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${_formatPrice(service.price)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[500],
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Text(
+                        'من ${_formatPrice(service.price)} جنيه',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
                   ],
                 ),
 
