@@ -180,7 +180,7 @@ class AuthRepository {
 
     // Parse user data
     final user = UserModel.fromJson(responseData['user']);
-    await _tokenManager?.saveUserRole(user.role.name);
+    await _tokenManager.saveUserRole(user.role.name);
 
     _currentUser = user;
     AppLogger.auth('User logged in: ${user.email} (${user.role.name})');
@@ -1060,7 +1060,7 @@ class AuthRepository {
 
     // Parse user data
     final user = UserModel.fromJson(responseData['user']);
-    await _tokenManager?.saveUserRole(user.role.name);
+    await _tokenManager.saveUserRole(user.role.name);
 
     _currentUser = user;
     await _saveUserToCache(_currentUser!);

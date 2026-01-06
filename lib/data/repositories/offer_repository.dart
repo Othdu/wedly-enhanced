@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/api_constants.dart';
@@ -15,7 +16,7 @@ class OfferRepository {
   /// Get all active offers from API
   Future<List<OfferModel>> getOffers() async {
     if (apiClient == null) {
-      print('⚠️ OfferRepository: No API client available');
+      debugPrint('⚠️ OfferRepository: No API client available');
       return [];
     }
 
@@ -29,10 +30,10 @@ class OfferRepository {
           .where((offer) => offer.isValid)
           .toList();
 
-      print('📦 OfferRepository: Fetched ${offers.length} offers from API');
+      debugPrint('📦 OfferRepository: Fetched ${offers.length} offers from API');
       return offers;
     } catch (e) {
-      print('⚠️ OfferRepository Error in getOffers: $e');
+      debugPrint('⚠️ OfferRepository Error in getOffers: $e');
       return [];
     }
   }
@@ -40,7 +41,7 @@ class OfferRepository {
   /// Get offer by ID from API
   Future<OfferModel?> getOfferById(String offerId) async {
     if (apiClient == null) {
-      print('⚠️ OfferRepository: No API client available');
+      debugPrint('⚠️ OfferRepository: No API client available');
       return null;
     }
 
@@ -50,7 +51,7 @@ class OfferRepository {
       final offerData = responseData['offer'] ?? responseData;
       return OfferModel.fromJson(offerData);
     } catch (e) {
-      print('⚠️ OfferRepository Error in getOfferById: $e');
+      debugPrint('⚠️ OfferRepository Error in getOfferById: $e');
       return null;
     }
   }
@@ -58,7 +59,7 @@ class OfferRepository {
   /// Get offers by provider from API
   Future<List<OfferModel>> getOffersByProvider(String providerId) async {
     if (apiClient == null) {
-      print('⚠️ OfferRepository: No API client available');
+      debugPrint('⚠️ OfferRepository: No API client available');
       return [];
     }
 
@@ -74,7 +75,7 @@ class OfferRepository {
           .where((offer) => offer.isValid)
           .toList();
     } catch (e) {
-      print('⚠️ OfferRepository Error in getOffersByProvider: $e');
+      debugPrint('⚠️ OfferRepository Error in getOffersByProvider: $e');
       return [];
     }
   }
@@ -82,7 +83,7 @@ class OfferRepository {
   /// Get offers by service type from API
   Future<List<OfferModel>> getOffersByServiceType(String serviceType) async {
     if (apiClient == null) {
-      print('⚠️ OfferRepository: No API client available');
+      debugPrint('⚠️ OfferRepository: No API client available');
       return [];
     }
 
@@ -93,7 +94,7 @@ class OfferRepository {
           .where((offer) => offer.serviceType == serviceType && offer.isValid)
           .toList();
     } catch (e) {
-      print('⚠️ OfferRepository Error in getOffersByServiceType: $e');
+      debugPrint('⚠️ OfferRepository Error in getOffersByServiceType: $e');
       return [];
     }
   }

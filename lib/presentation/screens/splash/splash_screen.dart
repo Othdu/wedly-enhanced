@@ -152,9 +152,9 @@ class _SplashScreenState extends State<SplashScreen>
     final authState = context.read<AuthBloc>().state;
 
     // Debug: Print auth state
-    print('🔍 SPLASH: Auth state type: ${authState.runtimeType}');
+    debugPrint('🔍 SPLASH: Auth state type: ${authState.runtimeType}');
     if (authState is AuthAuthenticated) {
-      print('🔍 SPLASH: User logged in - Role: ${authState.user.role}');
+      debugPrint('🔍 SPLASH: User logged in - Role: ${authState.user.role}');
     }
 
     if (!mounted) return;
@@ -162,18 +162,18 @@ class _SplashScreenState extends State<SplashScreen>
     Widget next;
     if (authState is AuthAuthenticated) {
       // User is logged in - go to their home screen
-      print('✅ SPLASH: Navigating to ${authState.user.role == UserRole.provider ? "Provider" : "User"} home');
+      debugPrint('✅ SPLASH: Navigating to ${authState.user.role == UserRole.provider ? "Provider" : "User"} home');
       next = authState.user.role == UserRole.provider
           ? const ProviderNavigationWrapper()
           : const UserNavigationWrapper();
     } else if (isFirstLaunch) {
       // First time launching app
-      print('✅ SPLASH: First launch - navigating to onboarding');
+      debugPrint('✅ SPLASH: First launch - navigating to onboarding');
       await prefs.setFirstLaunchCompleted();
       next = const OnboardingScreenNew();
     } else {
       // Not logged in - go to login
-      print('✅ SPLASH: Not authenticated - navigating to login');
+      debugPrint('✅ SPLASH: Not authenticated - navigating to login');
       next = const LoginScreen();
     }
 

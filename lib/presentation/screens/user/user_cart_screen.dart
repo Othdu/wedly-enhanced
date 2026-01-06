@@ -118,39 +118,46 @@ class _UserCartScreenState extends State<UserCartScreen> {
           ),
         ),
       ),
-      body: BlocBuilder<CartBloc, CartState>(
+      body: BlocConsumer<CartBloc, CartState>(
+        listener: (context, state) {
+          // Show error as a snackbar instead of replacing the entire screen
+          if (state is CartError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Directionality(
+                  textDirection: ui.TextDirection.rtl,
+                  child: Text(
+                    state.message,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                backgroundColor: Colors.red.shade700,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'إعادة تحميل',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    context.read<CartBloc>().add(
+                      const CartItemsRequested(userId: 'current_user'),
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+        },
         builder: (context, state) {
           if (state is CartLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (state is CartError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Directionality(
-                    textDirection: ui.TextDirection.rtl,
-                    child: Text(state.message, textAlign: TextAlign.center),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<CartBloc>().add(
-                        const CartInitializeMockData(),
-                      );
-                    },
-                    child: const Text('إعادة المحاولة'),
-                  ),
-                ],
-              ),
-            );
-          }
+          // Show cart items for both CartLoaded and CartError states
+          // This way errors don't break the UI, they just show as snackbars
+          final CartLoaded? loadedState = state is CartLoaded ? state : null;
 
-          if (state is CartLoaded) {
-            if (state.items.isEmpty) {
+          if (loadedState != null) {
+            if (loadedState.items.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -187,7 +194,7 @@ class _UserCartScreenState extends State<UserCartScreen> {
 
             // Calculate total for consistency
             double calculatedTotal = 0;
-            for (var item in state.items) {
+            for (var item in loadedState.items) {
               calculatedTotal += item.servicePrice;
             }
 
@@ -198,12 +205,12 @@ class _UserCartScreenState extends State<UserCartScreen> {
                     padding: const EdgeInsets.all(16),
                     children: [
                       // Cart items
-                      ...state.items.map((item) => _buildCartItem(item)),
+                      ...loadedState.items.map((item) => _buildCartItem(item)),
 
                       const SizedBox(height: 16),
 
                       // Price breakdown
-                      _buildPriceBreakdown(state),
+                      _buildPriceBreakdown(loadedState),
                     ],
                   ),
                 ),

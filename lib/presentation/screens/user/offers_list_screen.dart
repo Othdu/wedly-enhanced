@@ -356,8 +356,8 @@ class _OffersListScreenState extends State<OffersListScreen> {
 
   /// Handle offer booking navigation based on service type
   void _handleOfferBooking(OfferModel offer) {
-    print('🎯 [OffersListScreen] Offer booking: ${offer.titleAr}');
-    print('📦 [OffersListScreen] Service type: "${offer.serviceType}"');
+    debugPrint('🎯 [OffersListScreen] Offer booking: ${offer.titleAr}');
+    debugPrint('📦 [OffersListScreen] Service type: "${offer.serviceType}"');
 
     final serviceType = offer.serviceType.toLowerCase();
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/repositories/booking_repository.dart';
 import 'booking_event.dart';
@@ -13,6 +14,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     on<FetchBookingDetails>(_onFetchBookingDetails);
     on<UpdateBookingStatus>(_onUpdateBookingStatus);
     on<RefreshBookings>(_onRefreshBookings);
+    on<SilentRefreshUserBookings>(_onSilentRefreshUserBookings);
   }
 
   Future<void> _onFetchProviderBookings(
@@ -39,9 +41,9 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
   ) async {
     emit(BookingLoading());
     try {
-      print('DEBUG: Fetching bookings for user ID: ${event.userId}');
+      debugPrint('DEBUG: Fetching bookings for user ID: ${event.userId}');
       final bookings = await bookingRepository.getUserBookings(event.userId);
-      print('DEBUG: Found ${bookings.length} bookings');
+      debugPrint('DEBUG: Found ${bookings.length} bookings');
 
       if (bookings.isEmpty) {
         emit(const BookingsEmpty('لا توجد حجوزات حتى الآن'));
@@ -49,7 +51,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingsLoaded(bookings));
       }
     } catch (e) {
-      print('DEBUG: Error fetching bookings: $e');
+      debugPrint('DEBUG: Error fetching bookings: $e');
       emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}'));
     }
   }
@@ -138,6 +140,28 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       }
     } catch (e) {
       emit(BookingError('فشل تحديث الحجوزات: ${e.toString()}', error: e));
+    }
+  }
+
+  Future<void> _onSilentRefreshUserBookings(
+    SilentRefreshUserBookings event,
+    Emitter<BookingState> emit,
+  ) async {
+    // Don't emit loading state - silent refresh in background
+    try {
+      debugPrint('DEBUG: Silent refresh - Fetching bookings for user ID: ${event.userId}');
+      final bookings = await bookingRepository.getUserBookings(event.userId);
+      debugPrint('DEBUG: Silent refresh - Found ${bookings.length} bookings');
+
+      if (bookings.isEmpty) {
+        emit(const BookingsEmpty('لا توجد حجوزات حتى الآن'));
+      } else {
+        emit(BookingsLoaded(bookings));
+      }
+    } catch (e) {
+      // Silently fail - don't show error to user during background refresh
+      debugPrint('DEBUG: Silent refresh error (ignored): $e');
+      // Keep current state - don't emit error
     }
   }
 }

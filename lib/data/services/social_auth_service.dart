@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
@@ -45,7 +46,7 @@ class SocialAuthService {
         'id_token': googleAuth.idToken,
       };
     } catch (e) {
-      print('❌ Google Sign In Error: $e');
+      debugPrint('❌ Google Sign In Error: $e');
       if (e.toString().contains('network_error')) {
         throw Exception('خطأ في الاتصال بالإنترنت');
       } else if (e.toString().contains('sign_in_canceled')) {
@@ -92,7 +93,7 @@ class SocialAuthService {
         'access_token': accessToken.tokenString,
       };
     } catch (e) {
-      print('❌ Facebook Sign In Error: $e');
+      debugPrint('❌ Facebook Sign In Error: $e');
       if (e.toString().contains('network_error')) {
         throw Exception('خطأ في الاتصال بالإنترنت');
       } else if (e.toString().contains('تم إلغاء')) {
@@ -110,7 +111,7 @@ class SocialAuthService {
         FacebookAuth.instance.logOut(),
       ]);
     } catch (e) {
-      print('❌ Social Sign Out Error: $e');
+      debugPrint('❌ Social Sign Out Error: $e');
       // Continue even if sign out fails
     }
   }

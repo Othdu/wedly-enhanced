@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/cart_repository.dart';
@@ -31,7 +32,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
       final apiItems = await cartRepository.getCartItems(event.userId);
 
-      print('🛒 CartBloc._onCartItemsRequested - Loaded ${apiItems.length} items from API');
+      debugPrint('🛒 CartBloc._onCartItemsRequested - Loaded ${apiItems.length} items from API');
 
       // Merge API items with local cache to preserve timeSlot
       final List<CartItemModel> mergedItems = [];
@@ -46,12 +47,12 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
           final mergedItem = apiItem.copyWith(timeSlot: preservedTimeSlot);
           mergedItems.add(mergedItem);
-          print('   - ${mergedItem.service.name}: timeSlot="${mergedItem.timeSlot}" (preserved from cache: ${preservedTimeSlot != apiItem.timeSlot})');
+          debugPrint('   - ${mergedItem.service.name}: timeSlot="${mergedItem.timeSlot}" (preserved from cache: ${preservedTimeSlot != apiItem.timeSlot})');
         } else {
           mergedItems.add(apiItem);
           // Cache API item for future reference
           _localItemCache[apiItem.id] = apiItem;
-          print('   - ${apiItem.service.name}: timeSlot="${apiItem.timeSlot}" (from API, no cache)');
+          debugPrint('   - ${apiItem.service.name}: timeSlot="${apiItem.timeSlot}" (from API, no cache)');
         }
       }
 
@@ -76,11 +77,11 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     Emitter<CartState> emit,
   ) async {
     try {
-      print('🛒 CartBloc._onCartItemAdded - Adding item with timeSlot: "${event.item.timeSlot}"');
+      debugPrint('🛒 CartBloc._onCartItemAdded - Adding item with timeSlot: "${event.item.timeSlot}"');
 
       // Cache the item with correct timeSlot BEFORE adding to API
       _localItemCache[event.item.id] = event.item;
-      print('🛒 CartBloc - Cached item ${event.item.id} with timeSlot: "${event.item.timeSlot}"');
+      debugPrint('🛒 CartBloc - Cached item ${event.item.id} with timeSlot: "${event.item.timeSlot}"');
 
       // Get current items before adding (to preserve local data)
       List<CartItemModel> currentItems = [];
@@ -95,9 +96,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       // Don't reload from API because API might not return time_slot correctly
       currentItems.add(event.item);
 
-      print('🛒 CartBloc - Items after add:');
+      debugPrint('🛒 CartBloc - Items after add:');
       for (final item in currentItems) {
-        print('   - ${item.service.name}: timeSlot="${item.timeSlot}"');
+        debugPrint('   - ${item.service.name}: timeSlot="${item.timeSlot}"');
       }
 
       final itemCount = currentItems.length;
@@ -120,7 +121,12 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     CartItemRemoved event,
     Emitter<CartState> emit,
   ) async {
+    // Save the original state to restore if deletion fails
+    final CartState originalState = state;
+
     try {
+      debugPrint('🗑️ CartBloc._onCartItemRemoved called with itemId: "${event.itemId}"');
+
       // Keep track of updated items locally (to preserve timeSlot and other local data)
       List<CartItemModel> updatedItems = [];
 
@@ -147,6 +153,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       }
 
       // Perform actual deletion in background
+      debugPrint('🗑️ Calling cartRepository.removeFromCart("${event.itemId}")');
       await cartRepository.removeFromCart(event.itemId);
 
       // Remove from local cache
@@ -154,12 +161,40 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
       // DON'T reload from API - keep using local items to preserve timeSlot
       // The API might not return time_slot correctly
-      print('🛒 CartBloc._onCartItemRemoved - Keeping local items (not reloading from API):');
+      debugPrint('🛒 CartBloc._onCartItemRemoved - Keeping local items (not reloading from API):');
       for (final item in updatedItems) {
-        print('   - ${item.service.name}: timeSlot="${item.timeSlot}"');
+        debugPrint('   - ${item.service.name}: timeSlot="${item.timeSlot}"');
       }
     } catch (e) {
-      emit(CartError(message: 'فشل حذف العنصر: ${e.toString()}'));
+      debugPrint('❌ CartBloc._onCartItemRemoved error: $e');
+      debugPrint('   Error type: ${e.runtimeType}');
+
+      // Restore original state since deletion failed
+      if (originalState is CartLoaded) {
+        emit(originalState);
+      }
+
+      // Extract meaningful error message
+      String errorMessage = 'فشل حذف العنصر';
+      if (e.toString().contains('Invalid id format')) {
+        errorMessage = 'معرف العنصر غير صحيح. يرجى إعادة تحميل السلة والمحاولة مرة أخرى';
+      } else if (e.toString().contains('404') || e.toString().contains('not found')) {
+        errorMessage = 'العنصر غير موجود في السلة';
+      } else if (e.toString().contains('401') || e.toString().contains('unauthorized')) {
+        errorMessage = 'يرجى تسجيل الدخول مرة أخرى';
+      } else if (e.toString().contains('network') || e.toString().contains('internet')) {
+        errorMessage = 'تحقق من اتصالك بالإنترنت';
+      }
+
+      // Emit error but keep the cart items visible by re-emitting the original loaded state first
+      emit(CartError(message: errorMessage));
+
+      // After a short delay, restore the cart view
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (originalState is CartLoaded) {
+          emit(originalState);
+        }
+      });
     }
   }
 
@@ -254,7 +289,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       final currentState = state as CartLoaded;
       if (currentState.items.isEmpty) return;
 
-      print('💰 CartBloc - Validating prices for ${currentState.items.length} items');
+      debugPrint('💰 CartBloc - Validating prices for ${currentState.items.length} items');
 
       // Get service repository to fetch current prices
       final serviceRepository = getIt<ServiceRepository>();
@@ -284,48 +319,48 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           if (item.timeSlot == 'morning' &&
               (item.time.contains('مسائي') || item.time.contains('مساء'))) {
             effectiveTimeSlot = 'evening';
-            print('   ⚠️ Correcting timeSlot from "morning" to "evening" based on time display: "${item.time}"');
+            debugPrint('   ⚠️ Correcting timeSlot from "morning" to "evening" based on time display: "${item.time}"');
           } else if (item.timeSlot == 'evening' &&
               (item.time.contains('صباحي') || item.time.contains('صباح'))) {
             effectiveTimeSlot = 'morning';
-            print('   ⚠️ Correcting timeSlot from "evening" to "morning" based on time display: "${item.time}"');
+            debugPrint('   ⚠️ Correcting timeSlot from "evening" to "morning" based on time display: "${item.time}"');
           }
 
-          print('   🔍 Item: ${item.service.name}');
-          print('   🔍 TimeSlot field: "${item.timeSlot}"');
-          print('   🔍 Time display: "${item.time}"');
-          print('   🔍 Effective TimeSlot: "$effectiveTimeSlot"');
-          print('   🔍 Morning price: ${currentService.morningPrice}');
-          print('   🔍 Evening price: ${currentService.eveningPrice}');
-          print('   🔍 Has offer: ${currentService.hasApprovedOffer}');
-          print('   🔍 Discount: ${currentService.discountPercentage}%');
+          debugPrint('   🔍 Item: ${item.service.name}');
+          debugPrint('   🔍 TimeSlot field: "${item.timeSlot}"');
+          debugPrint('   🔍 Time display: "${item.time}"');
+          debugPrint('   🔍 Effective TimeSlot: "$effectiveTimeSlot"');
+          debugPrint('   🔍 Morning price: ${currentService.morningPrice}');
+          debugPrint('   🔍 Evening price: ${currentService.eveningPrice}');
+          debugPrint('   🔍 Has offer: ${currentService.hasApprovedOffer}');
+          debugPrint('   🔍 Discount: ${currentService.discountPercentage}%');
 
           if (effectiveTimeSlot == 'morning' && currentService.morningPrice != null) {
             // For venues with morning slot - check for discount
             if (currentService.hasApprovedOffer && currentService.discountPercentage != null) {
               currentPrice = currentService.morningPrice! * (1 - currentService.discountPercentage! / 100);
-              print('   💰 Using discounted morning price: $currentPrice');
+              debugPrint('   💰 Using discounted morning price: $currentPrice');
             } else {
               currentPrice = currentService.morningPrice!;
-              print('   💰 Using regular morning price: $currentPrice');
+              debugPrint('   💰 Using regular morning price: $currentPrice');
             }
           } else if (effectiveTimeSlot == 'evening' && currentService.eveningPrice != null) {
             // For venues with evening slot - check for discount
             if (currentService.hasApprovedOffer && currentService.discountPercentage != null) {
               currentPrice = currentService.eveningPrice! * (1 - currentService.discountPercentage! / 100);
-              print('   💰 Using discounted evening price: $currentPrice');
+              debugPrint('   💰 Using discounted evening price: $currentPrice');
             } else {
               currentPrice = currentService.eveningPrice!;
-              print('   💰 Using regular evening price: $currentPrice');
+              debugPrint('   💰 Using regular evening price: $currentPrice');
             }
           } else {
             // Regular service - use finalPrice (with discount) if available, otherwise use regular price
             currentPrice = currentService.finalPrice ?? currentService.price ?? item.servicePrice;
-            print('   💰 Using finalPrice/price: $currentPrice');
+            debugPrint('   💰 Using finalPrice/price: $currentPrice');
           }
 
-          print('   📊 Stored price in cart: ${item.servicePrice}');
-          print('   📊 Current price from service: $currentPrice');
+          debugPrint('   📊 Stored price in cart: ${item.servicePrice}');
+          debugPrint('   📊 Current price from service: $currentPrice');
 
           // Always update to current price (no warning, just update)
           updatedItems.add(item.copyWith(
@@ -334,9 +369,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
             priceChanged: false, // Never show as changed
           ));
 
-          print('   ✅ Updated cart item to current price: ${currentPrice.toInt()} EGP');
+          debugPrint('   ✅ Updated cart item to current price: ${currentPrice.toInt()} EGP');
         } catch (e) {
-          print('   ❌ Error validating ${item.service.name}: $e');
+          debugPrint('   ❌ Error validating ${item.service.name}: $e');
           // Keep original item if validation fails
           updatedItems.add(item);
         }
@@ -348,7 +383,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         (sum, item) => sum + item.totalPrice,
       );
 
-      print('✅ Cart prices synced with current service prices');
+      debugPrint('✅ Cart prices synced with current service prices');
 
       emit(CartLoaded(
         items: updatedItems,
@@ -356,7 +391,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         totalPrice: newTotalPrice,
       ));
     } catch (e) {
-      print('❌ Error validating cart prices: $e');
+      debugPrint('❌ Error validating cart prices: $e');
       // Don't emit error - just keep current state
     }
   }

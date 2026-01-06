@@ -40,68 +40,83 @@ class RoleSelectorScreen extends StatelessWidget {
               ),
             ],
           ),
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${AppStrings.welcome}، ${user.name}!',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                    textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
-                  ),
-                  const SizedBox(height: 48),
-                  Text(
-                    '${AppStrings.currentRole}: $roleText',
-                    style: Theme.of(context).textTheme.titleLarge,
-                    textDirection: TextDirection.rtl,
-                  ),
-                  const SizedBox(height: 48),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      context.read<AuthBloc>().add(
-                            const AuthRoleChanged(UserRole.user),
-                          );
-                      AppRouter.goToUserHome(context);
-                    },
-                    icon: const Icon(Icons.person),
-                    label: Text(
-                      AppStrings.continueAsUser,
-                      textDirection: TextDirection.rtl,
+          body: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Spacer(),
+                            Text(
+                              '${AppStrings.welcome}، ${user.name}!',
+                              style: Theme.of(context).textTheme.headlineMedium,
+                              textAlign: TextAlign.center,
+                              textDirection: TextDirection.rtl,
+                            ),
+                            const SizedBox(height: 48),
+                            Text(
+                              '${AppStrings.currentRole}: $roleText',
+                              style: Theme.of(context).textTheme.titleLarge,
+                              textDirection: TextDirection.rtl,
+                            ),
+                            const SizedBox(height: 48),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                context.read<AuthBloc>().add(
+                                      const AuthRoleChanged(UserRole.user),
+                                    );
+                                AppRouter.goToUserHome(context);
+                              },
+                              icon: const Icon(Icons.person),
+                              label: Text(
+                                AppStrings.continueAsUser,
+                                textDirection: TextDirection.rtl,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 16,
+                                ),
+                                minimumSize: const Size(200, 50),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                context.read<AuthBloc>().add(
+                                      const AuthRoleChanged(UserRole.provider),
+                                    );
+                                AppRouter.goToProviderHome(context);
+                              },
+                              icon: const Icon(Icons.business),
+                              label: Text(
+                                AppStrings.continueAsProvider,
+                                textDirection: TextDirection.rtl,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 16,
+                                ),
+                                minimumSize: const Size(200, 50),
+                              ),
+                            ),
+                            const Spacer(),
+                          ],
+                        ),
                       ),
-                      minimumSize: const Size(200, 50),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      context.read<AuthBloc>().add(
-                            const AuthRoleChanged(UserRole.provider),
-                          );
-                      AppRouter.goToProviderHome(context);
-                    },
-                    icon: const Icon(Icons.business),
-                    label: Text(
-                      AppStrings.continueAsProvider,
-                      textDirection: TextDirection.rtl,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                      minimumSize: const Size(200, 50),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         );

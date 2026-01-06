@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +13,9 @@ import 'package:wedly/data/models/booking_model.dart';
 import 'package:wedly/presentation/widgets/error_view.dart';
 import 'package:wedly/presentation/widgets/review_bottom_sheet.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
+import 'package:wedly/data/repositories/review_repository.dart';
+import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/presentation/widgets/skeleton_loading.dart';
 
 class UserBookingsScreen extends StatefulWidget {
   const UserBookingsScreen({super.key});
@@ -20,11 +24,37 @@ class UserBookingsScreen extends StatefulWidget {
   State<UserBookingsScreen> createState() => _UserBookingsScreenState();
 }
 
-class _UserBookingsScreenState extends State<UserBookingsScreen> {
+class _UserBookingsScreenState extends State<UserBookingsScreen> with WidgetsBindingObserver {
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadBookings();
+    _startPeriodicRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh when app comes back to foreground - use silent refresh
+    if (state == AppLifecycleState.resumed) {
+      _loadBookingsInBackground();
+    }
+  }
+
+  void _startPeriodicRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      _loadBookingsInBackground();
+    });
   }
 
   void _loadBookings() {
@@ -34,35 +64,164 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
     }
   }
 
-  void _showReviewBottomSheet(BookingModel booking) {
-    ReviewBottomSheet.show(
-      context: context,
-      targetId: booking.serviceId,
-      targetType: booking.reviewTargetType, // Auto-detects 'venue' or 'service' based on category
-      serviceName: booking.serviceName,
-      onReviewSubmitted: () {
-        // Reload bookings to update the hasReviewed status
-        _loadBookings();
-      },
-    );
+  void _loadBookingsInBackground() {
+    // Silent refresh - only update data, don't show loading indicator
+    if (mounted) {
+      final authState = context.read<AuthBloc>().state;
+      if (authState is AuthAuthenticated) {
+        context.read<BookingBloc>().add(SilentRefreshUserBookings(authState.user.id));
+      }
+    }
   }
 
-  void _showEditReviewBottomSheet(BookingModel booking) {
-    if (booking.reviewId == null) return;
-
-    ReviewBottomSheet.showEdit(
+  void _showReviewBottomSheet(BookingModel booking) async {
+    // Show loading indicator while checking
+    showDialog(
       context: context,
-      targetId: booking.serviceId,
-      targetType: booking.reviewTargetType, // Auto-detects 'venue' or 'service' based on category
-      serviceName: booking.serviceName,
-      reviewId: booking.reviewId!,
-      existingRating: booking.reviewRating ?? 5.0,
-      existingComment: booking.reviewComment ?? '',
-      onReviewSubmitted: () {
-        // Reload bookings to update the review data
-        _loadBookings();
-      },
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: CircularProgressIndicator(color: AppColors.gold),
+      ),
     );
+
+    // First check if user already has a review for this service
+    try {
+      final reviewRepository = getIt<ReviewRepository>();
+      final authState = context.read<AuthBloc>().state;
+
+      if (authState is AuthAuthenticated) {
+        // Fetch reviews for this service/venue
+        final reviews = booking.reviewTargetType == 'venue'
+            ? await reviewRepository.getVenueReviews(booking.serviceId)
+            : await reviewRepository.getServiceReviews(booking.serviceId);
+
+        // Close loading dialog
+        if (mounted) Navigator.of(context).pop();
+
+        // Check if current user already has a review
+        final existingReview = reviews.where(
+          (review) => review.userId == authState.user.id,
+        ).toList();
+
+        if (existingReview.isNotEmpty && mounted) {
+          // User already has a review - show edit form directly
+          ReviewBottomSheet.showEdit(
+            context: context,
+            targetId: booking.serviceId,
+            targetType: booking.reviewTargetType,
+            serviceName: booking.serviceName,
+            reviewId: existingReview.first.id,
+            existingRating: existingReview.first.rating,
+            existingComment: existingReview.first.comment,
+            onReviewSubmitted: () {
+              _loadBookings();
+            },
+          );
+          return;
+        }
+      } else {
+        // Close loading dialog if not authenticated
+        if (mounted) Navigator.of(context).pop();
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+      // If check fails, proceed with normal flow
+      debugPrint('Error checking existing review: $e');
+    }
+
+    // No existing review found - show create form
+    if (mounted) {
+      ReviewBottomSheet.show(
+        context: context,
+        targetId: booking.serviceId,
+        targetType: booking.reviewTargetType,
+        serviceName: booking.serviceName,
+        onReviewSubmitted: () {
+          _loadBookings();
+        },
+      );
+    }
+  }
+
+  void _showEditReviewBottomSheet(BookingModel booking) async {
+    // If we have reviewId from booking, use it directly
+    if (booking.reviewId != null) {
+      ReviewBottomSheet.showEdit(
+        context: context,
+        targetId: booking.serviceId,
+        targetType: booking.reviewTargetType,
+        serviceName: booking.serviceName,
+        reviewId: booking.reviewId!,
+        existingRating: booking.reviewRating ?? 5.0,
+        existingComment: booking.reviewComment ?? '',
+        onReviewSubmitted: () {
+          _loadBookings();
+        },
+      );
+      return;
+    }
+
+    // If reviewId is null but hasReviewed is true, fetch the review from API
+    if (booking.hasReviewed) {
+      try {
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
+        );
+
+        // Fetch user's reviews to find the one for this service
+        // Use getIt for repository since it's not provided via Provider
+        final reviewRepository = getIt<ReviewRepository>();
+        final authState = context.read<AuthBloc>().state;
+
+        if (authState is AuthAuthenticated) {
+          final userReviews = await reviewRepository.getUserReviews(authState.user.id);
+
+          // Find the review for this specific service/venue
+          final existingReview = userReviews.firstWhere(
+            (review) => review.venueId == booking.serviceId,
+            orElse: () => throw Exception('Review not found'),
+          );
+
+          // Close loading dialog
+          if (mounted) Navigator.of(context).pop();
+
+          // Show edit bottom sheet with fetched review data
+          if (mounted) {
+            ReviewBottomSheet.showEdit(
+              context: context,
+              targetId: booking.serviceId,
+              targetType: booking.reviewTargetType,
+              serviceName: booking.serviceName,
+              reviewId: existingReview.id,
+              existingRating: existingReview.rating,
+              existingComment: existingReview.comment,
+              onReviewSubmitted: () {
+                _loadBookings();
+              },
+            );
+          }
+        }
+      } catch (e) {
+        // Close loading dialog if open
+        if (mounted) Navigator.of(context).pop();
+
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('حدث خطأ في تحميل التقييم: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -175,9 +334,7 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                 },
                 builder: (context, state) {
                   if (state is BookingInitial || state is BookingLoading || state is BookingStatusUpdated) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: AppColors.gold),
-                    );
+                    return SkeletonLoading.bookingsList();
                   }
 
                   if (state is BookingError) {

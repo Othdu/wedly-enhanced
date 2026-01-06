@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:wedly/core/utils/app_logger.dart';
 import 'api_constants.dart';
@@ -46,24 +45,20 @@ class ApiClient {
     );
   }
 
-  /// Configure SSL settings for development with IP-based server
-  /// WARNING: This bypasses SSL verification for debug builds only
+  /// Configure SSL settings for IP-based server without valid certificate
+  /// WARNING: This bypasses SSL verification - only use until proper SSL is configured
   void _configureSsl() {
-    // Only bypass SSL verification in debug mode
-    if (kDebugMode) {
-      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-        final client = HttpClient();
-        client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-          // Allow connections to our API server IP
-          if (host == '64.226.96.53') {
-            AppLogger.warning('Bypassing SSL certificate check for $host (debug mode)', tag: 'ApiClient');
-            return true;
-          }
-          return false;
-        };
-        return client;
+    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      final client = HttpClient();
+      client.badCertificateCallback = (X509Certificate cert, String host, int port) {
+        // Allow connections to our API server IP
+        if (host == '64.226.96.53') {
+          return true;
+        }
+        return false;
       };
-    }
+      return client;
+    };
   }
 
   /// Add interceptors for logging and token handling
@@ -349,7 +344,16 @@ class ApiClient {
 
   /// Handle and map errors to custom exceptions
   ApiException _handleError(dynamic error) {
+    // Log the full error for debugging
+    AppLogger.error('API Error: $error', tag: 'ApiClient');
     if (error is DioException) {
+      AppLogger.error('DioException type: ${error.type}', tag: 'ApiClient');
+      AppLogger.error('DioException message: ${error.message}', tag: 'ApiClient');
+      AppLogger.error('DioException error: ${error.error}', tag: 'ApiClient');
+      if (error.response != null) {
+        AppLogger.error('Response status: ${error.response?.statusCode}', tag: 'ApiClient');
+        AppLogger.error('Response data: ${error.response?.data}', tag: 'ApiClient');
+      }
       switch (error.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:

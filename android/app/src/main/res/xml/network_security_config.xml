@@ -9,7 +9,7 @@
     </base-config>
 
     <!-- Specific configuration for the API server IP -->
-    <domain-config cleartextTrafficPermitted="false">
+    <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">64.226.96.53</domain>
         <trust-anchors>
             <certificates src="system"/>

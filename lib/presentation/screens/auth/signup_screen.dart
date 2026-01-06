@@ -45,7 +45,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _handleSocialSignUp(BuildContext context, String provider) {
-    print('🔍 SIGNUP UI: User clicked $provider signup');
+    debugPrint('🔍 SIGNUP UI: User clicked $provider signup');
     context.read<AuthBloc>().add(
           AuthSocialLoginRequested(provider: provider),
         );

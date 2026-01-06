@@ -1,5 +1,6 @@
 import '../../data/models/category_model.dart';
 import '../../data/repositories/category_repository.dart';
+import 'package:flutter/foundation.dart';
 
 /// Helper class for category-related utilities
 class CategoryHelper {
@@ -41,11 +42,11 @@ class CategoryHelper {
     try {
       final categories = await repository.getCategories();
       _cachedCategories = {
-        for (var category in categories) category.id: category
+        for (var category in categories) category.id: category,
       };
     } catch (e) {
       // Keep existing cache or leave as null
-      print('Failed to load categories: $e');
+      debugPrint('Failed to load categories: $e');
     }
   }
 
@@ -87,7 +88,8 @@ class CategoryHelper {
   /// Check if a category string looks like an ID
   static bool isCategoryId(String category) {
     // MongoDB ObjectId is 24 hex characters
-    return category.length == 24 && RegExp(r'^[0-9a-fA-F]+$').hasMatch(category);
+    return category.length == 24 &&
+        RegExp(r'^[0-9a-fA-F]+$').hasMatch(category);
   }
 
   /// Clear cached categories (useful for testing or forcing refresh)

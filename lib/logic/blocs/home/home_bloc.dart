@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/countdown_model.dart';
 import 'package:wedly/data/models/home_layout_model.dart';
@@ -49,11 +50,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final layout = results[4] as HomeLayoutModel?;
       final countdown = results.length > 5 ? results[5] as CountdownModel? : null;
 
-      print('📊 HomeBloc Data Loaded:');
-      print('   Services: ${services.length}');
-      print('   Categories: ${categories.length}');
-      print('   CategoriesWithDetails: ${categoriesWithDetails.length}');
-      print('   Offers: ${offers.length}');
+      debugPrint('📊 HomeBloc Data Loaded:');
+      debugPrint('   Services: ${services.length}');
+      debugPrint('   Categories: ${categories.length}');
+      debugPrint('   CategoriesWithDetails: ${categoriesWithDetails.length}');
+      debugPrint('   Offers: ${offers.length}');
 
       emit(HomeLoaded(
         services: services,
@@ -66,7 +67,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     } catch (e) {
       // This should rarely happen now since repositories have fallback
       // But if it does, we still show the UI structure
-      print('⚠️ HomeBloc Error: $e');
+      debugPrint('⚠️ HomeBloc Error: $e');
 
       // Emit loaded state with empty data - repositories should have handled fallback
       emit(const HomeLoaded(

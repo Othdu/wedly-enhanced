@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      print('🔍 LOGIN UI: User clicked login');
+      debugPrint('🔍 LOGIN UI: User clicked login');
       context.read<AuthBloc>().add(
             AuthLoginRequested(
               email: _usernameController.text.trim(),
@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleSocialLogin(BuildContext context, String provider) {
-    print('🔍 LOGIN UI: User clicked $provider login');
+    debugPrint('🔍 LOGIN UI: User clicked $provider login');
     context.read<AuthBloc>().add(
           AuthSocialLoginRequested(provider: provider),
         );
@@ -55,14 +55,14 @@ class _LoginScreenState extends State<LoginScreen> {
         listener: (context, state) {
           if (state is AuthAuthenticated) {
             final user = state.user;
-            print('🔍 LOGIN: User authenticated with role: ${user.role}');
-            print('🔍 LOGIN: Role comparison - user.role == UserRole.user: ${user.role == UserRole.user}');
-            print('🔍 LOGIN: Role comparison - user.role == UserRole.provider: ${user.role == UserRole.provider}');
+            debugPrint('🔍 LOGIN: User authenticated with role: ${user.role}');
+            debugPrint('🔍 LOGIN: Role comparison - user.role == UserRole.user: ${user.role == UserRole.user}');
+            debugPrint('🔍 LOGIN: Role comparison - user.role == UserRole.provider: ${user.role == UserRole.provider}');
             if (user.role == UserRole.user) {
-              print('✅ LOGIN: Navigating to User home');
+              debugPrint('✅ LOGIN: Navigating to User home');
               AppRouter.goToUserHome(context);
             } else {
-              print('✅ LOGIN: Navigating to Provider home');
+              debugPrint('✅ LOGIN: Navigating to Provider home');
               AppRouter.goToProviderHome(context);
             }
           } else if (state is AuthError) {

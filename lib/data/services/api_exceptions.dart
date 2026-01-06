@@ -1,5 +1,5 @@
-/// Custom API Exception classes for better error handling
-/// These exceptions wrap different types of network and API errors
+// Custom API Exception classes for better error handling
+// These exceptions wrap different types of network and API errors
 
 /// Base class for all API exceptions
 class ApiException implements Exception {
@@ -50,13 +50,12 @@ class ServerException extends ApiException {
 
 /// Exception thrown for client errors (4xx)
 class ClientException extends ApiException {
-  ClientException({String? message, int? statusCode, dynamic data})
+  ClientException({String? message, int? statusCode, super.data})
       : super(
           message: message ??
               'خطأ في الطلب.\n'
                   'Client error occurred.',
           statusCode: statusCode ?? 400,
-          data: data,
         );
 }
 

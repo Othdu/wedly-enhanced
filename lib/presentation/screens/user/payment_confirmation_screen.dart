@@ -39,7 +39,8 @@ class PaymentConfirmationScreen extends StatefulWidget {
 class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  final TextEditingController _specialRequestsController = TextEditingController();
+  final TextEditingController _specialRequestsController =
+      TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -75,6 +76,50 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     return '$date - ${item.time}';
   }
 
+  // Helper to get Arabic item count text
+  String _getItemCountText(int count) {
+    if (count == 1) {
+      return 'عنصر واحد';
+    } else if (count == 2) {
+      return 'عنصران';
+    } else if (count >= 3 && count <= 10) {
+      return '$count عناصر';
+    } else {
+      return '$count عنصر';
+    }
+  }
+
+  // Calculate subtotal (sum of all items before any discounts)
+  double _calculateSubtotal() {
+    double subtotal = 0;
+    for (var item in widget.cartItems) {
+      subtotal += item.servicePrice + item.photographerPrice;
+    }
+    return subtotal;
+  }
+
+  // Check if any item has a discount (excluding venues)
+  bool _hasAnyDiscount() {
+    for (var item in widget.cartItems) {
+      // Check if this is a venue
+      final isVenue =
+          item.service.category == '2' ||
+          item.service.category.toLowerCase() == 'venue' ||
+          item.service.category.toLowerCase() == 'venues' ||
+          item.service.category == 'قاعات الأفراح' ||
+          item.service.category == 'قاعة أفراح';
+
+      // Only consider non-venue items for discount
+      if (!isVenue &&
+          item.service.hasApprovedOffer &&
+          item.service.discountPercentage != null &&
+          item.service.discountPercentage! > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = context.read<AuthBloc>().state;
@@ -93,7 +138,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           ),
           centerTitle: true,
           title: const Text(
-            'الدفع الإلكتروني',
+            'الدفع',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -103,57 +148,65 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
         ),
         body: Column(
           children: [
+            // Progress indicator
+            _buildProgressIndicator(),
+
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionTitle('وسيلة الدفع:'),
-                      const SizedBox(height: 12),
-                      _buildPaymentMethodSection(),
-                      const SizedBox(height: 24),
+                child: Column(
+                  children: [
+                    // Order Summary Header
+                    _buildOrderSummaryHeader(),
+                    const SizedBox(height: 16),
 
-                      _buildSectionTitle('بيانات العميل', isBold: true),
-                      const SizedBox(height: 16),
-                      _buildCustomerDetails(user),
-                      const SizedBox(height: 24),
-
-                      // Notes and Special Requests section
-                      _buildSectionTitle('ملاحظات وطلبات خاصة', isBold: true),
-                      const SizedBox(height: 16),
-                      _buildNotesSection(),
-                      const SizedBox(height: 24),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'القيمة',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[700],
-                            ),
-                            textAlign: TextAlign.right,
+                          _buildSectionTitle('وسيلة الدفع:'),
+                          const SizedBox(height: 12),
+                          _buildPaymentMethodSection(),
+                          const SizedBox(height: 24),
+
+                          _buildSectionTitle('بيانات العميل', isBold: true),
+                          const SizedBox(height: 16),
+                          _buildCustomerDetails(user),
+                          const SizedBox(height: 24),
+
+                          // Notes and Special Requests section
+                          _buildSectionTitle(
+                            'ملاحظات وطلبات خاصة',
+                            isBold: true,
                           ),
+                          const SizedBox(height: 16),
+                          _buildNotesSection(),
+                          const SizedBox(height: 24),
+
+                          // Order details section with edit button
+                          _buildOrderDetailsHeader(),
+                          const SizedBox(height: 12),
+                          _buildItemizedCosts(),
+                          const SizedBox(height: 12),
+                          Divider(color: Colors.grey[300], thickness: 1),
+                          const SizedBox(height: 12),
+
+                          // Subtotal row (if there are discounts)
+                          if (_hasAnyDiscount()) ...[
+                            _buildSubtotalRow(),
+                            const SizedBox(height: 8),
+                          ],
+
+                          _buildTotalAmount(),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      _buildItemizedCosts(),
-                      const SizedBox(height: 12),
-                      Divider(color: Colors.grey[300], thickness: 1),
-                      const SizedBox(height: 12),
-
-                      _buildTotalAmount(),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -162,6 +215,242 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Progress indicator widget (● ● ○)
+  Widget _buildProgressIndicator() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Calculate line width based on available space
+          // Total width = 3 dots (24px each) + 2 lines + spacing
+          final availableWidth =
+              constraints.maxWidth - (3 * 24) - 32; // 32 for padding
+          final lineWidth = (availableWidth / 2).clamp(20.0, 50.0);
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildProgressDot(isActive: true, label: 'السلة'),
+              _buildProgressLine(isActive: true, width: lineWidth),
+              _buildProgressDot(isActive: true, label: 'الدفع'),
+              _buildProgressLine(isActive: true, width: lineWidth),
+              _buildProgressDot(
+                isActive: true,
+                isCurrent: true,
+                label: 'التأكيد',
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProgressDot({
+    required bool isActive,
+    bool isCurrent = false,
+    required String label,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? const Color(0xFFD4AF37) : Colors.grey[300],
+            border: isCurrent
+                ? Border.all(color: const Color(0xFFD4AF37), width: 3)
+                : null,
+          ),
+          child: isActive && !isCurrent
+              ? const Icon(Icons.check, color: Colors.white, size: 14)
+              : null,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: isActive ? const Color(0xFFD4AF37) : Colors.grey[400],
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgressLine({required bool isActive, double width = 40}) {
+    return Container(
+      width: width,
+      height: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      color: isActive ? const Color(0xFFD4AF37) : Colors.grey[300],
+    );
+  }
+
+  // Order summary header with item count
+  Widget _buildOrderSummaryHeader() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD4AF37),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.shopping_bag_outlined,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ملخص الطلب',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF333333),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _getItemCountText(widget.cartItems.length),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4AF37),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '${NumberFormat('#,###').format(widget.totalAmount.toInt())} جنيه',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Order details header with edit button
+  Widget _buildOrderDetailsHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: Text(
+            'تفاصيل الطلب',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        InkWell(
+          onTap: () {
+            // Go back to cart screen to edit
+            Navigator.pop(context); // Pop payment confirmation
+            Navigator.pop(context); // Pop payment method screen
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.edit_outlined,
+                  size: 14,
+                  color: Color(0xFFD4AF37),
+                ),
+                const SizedBox(width: 4),
+                const Text(
+                  'تعديل',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFD4AF37),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Subtotal row
+  Widget _buildSubtotalRow() {
+    final subtotal = _calculateSubtotal();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: Text(
+            'المجموع الفرعي',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            '\u202B${NumberFormat('#,###').format(subtotal.toInt())} جنية\u202C',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            textAlign: TextAlign.left,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -256,10 +545,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _buildEditableDetailRow(
-          label: 'الاسم',
-          controller: _nameController,
-        ),
+        _buildEditableDetailRow(label: 'الاسم', controller: _nameController),
         _buildEditableDetailRow(
           label: 'البريد الإلكتروني',
           controller: _emailController,
@@ -306,7 +592,9 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           Flexible(
             flex: 3,
             child: Directionality(
-              textDirection: isLtr ? ui.TextDirection.ltr : ui.TextDirection.rtl,
+              textDirection: isLtr
+                  ? ui.TextDirection.ltr
+                  : ui.TextDirection.rtl,
               child: TextField(
                 controller: controller,
                 keyboardType: keyboardType,
@@ -314,7 +602,10 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                 style: const TextStyle(fontSize: 14, color: Colors.black),
                 decoration: InputDecoration(
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                   filled: true,
                   fillColor: Colors.grey[50],
                   border: OutlineInputBorder(
@@ -345,7 +636,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Flexible(
-            flex: 1,
+            flex: 2,
             child: Text(
               label,
               style: const TextStyle(
@@ -354,9 +645,11 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Flexible(
             flex: 3,
             child: Align(
@@ -407,26 +700,64 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     List<Widget> items = [];
 
     for (var cartItem in widget.cartItems) {
-      items.add(
-        _buildDetailRow(
-          label: cartItem.service.category,
-          value:
-              '\u202B${NumberFormat('#,###').format(cartItem.servicePrice.toInt())} جنية\u202C',
-        ),
-      );
+      // Check if this is a venue (venues use morningPrice/eveningPrice, not price field)
+      // Also check by timeSlot which is only set for venue bookings
+      final isVenue =
+          cartItem.service.category == '2' ||
+          cartItem.service.category.toLowerCase() == 'venue' ||
+          cartItem.service.category.toLowerCase() == 'venues' ||
+          cartItem.service.category == 'قاعات الأفراح' ||
+          cartItem.service.category == 'قاعة أفراح' ||
+          cartItem.timeSlot.isNotEmpty; // timeSlot is only set for venues
 
-      if (cartItem.photographerPrice > 0) {
+      // For venues: just show name and price, NO discount info
+      // Venues use morning/evening pricing, not the offer system
+      if (isVenue) {
         items.add(
-          _buildDetailRow(
-            label: 'المصور',
-            value:
-                '\u202B${NumberFormat('#,###').format(cartItem.photographerPrice.toInt())} جنية\u202C',
+          _buildSimplePriceRow(
+            label: cartItem.service.name,
+            price: cartItem.servicePrice,
+            timeSlot: cartItem.time, // "صباحي" or "مسائي"
           ),
         );
+      } else {
+        // For other services, check for discounts
+        final displayName = cartItem.service.name.isNotEmpty
+            ? cartItem.service.name
+            : 'خدمة';
+
+        final hasDiscount =
+            cartItem.service.hasApprovedOffer &&
+            cartItem.service.discountPercentage != null &&
+            cartItem.service.discountPercentage! > 0;
+
+        final originalPrice = hasDiscount && cartItem.service.price != null
+            ? cartItem.service.price!
+            : null;
+
+        items.add(
+          _buildPriceRow(
+            label: displayName,
+            currentPrice: cartItem.servicePrice,
+            originalPrice: originalPrice,
+            discountPercentage: hasDiscount
+                ? cartItem.service.discountPercentage
+                : null,
+          ),
+        );
+
+        if (cartItem.photographerPrice > 0) {
+          items.add(
+            _buildPriceRow(
+              label: 'المصور',
+              currentPrice: cartItem.photographerPrice,
+            ),
+          );
+        }
       }
     }
 
-    // NEW CLEAN APPOINTMENT INSERTED HERE
+    // Appointment row
     final appointment = _formatAppointment();
     if (appointment.isNotEmpty) {
       items.add(_buildDetailRow(label: 'الموعد', value: appointment));
@@ -435,6 +766,161 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: items,
+    );
+  }
+
+  // Simple price row for venues - just name, time slot, and price (like in cart)
+  Widget _buildSimplePriceRow({
+    required String label,
+    required double price,
+    required String timeSlot,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Venue name
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFFD4AF37),
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.right,
+          ),
+          const SizedBox(height: 4),
+          // Time slot and price row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Price on left
+              Text(
+                '${NumberFormat('#,###').format(price.toInt())} جنية',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              // Time slot on right
+              if (timeSlot.isNotEmpty)
+                Text(
+                  timeSlot,
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Price row with optional original price strikethrough and discount badge
+  Widget _buildPriceRow({
+    required String label,
+    required double currentPrice,
+    double? originalPrice,
+    double? discountPercentage,
+  }) {
+    final hasDiscount =
+        originalPrice != null &&
+        discountPercentage != null &&
+        discountPercentage > 0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            flex: 2,
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFFD4AF37),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.right,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (hasDiscount) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '-${discountPercentage.toInt()}%',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Flexible(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Directionality(
+                textDirection: ui.TextDirection.ltr,
+                child: hasDiscount
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Original price with strikethrough
+                          Text(
+                            '\u202B${NumberFormat('#,###').format(originalPrice.toInt())} جنية\u202C',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: Colors.grey[500],
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                          // Current discounted price
+                          Text(
+                            '\u202B${NumberFormat('#,###').format(currentPrice.toInt())} جنية\u202C',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ],
+                      )
+                    : Text(
+                        '\u202B${NumberFormat('#,###').format(currentPrice.toInt())} جنية\u202C',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -520,23 +1006,25 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Flexible(
+        Flexible(
           flex: 1,
           child: Text(
             'المبلغ الإجمالي',
-            style: TextStyle(
-              fontSize: 16,
+            style: const TextStyle(
+              fontSize: 13,
               color: Color(0xFFD4AF37),
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 12),
         Flexible(
-          flex: 3,
-          child: Align(
-            alignment: Alignment.centerRight,
+          flex: 2,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
             child: Directionality(
               textDirection: ui.TextDirection.ltr,
               child: Text(
@@ -616,9 +1104,18 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
         }
         // Try Arabic date format like "15 نوفمبر"
         final arabicMonths = {
-          'يناير': 1, 'فبراير': 2, 'مارس': 3, 'أبريل': 4,
-          'مايو': 5, 'يونيو': 6, 'يوليو': 7, 'أغسطس': 8,
-          'سبتمبر': 9, 'أكتوبر': 10, 'نوفمبر': 11, 'ديسمبر': 12,
+          'يناير': 1,
+          'فبراير': 2,
+          'مارس': 3,
+          'أبريل': 4,
+          'مايو': 5,
+          'يونيو': 6,
+          'يوليو': 7,
+          'أغسطس': 8,
+          'سبتمبر': 9,
+          'أكتوبر': 10,
+          'نوفمبر': 11,
+          'ديسمبر': 12,
         };
         final parts = dateString.split(' ');
         if (parts.length >= 2) {
@@ -648,7 +1145,11 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
 
     for (final cartItem in widget.cartItems) {
       final bookingDate = _parseBookingDate(cartItem.date);
-      final bookingDay = DateTime(bookingDate.year, bookingDate.month, bookingDate.day);
+      final bookingDay = DateTime(
+        bookingDate.year,
+        bookingDate.month,
+        bookingDate.day,
+      );
 
       if (bookingDay.isBefore(today)) {
         showDialog(
@@ -743,16 +1244,22 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
               children: [
                 const Text('يرجى إكمال البيانات التالية قبل المتابعة:'),
                 const SizedBox(height: 12),
-                ...emptyFields.map((field) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.circle, size: 8, color: Color(0xFFD4AF37)),
-                      const SizedBox(width: 8),
-                      Text(field),
-                    ],
+                ...emptyFields.map(
+                  (field) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.circle,
+                          size: 8,
+                          color: Color(0xFFD4AF37),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(field),
+                      ],
+                    ),
                   ),
-                )),
+                ),
               ],
             ),
             actions: [
@@ -835,9 +1342,15 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
 
         // Build booking data matching API spec
         // Use controller values with fallbacks from user object if empty
-        debugPrint('🔴 PaymentConfirmation - cartItem.timeSlot: "${cartItem.timeSlot}"');
-        debugPrint('🔴 PaymentConfirmation - cartItem.timeSlot.isEmpty: ${cartItem.timeSlot.isEmpty}');
-        final timeSlot = cartItem.timeSlot.isNotEmpty ? cartItem.timeSlot : 'morning';
+        debugPrint(
+          '🔴 PaymentConfirmation - cartItem.timeSlot: "${cartItem.timeSlot}"',
+        );
+        debugPrint(
+          '🔴 PaymentConfirmation - cartItem.timeSlot.isEmpty: ${cartItem.timeSlot.isEmpty}',
+        );
+        final timeSlot = cartItem.timeSlot.isNotEmpty
+            ? cartItem.timeSlot
+            : 'morning';
         debugPrint('🔴 PaymentConfirmation - final timeSlot: "$timeSlot"');
 
         // Get values from controllers, fallback to user data if empty
@@ -855,11 +1368,21 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
             : (user.city ?? 'القاهرة');
 
         // Debug: Print controller values
-        debugPrint('Customer name controller: "${_nameController.text}" -> "$customerName"');
-        debugPrint('Customer email controller: "${_emailController.text}" -> "$customerEmail"');
-        debugPrint('Customer phone controller: "${_phoneController.text}" -> "$customerPhone"');
-        debugPrint('Event location controller: "${_addressController.text}" -> "$eventLocation"');
-        debugPrint('TimeSlot from cart item: "${cartItem.timeSlot}" -> "$timeSlot"');
+        debugPrint(
+          'Customer name controller: "${_nameController.text}" -> "$customerName"',
+        );
+        debugPrint(
+          'Customer email controller: "${_emailController.text}" -> "$customerEmail"',
+        );
+        debugPrint(
+          'Customer phone controller: "${_phoneController.text}" -> "$customerPhone"',
+        );
+        debugPrint(
+          'Event location controller: "${_addressController.text}" -> "$eventLocation"',
+        );
+        debugPrint(
+          'TimeSlot from cart item: "${cartItem.timeSlot}" -> "$timeSlot"',
+        );
 
         final Map<String, dynamic> bookingData = {
           'service_id': cartItem.service.id,
@@ -868,7 +1391,9 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           'customer_name': customerName,
           'customer_email': customerEmail,
           'customer_phone': customerPhone,
-          'event_type': cartItem.service.category.isNotEmpty ? cartItem.service.category : 'خدمة',
+          'event_type': cartItem.service.category.isNotEmpty
+              ? cartItem.service.category
+              : 'خدمة',
           'guest_count': 1, // Always 1
           'event_location': eventLocation,
           'payment_method': 'cash', // Only cash for now
@@ -888,10 +1413,12 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
         }
 
         // Only add section/option IDs if they have values
-        if (cartItem.selectedSectionId != null && cartItem.selectedSectionId!.isNotEmpty) {
+        if (cartItem.selectedSectionId != null &&
+            cartItem.selectedSectionId!.isNotEmpty) {
           bookingData['selected_section_id'] = cartItem.selectedSectionId;
         }
-        if (cartItem.selectedOptionIds != null && cartItem.selectedOptionIds!.isNotEmpty) {
+        if (cartItem.selectedOptionIds != null &&
+            cartItem.selectedOptionIds!.isNotEmpty) {
           bookingData['selected_option_id'] = cartItem.selectedOptionIds;
         }
 
@@ -913,18 +1440,20 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
       // Set wedding date if user booked a venue
       // This triggers the countdown timer to appear on home screen
       final venueBooking = widget.cartItems.firstWhere(
-        (item) => item.service.category == '2' || // Category ID 2 is venues
-                  item.service.category.toLowerCase() == 'venue' ||
-                  item.service.category.toLowerCase() == 'venues' ||
-                  item.service.category == 'قاعات الأفراح',
+        (item) =>
+            item.service.category == '2' || // Category ID 2 is venues
+            item.service.category.toLowerCase() == 'venue' ||
+            item.service.category.toLowerCase() == 'venues' ||
+            item.service.category == 'قاعات الأفراح',
         orElse: () => widget.cartItems.first, // fallback (shouldn't happen)
       );
 
       // Check if we actually found a venue booking
-      final isVenueBooking = venueBooking.service.category == '2' ||
-                             venueBooking.service.category.toLowerCase() == 'venue' ||
-                             venueBooking.service.category.toLowerCase() == 'venues' ||
-                             venueBooking.service.category == 'قاعات الأفراح';
+      final isVenueBooking =
+          venueBooking.service.category == '2' ||
+          venueBooking.service.category.toLowerCase() == 'venue' ||
+          venueBooking.service.category.toLowerCase() == 'venues' ||
+          venueBooking.service.category == 'قاعات الأفراح';
 
       if (isVenueBooking && mounted) {
         final weddingDate = _parseBookingDate(venueBooking.date);
@@ -946,11 +1475,13 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
         final cityChanged = _addressController.text.trim() != (user.city ?? '');
 
         if (nameChanged || phoneChanged || cityChanged) {
-          context.read<AuthBloc>().add(AuthUpdateProfile(
-            name: nameChanged ? _nameController.text.trim() : null,
-            phone: phoneChanged ? _phoneController.text.trim() : null,
-            city: cityChanged ? _addressController.text.trim() : null,
-          ));
+          context.read<AuthBloc>().add(
+            AuthUpdateProfile(
+              name: nameChanged ? _nameController.text.trim() : null,
+              phone: phoneChanged ? _phoneController.text.trim() : null,
+              city: cityChanged ? _addressController.text.trim() : null,
+            ),
+          );
         }
       }
 
@@ -993,11 +1524,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                   shape: BoxShape.circle,
                   color: Color(0xFFD4AF37),
                 ),
-                child: const Icon(
-                  Icons.check,
-                  size: 60,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.check, size: 60, color: Colors.white),
               ),
               const SizedBox(height: 24),
               // Success Message
@@ -1013,10 +1540,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
               const SizedBox(height: 12),
               const Text(
                 'تمت إضافة الحجز إلى قائمة حجوزاتك',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -1035,7 +1559,9 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                     if (authState is AuthAuthenticated) {
                       userId = authState.user.id;
                     }
-                    context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
+                    context.read<HomeBloc>().add(
+                      HomeServicesRequested(userId: userId),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD4AF37),
@@ -1072,10 +1598,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(
-                      color: Color(0xFFD4AF37),
-                      width: 2,
-                    ),
+                    side: const BorderSide(color: Color(0xFFD4AF37), width: 2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1156,7 +1679,9 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
                 // Navigate to login
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/login', (route) => false);
               },
               child: const Text(
                 'تسجيل الدخول',
@@ -1187,7 +1712,8 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           // Other API errors - show the message from API if available
           title = 'خطأ في الحجز';
           // Extract just the Arabic message if available
-          message = _extractArabicMessage(error.message) ??
+          message =
+              _extractArabicMessage(error.message) ??
               'حدث خطأ أثناء إنشاء الحجز. يرجى المحاولة مرة أخرى.';
           icon = Icons.warning_amber;
           iconColor = Colors.orange;
@@ -1221,7 +1747,10 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           },
           child: const Text(
             'إعادة المحاولة',
-            style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Color(0xFFD4AF37),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ];

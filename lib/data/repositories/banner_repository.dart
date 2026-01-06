@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:wedly/data/models/banner_model.dart';
 import 'package:wedly/data/services/api_client.dart';
@@ -77,39 +78,39 @@ class BannerRepository {
     }
 
     try {
-      print('🌐 BannerRepository: Fetching banners from ${ApiConstants.banners}');
+      debugPrint('🌐 BannerRepository: Fetching banners from ${ApiConstants.banners}');
       final response = await _apiClient!.get(ApiConstants.banners);
 
-      print('📦 BannerRepository: Response received');
-      print('📦 Response type: ${response.data.runtimeType}');
-      print('📦 Response data: ${response.data}');
+      debugPrint('📦 BannerRepository: Response received');
+      debugPrint('📦 Response type: ${response.data.runtimeType}');
+      debugPrint('📦 Response data: ${response.data}');
 
       // API Response format: { "success": true, "message": "...", "data": { "banners": [...] } }
       if (response.data is Map) {
         final data = response.data['data'];
-        print('📦 Data field type: ${data.runtimeType}');
-        print('📦 Data content: $data');
+        debugPrint('📦 Data field type: ${data.runtimeType}');
+        debugPrint('📦 Data content: $data');
 
         if (data is Map && data['banners'] is List) {
           final bannersList = (data['banners'] as List)
               .map((json) => BannerModel.fromJson(json))
               .toList();
-          print('✅ BannerRepository: Parsed ${bannersList.length} banners');
+          debugPrint('✅ BannerRepository: Parsed ${bannersList.length} banners');
           return bannersList;
         } else {
-          print('⚠️ BannerRepository: Data does not contain banners array');
-          print('⚠️ Data keys: ${data is Map ? data.keys : "Not a map"}');
+          debugPrint('⚠️ BannerRepository: Data does not contain banners array');
+          debugPrint('⚠️ Data keys: ${data is Map ? data.keys : "Not a map"}');
         }
       } else {
-        print('⚠️ BannerRepository: Response is not a Map');
+        debugPrint('⚠️ BannerRepository: Response is not a Map');
       }
 
-      print('⚠️ BannerRepository: Returning empty list');
+      debugPrint('⚠️ BannerRepository: Returning empty list');
       return [];
     } on ApiException {
       rethrow;
     } catch (e) {
-      print('❌ BannerRepository: Exception: $e');
+      debugPrint('❌ BannerRepository: Exception: $e');
       throw ApiException(message: 'فشل تحميل العروض: $e');
     }
   }
@@ -121,46 +122,46 @@ class BannerRepository {
     }
 
     try {
-      print('🔐 BannerRepository: Fetching ALL banners (admin) from ${ApiConstants.adminBanners}');
+      debugPrint('🔐 BannerRepository: Fetching ALL banners (admin) from ${ApiConstants.adminBanners}');
       final response = await _apiClient!.get(ApiConstants.adminBanners);
 
-      print('📦 Admin response: ${response.data}');
-      print('📦 Admin response type: ${response.data.runtimeType}');
+      debugPrint('📦 Admin response: ${response.data}');
+      debugPrint('📦 Admin response type: ${response.data.runtimeType}');
 
       // Same parsing logic as getBanners - might have nested structure
       if (response.data is Map) {
         final data = response.data['data'];
-        print('📦 Admin data field: $data');
-        print('📦 Admin data type: ${data.runtimeType}');
+        debugPrint('📦 Admin data field: $data');
+        debugPrint('📦 Admin data type: ${data.runtimeType}');
 
         if (data is Map && data['banners'] is List) {
           final bannersList = (data['banners'] as List)
               .map((json) => BannerModel.fromJson(json))
               .toList();
-          print('✅ Admin endpoint: Found ${bannersList.length} total banners');
+          debugPrint('✅ Admin endpoint: Found ${bannersList.length} total banners');
           for (var banner in bannersList) {
-            print('  - ID: ${banner.id}, Active: ${banner.isActive}, Expires: ${banner.expirationDate}, Image: ${banner.imageUrl}');
+            debugPrint('  - ID: ${banner.id}, Active: ${banner.isActive}, Expires: ${banner.expirationDate}, Image: ${banner.imageUrl}');
           }
           return bannersList;
         } else if (data is List) {
           // Fallback: data might be directly a list
-          final bannersList = (data as List)
+          final bannersList = data
               .map((json) => BannerModel.fromJson(json))
               .toList();
-          print('✅ Admin endpoint (direct list): Found ${bannersList.length} total banners');
+          debugPrint('✅ Admin endpoint (direct list): Found ${bannersList.length} total banners');
           for (var banner in bannersList) {
-            print('  - ID: ${banner.id}, Active: ${banner.isActive}, Expires: ${banner.expirationDate}, Image: ${banner.imageUrl}');
+            debugPrint('  - ID: ${banner.id}, Active: ${banner.isActive}, Expires: ${banner.expirationDate}, Image: ${banner.imageUrl}');
           }
           return bannersList;
         }
       }
 
-      print('⚠️ Admin endpoint: Could not parse response, returning empty list');
+      debugPrint('⚠️ Admin endpoint: Could not parse response, returning empty list');
       return [];
     } on ApiException {
       rethrow;
     } catch (e) {
-      print('❌ Admin endpoint exception: $e');
+      debugPrint('❌ Admin endpoint exception: $e');
       throw ApiException(message: 'فشل تحميل جميع العروض: $e');
     }
   }

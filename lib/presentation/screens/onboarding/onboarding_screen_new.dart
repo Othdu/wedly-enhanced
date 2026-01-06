@@ -98,119 +98,118 @@ class _OnboardingScreenNewState extends State<OnboardingScreenNew> {
                     topRight: Radius.circular(32),
                   ),
                 ),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 40),
-                    // PageView for content
-                    Expanded(
-                      child: PageView.builder(
-                        controller: _pageController,
-                        onPageChanged: _onPageChanged,
-                        itemCount: _pages.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 32),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _pages[index].title,
-                                  textAlign: TextAlign.center,
-                                  textDirection: TextDirection.rtl,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.black,
-                                    height: 1.4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
+                      // PageView for content - takes available space
+                      Expanded(
+                        child: PageView.builder(
+                          controller: _pageController,
+                          onPageChanged: _onPageChanged,
+                          itemCount: _pages.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _pages[index].title,
+                                    textAlign: TextAlign.center,
+                                    textDirection: TextDirection.rtl,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.black,
+                                      height: 1.4,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _pages[index].description,
-                                  textAlign: TextAlign.center,
-                                  textDirection: TextDirection.rtl,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.textSecondary,
-                                    height: 1.6,
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _pages[index].description,
+                                    textAlign: TextAlign.center,
+                                    textDirection: TextDirection.rtl,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textSecondary,
+                                      height: 1.6,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    // Page indicators
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        _pages.length,
-                        (index) => Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: _currentPage == index ? 32 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: _currentPage == index
-                                ? AppColors.black
-                                : AppColors.grey.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(4),
+                      // Page indicators
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          _pages.length,
+                          (index) => Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: _currentPage == index ? 32 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _currentPage == index
+                                  ? AppColors.black
+                                  : AppColors.grey.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Buttons
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        children: [
-                          // Next/Start button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _nextPage,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.black,
-                                foregroundColor: AppColors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                _currentPage == _pages.length - 1
-                                    ? AppStrings.startNow
-                                    : AppStrings.next,
-                                textDirection: TextDirection.rtl,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                      const SizedBox(height: 24),
+                      // Next/Start button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _nextPage,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.black,
+                            foregroundColor: AppColors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            _currentPage == _pages.length - 1
+                                ? AppStrings.startNow
+                                : AppStrings.next,
+                            textDirection: TextDirection.rtl,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          // Skip button
-                          if (_currentPage < _pages.length - 1)
-                            TextButton(
-                              onPressed: _skip,
-                              child: Text(
-                                AppStrings.skip,
-                                textDirection: TextDirection.rtl,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 8),
+                      // Skip button
+                      SizedBox(
+                        height: 40,
+                        child: _currentPage < _pages.length - 1
+                            ? TextButton(
+                                onPressed: _skip,
+                                child: Text(
+                                  AppStrings.skip,
+                                  textDirection: TextDirection.rtl,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             ),

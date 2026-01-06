@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -397,7 +398,7 @@ class ServiceRepository {
 
       // Validate response data structure
       if (response.data == null || response.data is! Map) {
-        print('⚠️ Invalid API response structure for services');
+        debugPrint('⚠️ Invalid API response structure for services');
         return _mockGetServices();
       }
 
@@ -406,7 +407,7 @@ class ServiceRepository {
       // Ensure we have a valid services array
       dynamic servicesData = responseData['services'] ?? responseData;
       if (servicesData is! List) {
-        print('⚠️ API response is not a list for services');
+        debugPrint('⚠️ API response is not a list for services');
         return _mockGetServices();
       }
 
@@ -415,21 +416,21 @@ class ServiceRepository {
         try {
           return ServiceModel.fromJson(json as Map<String, dynamic>);
         } catch (e) {
-          print('⚠️ Error parsing service JSON: $e');
+          debugPrint('⚠️ Error parsing service JSON: $e');
           return null;
         }
       }).whereType<ServiceModel>().toList(); // Filter out null values
 
       // Fallback to mock data if API returns empty results
       if (services.isEmpty) {
-        print('⚠️ API returned empty services, falling back to mock data');
+        debugPrint('⚠️ API returned empty services, falling back to mock data');
         return _mockGetServices();
       }
 
       return services;
     } catch (e) {
-      print('! API Error in getServices: $e');
-      print('📦 Falling back to mock data');
+      debugPrint('! API Error in getServices: $e');
+      debugPrint('📦 Falling back to mock data');
       return _mockGetServices();
     }
   }
@@ -611,7 +612,7 @@ class ServiceRepository {
 
       // Validate response data structure
       if (response.data == null || response.data is! Map) {
-        print('⚠️ Invalid API response structure for category $category');
+        debugPrint('⚠️ Invalid API response structure for category $category');
         return _mockGetServicesByCategoryWithFilters(category, page: page, limit: limit);
       }
 
@@ -620,7 +621,7 @@ class ServiceRepository {
       // Ensure we have a valid services array
       dynamic servicesData = responseData['services'] ?? responseData;
       if (servicesData is! List) {
-        print('⚠️ API response is not a list for category $category');
+        debugPrint('⚠️ API response is not a list for category $category');
         return _mockGetServicesByCategoryWithFilters(category, page: page, limit: limit);
       }
 
@@ -629,7 +630,7 @@ class ServiceRepository {
         try {
           return ServiceModel.fromJson(json as Map<String, dynamic>);
         } catch (e) {
-          print('⚠️ Error parsing service JSON: $e');
+          debugPrint('⚠️ Error parsing service JSON: $e');
           return null;
         }
       }).whereType<ServiceModel>().toList();
@@ -652,8 +653,8 @@ class ServiceRepository {
         'hasMore': currentPage < totalPages,
       };
     } catch (e) {
-      print('! API Error in getServicesByCategoryWithFilters($category): $e');
-      print('📦 Falling back to mock data');
+      debugPrint('! API Error in getServicesByCategoryWithFilters($category): $e');
+      debugPrint('📦 Falling back to mock data');
       return _mockGetServicesByCategoryWithFilters(category, page: page, limit: limit);
     }
   }
@@ -741,8 +742,8 @@ class ServiceRepository {
       }
       return _mockGetCities();
     } catch (e) {
-      print('⚠️ API Error in getCities: $e');
-      print('📦 Falling back to mock cities');
+      debugPrint('⚠️ API Error in getCities: $e');
+      debugPrint('📦 Falling back to mock cities');
       return _mockGetCities();
     }
   }
@@ -899,7 +900,7 @@ class ServiceRepository {
       }
       return [];
     } catch (e) {
-      print('⚠️ Error fetching dynamic sections: $e');
+      debugPrint('⚠️ Error fetching dynamic sections: $e');
       return [];
     }
   }
@@ -924,7 +925,7 @@ class ServiceRepository {
       }
       return [];
     } catch (e) {
-      print('⚠️ Error fetching service packages: $e');
+      debugPrint('⚠️ Error fetching service packages: $e');
       return [];
     }
   }
@@ -1103,8 +1104,8 @@ class ServiceRepository {
     }
 
     // Debug: Log the update data being sent
-    print('📍 Update service data: $updateData');
-    print('📍 Price: ${service.price}, Latitude: ${service.latitude}, Longitude: ${service.longitude}');
+    debugPrint('📍 Update service data: $updateData');
+    debugPrint('📍 Price: ${service.price}, Latitude: ${service.latitude}, Longitude: ${service.longitude}');
 
     final response = await _apiClient!.put(
       ApiConstants.serviceById(service.id),
@@ -1149,7 +1150,7 @@ class ServiceRepository {
         );
       }
     } catch (parseError) {
-      print('⚠️ Error parsing update response: $parseError');
+      debugPrint('⚠️ Error parsing update response: $parseError');
     }
 
     // Fallback: If parsing fails but API call succeeded, return the original service
@@ -1212,7 +1213,7 @@ class ServiceRepository {
       ApiConstants.toggleServiceStatus(serviceId),
     );
 
-    print('🔄 Toggle status response: ${response.data}');
+    debugPrint('🔄 Toggle status response: ${response.data}');
 
     // Try to parse the response if it contains the full service
     final data = response.data;
@@ -1232,7 +1233,7 @@ class ServiceRepository {
           return currentService.copyWith(isActive: newIsActive);
         }
       } catch (e) {
-        print('⚠️ Failed to parse toggle response, using toggled local state: $e');
+        debugPrint('⚠️ Failed to parse toggle response, using toggled local state: $e');
       }
     }
 
@@ -1335,14 +1336,14 @@ class ServiceRepository {
 
       // Fallback to mock data if API returns empty results
       if (categories.isEmpty) {
-        print('⚠️ API returned empty categories, falling back to mock data');
+        debugPrint('⚠️ API returned empty categories, falling back to mock data');
         return _mockGetCategoriesWithDetails();
       }
 
       return categories;
     } catch (e) {
-      print('⚠️ API Error in getCategoriesWithDetails: $e');
-      print('📦 Falling back to mock data');
+      debugPrint('⚠️ API Error in getCategoriesWithDetails: $e');
+      debugPrint('📦 Falling back to mock data');
       return _mockGetCategoriesWithDetails();
     }
   }
@@ -1451,8 +1452,8 @@ class ServiceRepository {
         title: 'Countdown to ${closestVenueBooking.serviceName}',
       );
     } catch (e) {
-      print('⚠️ API Error in getUserCountdown: $e');
-      print('📦 Falling back to no countdown (null)');
+      debugPrint('⚠️ API Error in getUserCountdown: $e');
+      debugPrint('📦 Falling back to no countdown (null)');
       return null;
     }
   }
@@ -1622,8 +1623,8 @@ class ServiceRepository {
       final response = await _apiClient!.get(ApiConstants.homeLayout(screenName));
       return HomeLayoutModel.fromJson(response.data['layout'] ?? response.data);
     } catch (e) {
-      print('⚠️ API Error in getHomeLayout: $e');
-      print('📦 Falling back to mock layout');
+      debugPrint('⚠️ API Error in getHomeLayout: $e');
+      debugPrint('📦 Falling back to mock layout');
       return _mockGetHomeLayout(screenName);
     }
   }
@@ -1725,8 +1726,8 @@ class ServiceRepository {
         'days': days, // Include raw days data for more detailed use if needed
       };
     } catch (e) {
-      print('⚠️ API Error in getServiceAvailableDates: $e');
-      print('📦 Falling back to mock data');
+      debugPrint('⚠️ API Error in getServiceAvailableDates: $e');
+      debugPrint('📦 Falling back to mock data');
       return _mockGetServiceAvailableDates(serviceId, month, timeSlot: timeSlot);
     }
   }
@@ -1742,18 +1743,18 @@ class ServiceRepository {
   }) async {
     // Check if we're in mock mode or have no API client
     if (useMockData || _apiClient == null) {
-      print('⚠️ ServiceRepository: Cannot submit offer - useMockData=$useMockData, apiClient=${_apiClient != null}');
+      debugPrint('⚠️ ServiceRepository: Cannot submit offer - useMockData=$useMockData, apiClient=${_apiClient != null}');
       throw Exception('Cannot submit offer: API client not available');
     }
 
-    print('🎁 ========================================');
-    print('🎁 SUBMITTING OFFER FOR SERVICE');
-    print('🎁 ========================================');
-    print('🎁 Service ID: $serviceId');
-    print('🎁 Discount: $discountPercentage%');
-    print('🎁 Expiry Date: ${offerExpiryDate.toIso8601String()}');
-    print('🎁 Endpoint: ${ApiConstants.submitServiceOffer(serviceId)}');
-    print('🎁 ========================================');
+    debugPrint('🎁 ========================================');
+    debugPrint('🎁 SUBMITTING OFFER FOR SERVICE');
+    debugPrint('🎁 ========================================');
+    debugPrint('🎁 Service ID: $serviceId');
+    debugPrint('🎁 Discount: $discountPercentage%');
+    debugPrint('🎁 Expiry Date: ${offerExpiryDate.toIso8601String()}');
+    debugPrint('🎁 Endpoint: ${ApiConstants.submitServiceOffer(serviceId)}');
+    debugPrint('🎁 ========================================');
 
     try {
       // Format date as ISO 8601 with UTC timezone (Z suffix)
@@ -1765,19 +1766,19 @@ class ServiceRepository {
         'discount_percentage': discountPercentage,
         'offer_expiry_date': formattedDate,
       };
-      print('🎁 Request data: $requestData');
+      debugPrint('🎁 Request data: $requestData');
 
       final response = await _apiClient.patch(
         ApiConstants.submitServiceOffer(serviceId),
         data: requestData,
       );
 
-      print('🎁 ========================================');
-      print('🎁 OFFER API RESPONSE');
-      print('🎁 ========================================');
-      print('🎁 Status code: ${response.statusCode}');
-      print('🎁 Response data: ${response.data}');
-      print('🎁 ========================================');
+      debugPrint('🎁 ========================================');
+      debugPrint('🎁 OFFER API RESPONSE');
+      debugPrint('🎁 ========================================');
+      debugPrint('🎁 Status code: ${response.statusCode}');
+      debugPrint('🎁 Response data: ${response.data}');
+      debugPrint('🎁 ========================================');
 
       // Check if response indicates success
       if (response.data != null) {
@@ -1786,7 +1787,7 @@ class ServiceRepository {
 
         if (!success) {
           final message = response.data['message'] as String? ?? 'Unknown error';
-          print('❌ Offer submission failed: $message');
+          debugPrint('❌ Offer submission failed: $message');
           throw Exception('Offer submission failed: $message');
         }
       }
@@ -1795,22 +1796,22 @@ class ServiceRepository {
       try {
         final responseData = response.data['data'] ?? response.data;
         final serviceData = responseData['service'] ?? responseData;
-        print('✅ Offer submitted successfully for service $serviceId (pending approval)');
+        debugPrint('✅ Offer submitted successfully for service $serviceId (pending approval)');
         return ServiceModel.fromJson(serviceData as Map<String, dynamic>);
       } catch (parseError) {
         // Even if we can't parse the response, the offer was submitted
-        print('⚠️ Could not parse response, but offer was submitted: $parseError');
+        debugPrint('⚠️ Could not parse response, but offer was submitted: $parseError');
         return null;
       }
     } on DioException catch (e) {
-      print('❌ ========================================');
-      print('❌ DIO ERROR IN SUBMIT OFFER');
-      print('❌ ========================================');
-      print('❌ Error type: ${e.type}');
-      print('❌ Error message: ${e.message}');
-      print('❌ Response status: ${e.response?.statusCode}');
-      print('❌ Response data: ${e.response?.data}');
-      print('❌ ========================================');
+      debugPrint('❌ ========================================');
+      debugPrint('❌ DIO ERROR IN SUBMIT OFFER');
+      debugPrint('❌ ========================================');
+      debugPrint('❌ Error type: ${e.type}');
+      debugPrint('❌ Error message: ${e.message}');
+      debugPrint('❌ Response status: ${e.response?.statusCode}');
+      debugPrint('❌ Response data: ${e.response?.data}');
+      debugPrint('❌ ========================================');
 
       // Extract error message from response if available
       String errorMessage = 'Failed to submit offer';
@@ -1819,7 +1820,7 @@ class ServiceRepository {
       }
       throw Exception(errorMessage);
     } catch (e) {
-      print('❌ API Error in submitServiceOffer: $e');
+      debugPrint('❌ API Error in submitServiceOffer: $e');
       rethrow;
     }
   }

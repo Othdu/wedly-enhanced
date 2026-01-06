@@ -69,3 +69,13 @@ class RefreshBookings extends BookingEvent {
   @override
   List<Object?> get props => [providerId];
 }
+
+/// Event to silently refresh user bookings in the background (no loading state)
+class SilentRefreshUserBookings extends BookingEvent {
+  final String userId;
+
+  const SilentRefreshUserBookings(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}

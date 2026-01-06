@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:equatable/equatable.dart';
 import '../../core/utils/enums.dart';
 
@@ -80,11 +81,11 @@ class BookingModel extends Equatable {
 
     // Debug date parsing
     if (bookingDateStr != null) {
-      print('🔍 BookingModel.fromJson: Raw booking_date string = $bookingDateStr');
+      debugPrint('🔍 BookingModel.fromJson: Raw booking_date string = $bookingDateStr');
       final parsedUtc = DateTime.parse(bookingDateStr.toString());
       final parsedLocal = parsedUtc.toLocal();
-      print('🔍 BookingModel.fromJson: Parsed UTC = $parsedUtc');
-      print('🔍 BookingModel.fromJson: Parsed Local = $parsedLocal');
+      debugPrint('🔍 BookingModel.fromJson: Parsed UTC = $parsedUtc');
+      debugPrint('🔍 BookingModel.fromJson: Parsed Local = $parsedLocal');
     }
 
     return BookingModel(

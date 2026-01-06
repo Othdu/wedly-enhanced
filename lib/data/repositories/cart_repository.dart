@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
@@ -159,21 +160,21 @@ class CartRepository {
 
       // Ensure we have a list
       if (cartItemsList is! List) {
-        print('⚠️ Cart API returned unexpected format: $cartItemsList');
+        debugPrint('⚠️ Cart API returned unexpected format: $cartItemsList');
         return [];
       }
 
       final items = cartItemsList
           .map((json) {
             final item = CartItemModel.fromJson(json as Map<String, dynamic>);
-            print('📦 Cart item loaded - ID: ${item.id}, Service: ${item.service.name}');
+            debugPrint('📦 Cart item loaded - ID: ${item.id}, Service: ${item.service.name}');
             return item;
           })
           .toList();
-      print('✅ Total cart items loaded: ${items.length}');
+      debugPrint('✅ Total cart items loaded: ${items.length}');
       return items;
     } catch (e) {
-      print('❌ Error in _apiGetCartItems: $e');
+      debugPrint('❌ Error in _apiGetCartItems: $e');
       rethrow;
     }
   }
@@ -181,10 +182,10 @@ class CartRepository {
   /// API: Add item to cart
   Future<void> _apiAddToCart(CartItemModel item) async {
     final jsonData = item.toJson();
-    print('🛒 CartRepository._apiAddToCart - Sending to API:');
-    print('   time_slot: "${jsonData['time_slot']}"');
+    debugPrint('🛒 CartRepository._apiAddToCart - Sending to API:');
+    debugPrint('   time_slot: "${jsonData['time_slot']}"');
     jsonData.forEach((key, value) {
-      print('   $key: $value');
+      debugPrint('   $key: $value');
     });
     await apiClient!.post(
       ApiConstants.addToCart,
@@ -195,13 +196,21 @@ class CartRepository {
   /// API: Remove item from cart
   Future<void> _apiRemoveFromCart(String itemId) async {
     try {
-      print('🗑️ Attempting to delete cart item with ID: $itemId');
+      debugPrint('🗑️ CartRepository._apiRemoveFromCart called');
+      debugPrint('   Item ID type: ${itemId.runtimeType}');
+      debugPrint('   Item ID value: "$itemId"');
+      debugPrint('   Item ID length: ${itemId.length}');
+
       final endpoint = ApiConstants.removeFromCart(itemId);
-      print('🌐 DELETE endpoint: $endpoint');
+      debugPrint('🌐 DELETE endpoint: $endpoint');
+
       await apiClient!.delete(endpoint);
-      print('✅ Successfully deleted cart item: $itemId');
+      debugPrint('✅ Successfully deleted cart item: $itemId');
     } catch (e) {
-      print('❌ Error deleting cart item $itemId: $e');
+      debugPrint('❌ Error in _apiRemoveFromCart:');
+      debugPrint('   Item ID: $itemId');
+      debugPrint('   Error: $e');
+      debugPrint('   Error type: ${e.runtimeType}');
       rethrow;
     }
   }

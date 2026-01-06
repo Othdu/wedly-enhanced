@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:equatable/equatable.dart';
 import 'package:wedly/data/models/service_model.dart';
 
@@ -100,11 +101,11 @@ class CartItemModel extends Equatable {
 
     // Debug: Print time_slot value from JSON
     final rawTimeSlot = json['time_slot'];
-    print(
+    debugPrint(
       '🔍 CartItemModel.fromJson - raw time_slot: "$rawTimeSlot" (type: ${rawTimeSlot?.runtimeType})',
     );
     final timeSlot = json['time_slot'] as String? ?? 'morning';
-    print('🔍 CartItemModel.fromJson - parsed timeSlot: "$timeSlot"');
+    debugPrint('🔍 CartItemModel.fromJson - parsed timeSlot: "$timeSlot"');
 
     return CartItemModel(
       id: json['id'].toString(),

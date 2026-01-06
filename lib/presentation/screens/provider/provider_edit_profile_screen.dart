@@ -159,18 +159,18 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        print('🎧 Provider Edit Screen BlocListener: Received state: ${state.runtimeType}');
+        debugPrint('🎧 Provider Edit Screen BlocListener: Received state: ${state.runtimeType}');
         if (state is AuthProfileUpdateSuccess) {
-          print('✅ Provider Edit Screen: Showing success dialog');
+          debugPrint('✅ Provider Edit Screen: Showing success dialog');
           // Use post-frame callback to ensure dialog shows after build completes
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              print('💬 Actually showing dialog now...');
+              debugPrint('💬 Actually showing dialog now...');
               _showSuccessDialog();
             }
           });
         } else if (state is AuthProfileImageUpdateSuccess) {
-          print('📸 Provider Edit Screen: Showing image update snackbar');
+          debugPrint('📸 Provider Edit Screen: Showing image update snackbar');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -181,7 +181,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
             ),
           );
         } else if (state is AuthError) {
-          print('❌ Provider Edit Screen: Showing error snackbar: ${state.message}');
+          debugPrint('❌ Provider Edit Screen: Showing error snackbar: ${state.message}');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(

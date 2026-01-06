@@ -85,7 +85,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   void _initializeDefaultSections() {
     if (_selectedCategory == null) return;
 
-    print('🔄 Initializing sections for category: $_selectedCategory');
+    debugPrint('🔄 Initializing sections for category: $_selectedCategory');
 
     setState(() {
       _dynamicSections.clear();
@@ -93,25 +93,25 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       switch (_selectedCategory) {
         case 'تصوير فوتوغرافي':
           _initializePhotographySections();
-          print(
+          debugPrint(
             '✅ Photography sections initialized: ${_dynamicSections.length} sections',
           );
           break;
         case 'كوش وديكور':
           _initializeDecorationSections();
-          print(
+          debugPrint(
             '✅ Decoration sections initialized: ${_dynamicSections.length} sections',
           );
           break;
         case 'قاعات أفراح':
         case 'القاعات':
           // Venues don't have dynamic sections, just fixed fields
-          print('✅ Venue category selected - using fixed fields only');
+          debugPrint('✅ Venue category selected - using fixed fields only');
           break;
         // For all other categories, use generic dynamic sections
         default:
           // Generic initialization for other categories
-          print('ℹ️ Using generic dynamic sections for: $_selectedCategory');
+          debugPrint('ℹ️ Using generic dynamic sections for: $_selectedCategory');
           break;
       }
     });
@@ -373,18 +373,18 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 
   List<Widget> _buildCategorySpecificFields() {
     if (_selectedCategory == null) {
-      print('⚠️ No category selected, returning empty list');
+      debugPrint('⚠️ No category selected, returning empty list');
       return [];
     }
 
-    print('🔍 Building category-specific fields for: $_selectedCategory');
-    print('🔍 Dynamic sections count: ${_dynamicSections.length}');
+    debugPrint('🔍 Building category-specific fields for: $_selectedCategory');
+    debugPrint('🔍 Dynamic sections count: ${_dynamicSections.length}');
 
     switch (_selectedCategory) {
       case 'قاعات أفراح':
       case 'القاعات':
         final fields = _buildVenueFields();
-        print('✅ Built ${fields.length} venue fields');
+        debugPrint('✅ Built ${fields.length} venue fields');
         return fields;
       case 'تصوير فوتوغرافي':
       case 'كوش وديكور':
@@ -394,10 +394,10 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       case 'كيك وحلويات':
       case 'دي جي':
         final fields = _buildDynamicSectionFields();
-        print('✅ Built ${fields.length} dynamic fields');
+        debugPrint('✅ Built ${fields.length} dynamic fields');
         return fields;
       default:
-        print('⚠️ Unknown category: $_selectedCategory');
+        debugPrint('⚠️ Unknown category: $_selectedCategory');
         return [];
     }
   }

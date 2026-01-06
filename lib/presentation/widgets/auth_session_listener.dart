@@ -23,13 +23,13 @@ class AuthSessionListener extends StatelessWidget {
         // and the previous state was authenticated (not initial/loading)
         final shouldListen = previous is AuthAuthenticated && current is AuthUnauthenticated;
         if (shouldListen) {
-          print('🔔 AuthSessionListener: Detected session expiry, will logout');
+          debugPrint('🔔 AuthSessionListener: Detected session expiry, will logout');
         }
         return shouldListen;
       },
       listener: (context, state) {
         if (state is AuthUnauthenticated) {
-          print('🔔 AuthSessionListener: Executing logout navigation');
+          debugPrint('🔔 AuthSessionListener: Executing logout navigation');
 
           // Use a post-frame callback to ensure navigation happens after build
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -37,7 +37,7 @@ class AuthSessionListener extends StatelessWidget {
               final navContext = navigatorKey.currentContext;
 
               if (navContext == null) {
-                print('❌ AuthSessionListener: Navigator context is null');
+                debugPrint('❌ AuthSessionListener: Navigator context is null');
                 return;
               }
 
@@ -56,9 +56,9 @@ class AuthSessionListener extends StatelessWidget {
                 (route) => false, // Clear navigation stack
               );
 
-              print('✅ AuthSessionListener: Navigation to login completed');
+              debugPrint('✅ AuthSessionListener: Navigation to login completed');
             } catch (e) {
-              print('❌ AuthSessionListener: Navigation failed: $e');
+              debugPrint('❌ AuthSessionListener: Navigation failed: $e');
             }
           });
         }

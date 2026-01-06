@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/core/constants/app_colors.dart';
+import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/data/repositories/review_repository.dart';
+import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/review/review_bloc.dart';
 import 'package:wedly/logic/blocs/review/review_event.dart';
 import 'package:wedly/logic/blocs/review/review_state.dart';
+import 'package:wedly/main.dart' show navigatorKey;
 
 /// Bottom sheet widget for submitting, editing, and deleting reviews
 /// Used ONLY in completed bookings to allow users to rate services/venues
@@ -233,7 +238,7 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
 
               // Message
               Text(
-                'لقد قمت بتقييم هذه الخدمة من قبل.\nيمكنك تعديل تقييمك أو حذفه من قسم التقييمات أدناه.',
+                'لقد قمت بتقييم هذه الخدمة من قبل.\nهل تريد تعديل تقييمك؟',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
@@ -243,46 +248,81 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
               ),
               const SizedBox(height: 24),
 
-              // Primary button - View reviews
+              // Primary button - Edit Review
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
+                    // Capture all needed data before any navigation
+                    final reviewRepository = getIt<ReviewRepository>();
+                    final authState = context.read<AuthBloc>().state;
+                    final serviceName = widget.serviceName;
+                    final onReviewSubmitted = widget.onReviewSubmitted;
+                    final targetId = state.targetId;
+                    final targetType = state.targetType;
+
+                    // Close dialog first
                     Navigator.of(dialogContext).pop();
-                    Navigator.of(context).pop(false);
-                    // Trigger a refresh of reviews
-                    if (state.targetType == 'venue') {
-                      context.read<ReviewBloc>().add(VenueReviewsRequested(state.targetId));
-                    } else {
-                      context.read<ReviewBloc>().add(ServiceReviewsRequested(state.targetId));
+
+                    // Keep the bottom sheet open and show loading inside it
+                    if (authState is! AuthAuthenticated) {
+                      Navigator.of(context).pop(false);
+                      return;
                     }
-                    // Show guidance snackbar
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Row(
-                          children: [
-                            Icon(Icons.arrow_downward, color: Colors.white, size: 20),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'مرر لأسفل للوصول إلى تقييمك واضغط عليه للتعديل',
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ),
-                          ],
-                        ),
-                        backgroundColor: AppColors.gold,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        duration: const Duration(seconds: 4),
-                      ),
-                    );
+
+                    try {
+                      // Fetch reviews to find user's review
+                      final reviews = targetType == 'venue'
+                          ? await reviewRepository.getVenueReviews(targetId)
+                          : await reviewRepository.getServiceReviews(targetId);
+
+                      final userReview = reviews.firstWhere(
+                        (review) => review.userId == authState.user.id,
+                        orElse: () => throw Exception('Review not found'),
+                      );
+
+                      // Close the current bottom sheet
+                      if (context.mounted) {
+                        Navigator.of(context).pop(false);
+                      }
+
+                      // Wait for bottom sheet to close
+                      await Future.delayed(const Duration(milliseconds: 200));
+
+                      // Open edit form using global navigator
+                      final ctx = navigatorKey.currentContext;
+                      if (ctx != null && ctx.mounted) {
+                        showModalBottomSheet<bool>(
+                          context: ctx,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => ReviewBottomSheet(
+                            targetId: targetId,
+                            targetType: targetType,
+                            serviceName: serviceName,
+                            onReviewSubmitted: onReviewSubmitted,
+                            isEditMode: true,
+                            reviewId: userReview.id,
+                            existingRating: userReview.rating,
+                            existingComment: userReview.comment,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.of(context).pop(false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('حدث خطأ: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
                   },
-                  icon: const Icon(Icons.rate_review_outlined, size: 20),
+                  icon: const Icon(Icons.edit_rounded, size: 20),
                   label: const Text(
-                    'عرض تقييمي',
+                    'تعديل التقييم',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   style: ElevatedButton.styleFrom(

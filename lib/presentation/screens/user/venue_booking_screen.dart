@@ -816,6 +816,8 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
             }
 
             // Convert venue to service model for cart
+            // IMPORTANT: Explicitly set hasOffer=false, offerApproved=false, discountPercentage=null
+            // to ensure venues don't show discount badges in payment confirmation
             final venueAsService = ServiceModel(
               id: widget.venue.id,
               name: widget.venue.name,
@@ -831,6 +833,9 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
               longitude: widget.venue.longitude,
               rating: widget.venue.rating,
               reviewCount: widget.venue.reviewCount,
+              hasOffer: false, // Venues don't use the offer system
+              offerApproved: false, // Venues don't use the offer system
+              discountPercentage: null, // Venues don't use discount percentages
             );
 
             // Format date as DD/MM/YYYY for proper parsing in payment confirmation

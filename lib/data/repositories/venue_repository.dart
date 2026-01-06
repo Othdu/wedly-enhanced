@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:wedly/data/models/venue_model.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/api_constants.dart';
@@ -86,8 +87,8 @@ class VenueRepository {
         'booked_dates': responseData['booked_dates'] ?? [],
       };
     } catch (e) {
-      print('⚠️ API Error in getVenueAvailableDates: $e');
-      print('📦 Falling back to mock data');
+      debugPrint('⚠️ API Error in getVenueAvailableDates: $e');
+      debugPrint('📦 Falling back to mock data');
       return _mockGetVenueAvailableDates(venueId, month, timeSlot: timeSlot);
     }
   }

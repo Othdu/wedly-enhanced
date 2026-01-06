@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/repositories/banner_repository.dart';
 import 'banner_event.dart';
@@ -17,20 +18,20 @@ class BannerBloc extends Bloc<BannerEvent, BannerState> {
     BannersRequested event,
     Emitter<BannerState> emit,
   ) async {
-    print('🎯 BannerBloc: Loading banners...');
+    debugPrint('🎯 BannerBloc: Loading banners...');
     emit(BannerLoading());
 
     try {
       final banners = await bannerRepository.getBanners();
-      print('✅ BannerBloc: Received ${banners.length} active banners');
+      debugPrint('✅ BannerBloc: Received ${banners.length} active banners');
 
       for (var banner in banners) {
-        print('  - Banner ID: ${banner.id}, Image: ${banner.imageUrl}');
+        debugPrint('  - Banner ID: ${banner.id}, Image: ${banner.imageUrl}');
       }
 
       emit(BannerLoaded(banners: banners));
     } catch (e) {
-      print('❌ BannerBloc: Error loading banners: $e');
+      debugPrint('❌ BannerBloc: Error loading banners: $e');
       emit(const BannerError(
         message: 'فشل تحميل العروض. يرجى المحاولة مرة أخرى.',
       ));

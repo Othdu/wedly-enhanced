@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 /// App-wide logging utility that only logs in debug mode
-/// Replaces print() statements throughout the codebase
+/// Replaces debugPrint() statements throughout the codebase
 class AppLogger {
   static const String _tag = 'Wedly';
 
