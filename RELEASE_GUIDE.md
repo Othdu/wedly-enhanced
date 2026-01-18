@@ -477,7 +477,7 @@ git commit -m "Release v1.0.1 - Bug fixes"
 
 **Email:** wedly@wedlyinfo.com
 **Package Name:** com.wedlyapp.services
-**API Base URL:** https://64.226.96.53
+**API Base URL:** https://api.wedlyinfo.com
 
 ---
 
@@ -503,7 +503,7 @@ git commit -m "Release v1.0.1 - Bug fixes"
 ## Notes
 
 - App is in Arabic (RTL layout)
-- Currently using real API at `https://64.226.96.53`
+- Currently using real API at `https://api.wedlyinfo.com`
 - Mock data mode disabled (`_useMockData = false`)
 - Firebase dependencies present but not fully configured (social auth features)
 - Google Maps dependencies present but not active

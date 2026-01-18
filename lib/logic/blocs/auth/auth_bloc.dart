@@ -307,8 +307,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (event.provider == 'google') {
         socialData = await socialAuthService.signInWithGoogle();
-      } else if (event.provider == 'facebook') {
-        socialData = await socialAuthService.signInWithFacebook();
       } else {
         throw Exception('مزود غير مدعوم');
       }

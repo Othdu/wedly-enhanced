@@ -75,24 +75,12 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Visa (Coming soon)
+                    // Visa (Available)
                     _buildPaymentOption(
                       value: 'visa',
-                      title: 'فيزا',
+                      title: 'فيزا / بطاقة ائتمان',
                       icon: Icons.credit_card,
-                      subtitle: 'قريباً',
-                      isDisabled: true,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // E-Wallet (Coming soon)
-                    _buildPaymentOption(
-                      value: 'wallet',
-                      title: 'محفظة إلكترونية',
-                      icon: Icons.account_balance_wallet,
-                      subtitle: 'قريباً',
-                      isDisabled: true,
+                      isDisabled: false,
                     ),
 
                     const SizedBox(height: 40),

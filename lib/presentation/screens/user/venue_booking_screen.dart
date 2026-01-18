@@ -485,22 +485,22 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children:
                 [
-                      'الأحد',
-                      'الإثنين',
-                      'الثلاثاء',
-                      'الأربعاء',
-                      'الخميس',
-                      'الجمعة',
-                      'السبت',
+                      'أحد',
+                      'اثنين',
+                      'ثلاثاء',
+                      'أربعاء',
+                      'خميس',
+                      'جمعة',
+                      'سبت',
                     ]
                     .map(
                       (day) => SizedBox(
-                        width: 40,
+                        width: 44,
                         child: Center(
                           child: Text(
                             day,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey.shade500,
                             ),
@@ -611,7 +611,11 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
       0,
     );
 
-    int firstWeekday = (7 - firstDayOfMonth.weekday % 7) % 7;
+    // Calculate empty spaces before first day
+    // Dart weekday: 1=Monday, 7=Sunday
+    // Our calendar starts with Sunday (index 0)
+    // So: Sunday(7)->0, Monday(1)->1, Tuesday(2)->2, ..., Saturday(6)->6
+    int firstWeekday = firstDayOfMonth.weekday % 7;
     final daysInMonth = lastDayOfMonth.day;
 
     List<Widget> dayWidgets = [];

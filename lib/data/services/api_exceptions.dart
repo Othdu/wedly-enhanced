@@ -144,10 +144,20 @@ class TlsHandshakeException extends ApiException {
   TlsHandshakeException({String? message})
       : super(
           message: message ??
-              'فشل الاتصال الآمن بالخادم. قد تكون هناك مشكلة في إعدادات الأمان.\n'
-                  'الرجاء المحاولة لاحقاً أو التواصل مع الدعم الفني.\n\n'
-                  'Secure connection failed. There may be a server security configuration issue.\n'
-                  'Please try again later or contact support.',
+              '⚠️ عذراً، نواجه مشكلة مؤقتة في الاتصال الآمن\n\n'
+                  'يبدو أن خادم التطبيق يواجه مشكلة في إعدادات الأمان. '
+                  'نحن نعمل على حل المشكلة في أقرب وقت ممكن.\n\n'
+                  'يرجى:\n'
+                  '• المحاولة مرة أخرى بعد قليل\n'
+                  '• التحقق من اتصالك بالإنترنت\n'
+                  '• التواصل مع الدعم الفني إذا استمرت المشكلة\n\n'
+                  '⚠️ Sorry, we\'re experiencing a temporary secure connection issue\n\n'
+                  'The application server seems to have a security configuration problem. '
+                  'We\'re working to resolve this as soon as possible.\n\n'
+                  'Please:\n'
+                  '• Try again in a few moments\n'
+                  '• Check your internet connection\n'
+                  '• Contact support if the issue persists',
           statusCode: 0,
         );
 }

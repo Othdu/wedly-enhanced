@@ -76,13 +76,15 @@ dependencies:
   google_fonts: ^6.2.0
 
   # Social Authentication
-  flutter_facebook_auth: ^7.1.1
   google_sign_in: ^6.2.1
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
   connectivity_plus: ^7.0.0
   cached_network_image: ^3.4.1
-  
+
+  # WebView for Paymob payment
+  webview_flutter: ^4.10.0
+
 
 dev_dependencies:
   flutter_test:
@@ -114,10 +116,9 @@ flutter:
   assets:
   - assets/images/Vector.svg
   - assets/images/booking.svg
-  - assets/images/profile.svg  
+  - assets/images/profile.svg
   - assets/images/apple.png
   - assets/images/google.png
-  - assets/images/facebook.png
   - assets/images/home-alt.png
   - assets/images/search.png
   - assets/images/user.png

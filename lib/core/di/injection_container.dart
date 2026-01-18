@@ -12,6 +12,7 @@ import 'package:wedly/data/repositories/notification_repository.dart';
 import 'package:wedly/data/repositories/address_repository.dart';
 import 'package:wedly/data/repositories/banner_repository.dart';
 import 'package:wedly/data/repositories/category_repository.dart';
+import 'package:wedly/data/repositories/payment_repository.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/token_manager.dart';
 import 'package:wedly/data/services/image_upload_service.dart';
@@ -129,6 +130,13 @@ Future<void> setupDependencyInjection() async {
 
   getIt.registerLazySingleton<CategoryRepository>(
     () => CategoryRepository(
+      apiClient: _useMockData ? null : getIt<ApiClient>(),
+      useMockData: _useMockData,
+    ),
+  );
+
+  getIt.registerLazySingleton<PaymentRepository>(
+    () => PaymentRepository(
       apiClient: _useMockData ? null : getIt<ApiClient>(),
       useMockData: _useMockData,
     ),

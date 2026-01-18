@@ -348,14 +348,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  // Facebook Button
-                                  _SocialLoginButton(
-                                    imagePath: 'assets/images/facebook.png',
-                                    onPressed: isLoading
-                                        ? null
-                                        : () => _handleSocialLogin(context, 'facebook'),
-                                  ),
-                                  const SizedBox(width: 16),
                                   // Apple Button - Only show on iOS
                                   if (Platform.isIOS) ...[
                                     _SocialLoginButton(

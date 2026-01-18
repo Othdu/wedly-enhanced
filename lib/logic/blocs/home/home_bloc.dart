@@ -20,6 +20,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }) : super(const HomeInitial()) {
     on<HomeServicesRequested>(_onHomeServicesRequested);
     on<HomeCategoriesRequested>(_onHomeCategoriesRequested);
+    on<SilentRefreshHome>(_onSilentRefreshHome);
   }
 
   Future<void> _onHomeServicesRequested(
@@ -96,6 +97,51 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       }
     } catch (e) {
       emit(HomeError(e.toString()));
+    }
+  }
+
+  /// Silent refresh - updates data without showing loading indicator
+  Future<void> _onSilentRefreshHome(
+    SilentRefreshHome event,
+    Emitter<HomeState> emit,
+  ) async {
+    // Don't emit loading state - silent refresh in background
+    try {
+      debugPrint('🔄 HomeBloc: Silent refresh started');
+
+      final results = await Future.wait([
+        serviceRepository.getServices(),
+        serviceRepository.getCategories(),
+        serviceRepository.getCategoriesWithDetails(),
+        offerRepository.getOffers(),
+        serviceRepository.getHomeLayout(),
+        if (event.userId != null)
+          serviceRepository.getUserCountdown(event.userId!)
+        else
+          Future.value(null),
+      ]);
+
+      final services = (results[0] as List).cast<ServiceModel>();
+      final categories = (results[1] as List).cast<String>();
+      final categoriesWithDetails = (results[2] as List).cast<CategoryModel>();
+      final offers = (results[3] as List).cast<OfferModel>();
+      final layout = results[4] as HomeLayoutModel?;
+      final countdown = results.length > 5 ? results[5] as CountdownModel? : null;
+
+      debugPrint('🔄 HomeBloc: Silent refresh completed - ${services.length} services');
+
+      emit(HomeLoaded(
+        services: services,
+        categories: categories,
+        categoriesWithDetails: categoriesWithDetails,
+        offers: offers,
+        layout: layout,
+        countdown: countdown,
+      ));
+    } catch (e) {
+      // Silently fail - don't show error to user during background refresh
+      debugPrint('🔄 HomeBloc: Silent refresh error (ignored): $e');
+      // Keep current state - don't emit error
     }
   }
 }

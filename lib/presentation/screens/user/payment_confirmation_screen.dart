@@ -7,7 +7,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/booking_repository.dart';
 import 'package:wedly/data/repositories/auth_repository.dart';
+import 'package:wedly/data/repositories/payment_repository.dart';
 import 'package:wedly/data/services/api_exceptions.dart';
+import 'package:wedly/presentation/screens/user/paymob_webview_screen.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
@@ -45,6 +47,14 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
 
+  // Billing fields for Paymob
+  final TextEditingController _billingStreetController = TextEditingController();
+  final TextEditingController _billingBuildingController = TextEditingController();
+  final TextEditingController _billingFloorController = TextEditingController();
+  final TextEditingController _billingApartmentController = TextEditingController();
+  final TextEditingController _billingPostalCodeController = TextEditingController();
+  final TextEditingController _billingCountryController = TextEditingController(text: 'EG');
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +75,12 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _addressController.dispose();
+    _billingStreetController.dispose();
+    _billingBuildingController.dispose();
+    _billingFloorController.dispose();
+    _billingApartmentController.dispose();
+    _billingPostalCodeController.dispose();
+    _billingCountryController.dispose();
     super.dispose();
   }
 
@@ -160,6 +176,69 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                     _buildOrderSummaryHeader(),
                     const SizedBox(height: 16),
 
+                    // Deposit info banner for Visa payments
+                    if (widget.paymentMethod == 'visa')
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                              const Color(0xFFD4AF37).withValues(alpha: 0.05),
+                            ],
+                            begin: Alignment.topRight,
+                            end: Alignment.bottomLeft,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD4AF37),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.payment,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'دفع مرن وآمن',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFD4AF37),
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'ادفع 60% الآن والباقي نقداً عند التنفيذ',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black87,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -178,6 +257,14 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                           const SizedBox(height: 16),
                           _buildCustomerDetails(user),
                           const SizedBox(height: 24),
+
+                          // Billing Information section (only for Visa payment)
+                          if (widget.paymentMethod == 'visa') ...{
+                            _buildSectionTitle('معلومات الفوترة', isBold: true),
+                            const SizedBox(height: 16),
+                            _buildBillingDetails(),
+                            const SizedBox(height: 24),
+                          },
 
                           // Notes and Special Requests section
                           _buildSectionTitle(
@@ -560,6 +647,36 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
         _buildEditableDetailRow(
           label: 'العنوان',
           controller: _addressController,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBillingDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _buildEditableDetailRow(
+          label: 'الشارع',
+          controller: _billingStreetController,
+        ),
+        _buildEditableDetailRow(
+          label: 'المبنى',
+          controller: _billingBuildingController,
+        ),
+        _buildEditableDetailRow(
+          label: 'الطابق',
+          controller: _billingFloorController,
+          keyboardType: TextInputType.number,
+        ),
+        _buildEditableDetailRow(
+          label: 'الشقة',
+          controller: _billingApartmentController,
+        ),
+        _buildEditableDetailRow(
+          label: 'الرمز البريدي',
+          controller: _billingPostalCodeController,
+          keyboardType: TextInputType.number,
         ),
       ],
     );
@@ -1003,42 +1120,152 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
   }
 
   Widget _buildTotalAmount() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final depositAmount = widget.totalAmount * 0.6; // 60% deposit
+    final remainingAmount = widget.totalAmount * 0.4; // 40% remaining
+    final isVisaPayment = widget.paymentMethod == 'visa';
+
+    return Column(
       children: [
-        Flexible(
-          flex: 1,
-          child: Text(
-            'المبلغ الإجمالي',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFFD4AF37),
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Flexible(
-          flex: 2,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Directionality(
-              textDirection: ui.TextDirection.ltr,
+        // Total Amount Row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              flex: 1,
               child: Text(
-                '\u202B${NumberFormat('#,###').format(widget.totalAmount.toInt())} جنية\u202C',
+                'المبلغ الإجمالي',
                 style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
+                  fontSize: 13,
+                  color: Color(0xFFD4AF37),
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.right,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Flexible(
+              flex: 2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Directionality(
+                  textDirection: ui.TextDirection.ltr,
+                  child: Text(
+                    '\u202B${NumberFormat('#,###').format(widget.totalAmount.toInt())} جنية\u202C',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
+
+        // Show deposit breakdown for Visa payments
+        if (isVisaPayment) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Info icon and title
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: const Color(0xFFD4AF37),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'نظام الدفع بالعربون',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFD4AF37),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Deposit amount
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'العربون المطلوب الآن (60%)',
+                      style: TextStyle(fontSize: 13, color: Colors.black87),
+                    ),
+                    Directionality(
+                      textDirection: ui.TextDirection.ltr,
+                      child: Text(
+                        '\u202B${NumberFormat('#,###').format(depositAmount.toInt())} جنية\u202C',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFD4AF37),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                // Remaining amount
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'المتبقي نقداً عند التنفيذ (40%)',
+                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                    Directionality(
+                      textDirection: ui.TextDirection.ltr,
+                      child: Text(
+                        '\u202B${NumberFormat('#,###').format(remainingAmount.toInt())} جنية\u202C',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                Divider(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                const SizedBox(height: 8),
+
+                // Explanation text
+                const Text(
+                  'قم بدفع العربون الآن لتأكيد حجزك، وسيتم دفع المبلغ المتبقي نقداً عند تنفيذ الخدمة',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1070,13 +1297,16 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
-              'دفع',
-              style: TextStyle(
-                fontSize: 18,
+            child: Text(
+              widget.paymentMethod == 'visa'
+                ? 'دفع العربون (${NumberFormat('#,###').format((widget.totalAmount * 0.6).toInt())} جنية)'
+                : 'تأكيد الحجز',
+              style: const TextStyle(
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
         ),
@@ -1290,6 +1520,191 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
       return;
     }
 
+    // Validate billing details for Visa payment
+    if (widget.paymentMethod == 'visa' && !_validateBillingDetails()) {
+      return;
+    }
+
+    // Handle payment based on method
+    if (widget.paymentMethod == 'visa') {
+      await _handleVisaPayment();
+    } else {
+      await _handleCashPayment();
+    }
+  }
+
+  /// Validates billing details for Visa/card payments
+  bool _validateBillingDetails() {
+    final List<String> emptyFields = [];
+
+    if (_billingStreetController.text.trim().isEmpty) {
+      emptyFields.add('الشارع');
+    }
+    if (_billingBuildingController.text.trim().isEmpty) {
+      emptyFields.add('المبنى');
+    }
+    if (_billingFloorController.text.trim().isEmpty) {
+      emptyFields.add('الطابق');
+    }
+    if (_billingApartmentController.text.trim().isEmpty) {
+      emptyFields.add('الشقة');
+    }
+    if (_billingPostalCodeController.text.trim().isEmpty) {
+      emptyFields.add('الرمز البريدي');
+    }
+
+    if (emptyFields.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => Directionality(
+          textDirection: ui.TextDirection.rtl,
+          child: AlertDialog(
+            title: const Text(
+              'بيانات الفوترة ناقصة',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('يرجى إكمال معلومات الفوترة التالية:'),
+                const SizedBox(height: 12),
+                ...emptyFields.map(
+                  (field) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.circle,
+                          size: 8,
+                          color: Color(0xFFD4AF37),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(field),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'حسناً',
+                  style: TextStyle(color: Color(0xFFD4AF37)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// Handle Visa/card payment via Paymob
+  Future<void> _handleVisaPayment() async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Directionality(
+          textDirection: ui.TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: Colors.white,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'جاري تجهيز صفحة الدفع...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      // Get payment repository
+      final paymentRepository = getIt<PaymentRepository>();
+
+      // Split name into first and last name
+      final nameParts = _nameController.text.trim().split(' ');
+      final firstName = nameParts.isNotEmpty ? nameParts[0] : 'User';
+      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : 'Name';
+
+      // Initiate payment with Paymob
+      final paymentData = await paymentRepository.initiateCartPayment(
+        billingFirstName: firstName,
+        billingLastName: lastName,
+        billingEmail: _emailController.text.trim(),
+        billingPhone: _phoneController.text.trim(),
+        billingCity: _addressController.text.trim(),
+        billingCountry: _billingCountryController.text.trim(),
+        billingStreet: _billingStreetController.text.trim(),
+        billingBuilding: _billingBuildingController.text.trim(),
+        billingFloor: _billingFloorController.text.trim(),
+        billingApartment: _billingApartmentController.text.trim(),
+        billingPostalCode: _billingPostalCodeController.text.trim(),
+      );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Open Paymob WebView
+      if (mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PaymobWebViewScreen(
+              iframeUrl: paymentData['iframe_url'],
+              onPaymentComplete: (success, message) {
+                Navigator.of(context).pop(); // Close WebView
+
+                if (success) {
+                  // Payment successful - backend webhook will create bookings
+                  // Clear cart and show success
+                  context.read<CartBloc>().add(CartCleared());
+                  _showSuccessDialog();
+                } else {
+                  // Payment failed
+                  _showPaymentFailedDialog(message ?? 'فشل الدفع');
+                }
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Show error dialog
+      if (mounted) {
+        _showBookingErrorDialog(e);
+      }
+    }
+  }
+
+  /// Handle cash on delivery payment (original flow)
+  Future<void> _handleCashPayment() async {
     // Show loading dialog
     showDialog(
       context: context,
@@ -1538,11 +1953,48 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              const Text(
-                'تمت إضافة الحجز إلى قائمة حجوزاتك',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+              Text(
+                widget.paymentMethod == 'visa'
+                    ? 'تم دفع العربون بنجاح! تذكر دفع المبلغ المتبقي نقداً عند تنفيذ الخدمة'
+                    : 'تمت إضافة الحجز إلى قائمة حجوزاتك',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
+              if (widget.paymentMethod == 'visa') ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: Color(0xFFD4AF37),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'المبلغ المتبقي: ${NumberFormat('#,###').format((widget.totalAmount * 0.4).toInt())} جنية',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFFD4AF37),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               // Buttons
               SizedBox(
@@ -1608,6 +2060,97 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Color(0xFFD4AF37),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Shows payment failed dialog
+  void _showPaymentFailedDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Directionality(
+        textDirection: ui.TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              // Failed Icon
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red.shade100,
+                ),
+                child: Icon(Icons.close, size: 60, color: Colors.red.shade700),
+              ),
+              const SizedBox(height: 24),
+              // Failed Message
+              const Text(
+                'فشل الدفع',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Buttons
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'حاول مرة أخرى',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    Navigator.of(context).pop(); // Go back to payment method
+                  },
+                  child: const Text(
+                    'تغيير طريقة الدفع',
+                    style: TextStyle(
+                      fontSize: 16,
                       color: Color(0xFFD4AF37),
                     ),
                   ),

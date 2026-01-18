@@ -142,9 +142,9 @@ class BookingCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // Event Type
+                // Service Name
                 Text(
-                  'نوع الخدمة: ${booking.eventType}',
+                  'نوع الخدمة: ${booking.serviceName}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,

@@ -393,7 +393,9 @@ class _DynamicServiceBookingScreenState
           final selectedIndices = _selectedOptions[sectionId] as Set<int>? ?? {};
           final selectedTexts = selectedIndices
               .where((index) => index < options.length)
-              .map((index) => options[index]['text']?.toString() ?? '')
+              .map((index) => options[index]['text']?.toString() ??
+                             options[index]['name']?.toString() ??
+                             options[index]['option_text']?.toString() ?? '')
               .toList();
 
           if (selectedTexts.isNotEmpty) {
@@ -402,7 +404,9 @@ class _DynamicServiceBookingScreenState
         } else {
           final selectedIndex = _selectedOptions[sectionId] as int?;
           if (selectedIndex != null && selectedIndex < options.length) {
-            final selectedText = options[selectedIndex]['text']?.toString() ?? '';
+            final selectedText = options[selectedIndex]['text']?.toString() ??
+                                options[selectedIndex]['name']?.toString() ??
+                                options[selectedIndex]['option_text']?.toString() ?? '';
             details.add('$sectionTitle: $selectedText');
           }
         }
@@ -772,7 +776,10 @@ class _DynamicServiceBookingScreenState
     required int optionIndex,
     required Map<String, dynamic> option,
   }) {
-    final optionText = option['text']?.toString() ?? '';
+    // Handle multiple possible field names for option text from API
+    final optionText = option['text']?.toString() ??
+                       option['name']?.toString() ??
+                       option['option_text']?.toString() ?? '';
     final optionPrice = double.tryParse(option['price']?.toString() ?? '0') ?? 0.0;
 
     bool isSelected;
@@ -1042,22 +1049,22 @@ class _DynamicServiceBookingScreenState
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children:
                 [
-                      'الأحد',
-                      'الإثنين',
-                      'الثلاثاء',
-                      'الأربعاء',
-                      'الخميس',
-                      'الجمعة',
-                      'السبت',
+                      'أحد',
+                      'اثنين',
+                      'ثلاثاء',
+                      'أربعاء',
+                      'خميس',
+                      'جمعة',
+                      'سبت',
                     ]
                     .map(
                       (day) => SizedBox(
-                        width: 40,
+                        width: 44,
                         child: Center(
                           child: Text(
                             day,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey.shade500,
                             ),
@@ -1135,7 +1142,11 @@ class _DynamicServiceBookingScreenState
       0,
     );
 
-    int firstWeekday = (7 - firstDayOfMonth.weekday % 7) % 7;
+    // Calculate empty spaces before first day
+    // Dart weekday: 1=Monday, 7=Sunday
+    // Our calendar starts with Sunday (index 0)
+    // So: Sunday(7)->0, Monday(1)->1, Tuesday(2)->2, ..., Saturday(6)->6
+    int firstWeekday = firstDayOfMonth.weekday % 7;
     final daysInMonth = lastDayOfMonth.day;
 
     List<Widget> dayWidgets = [];
@@ -1344,7 +1355,10 @@ class _DynamicServiceBookingScreenState
           final selectedIndices = _selectedOptions[sectionId] as Set<int>? ?? {};
           for (final index in selectedIndices) {
             if (index < options.length) {
-              final optionText = options[index]['text']?.toString() ?? '';
+              // Handle multiple possible field names for option text from API
+              final optionText = options[index]['text']?.toString() ??
+                                 options[index]['name']?.toString() ??
+                                 options[index]['option_text']?.toString() ?? '';
               final optionPrice = double.tryParse(options[index]['price']?.toString() ?? '0') ?? 0.0;
               if (optionPrice > 0) {
                 breakdown.add(
@@ -1381,7 +1395,10 @@ class _DynamicServiceBookingScreenState
         } else {
           final selectedIndex = _selectedOptions[sectionId] as int?;
           if (selectedIndex != null && selectedIndex < options.length) {
-            final optionText = options[selectedIndex]['text']?.toString() ?? '';
+            // Handle multiple possible field names for option text from API
+            final optionText = options[selectedIndex]['text']?.toString() ??
+                               options[selectedIndex]['name']?.toString() ??
+                               options[selectedIndex]['option_text']?.toString() ?? '';
             final optionPrice = double.tryParse(options[selectedIndex]['price']?.toString() ?? '0') ?? 0.0;
             if (optionPrice > 0) {
               breakdown.add(

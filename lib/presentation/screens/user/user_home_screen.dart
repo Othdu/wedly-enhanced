@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/category_model.dart';
@@ -29,10 +31,14 @@ class UserHomeScreen extends StatefulWidget {
   State<UserHomeScreen> createState() => _UserHomeScreenState();
 }
 
-class _UserHomeScreenState extends State<UserHomeScreen> {
+class _UserHomeScreenState extends State<UserHomeScreen>
+    with WidgetsBindingObserver {
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     final authState = context.read<AuthBloc>().state;
     String? userId;
@@ -55,6 +61,43 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
     // Load banners
     context.read<BannerBloc>().add(const BannersRequested());
+
+    // Start periodic background refresh
+    _startPeriodicRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh when app comes back to foreground - use silent refresh
+    if (state == AppLifecycleState.resumed) {
+      _loadDataInBackground();
+    }
+  }
+
+  void _startPeriodicRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _loadDataInBackground();
+    });
+  }
+
+  void _loadDataInBackground() {
+    // Silent refresh - only update data, don't show loading indicator
+    if (mounted) {
+      final authState = context.read<AuthBloc>().state;
+      String? userId;
+      if (authState is AuthAuthenticated) {
+        userId = authState.user.id;
+      }
+      context.read<HomeBloc>().add(SilentRefreshHome(userId: userId));
+    }
   }
 
   @override
@@ -134,6 +177,13 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   SliverToBoxAdapter(
                     child: BlocBuilder<BannerBloc, BannerState>(
                       builder: (context, bannerState) {
+                        debugPrint('🖼️ BannerBlocBuilder: State = ${bannerState.runtimeType}');
+                        if (bannerState is BannerLoaded) {
+                          debugPrint('🖼️ BannerBlocBuilder: Loaded ${bannerState.banners.length} banners');
+                        }
+                        if (bannerState is BannerError) {
+                          debugPrint('🖼️ BannerBlocBuilder: Error = ${bannerState.message}');
+                        }
                         if (bannerState is BannerLoaded && bannerState.banners.isNotEmpty) {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

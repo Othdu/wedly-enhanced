@@ -257,6 +257,42 @@ class ErrorView extends StatelessWidget {
         description:
             'حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى',
       );
+    } else if (error is TlsHandshakeException) {
+      return ErrorInfo(
+        icon: Icons.security_rounded,
+        color: const Color(0xFFFF6B6B),
+        title: 'مشكلة في الاتصال الآمن',
+        description:
+            'نواجه مشكلة مؤقتة في الاتصال الآمن بالخادم.\n'
+            'يبدو أن هناك مشكلة في إعدادات الأمان على الخادم.',
+        helpText:
+            'الفريق التقني يعمل على حل المشكلة. '
+            'حاول مرة أخرى بعد قليل، أو تواصل مع الدعم الفني إذا استمرت المشكلة.',
+      );
+    } else if (error is SslCertificateException) {
+      return ErrorInfo(
+        icon: Icons.verified_user_outlined,
+        color: const Color(0xFFFF6B6B),
+        title: 'مشكلة في شهادة الأمان',
+        description:
+            'هناك مشكلة في شهادة الأمان الخاصة بالخادم.\n'
+            'قد يكون هناك خطر على بياناتك.',
+        helpText:
+            'لا تقلق! نحن نعمل على حل المشكلة. '
+            'يرجى التواصل مع الدعم الفني للحصول على المساعدة.',
+      );
+    } else if (error is ConnectionException) {
+      return ErrorInfo(
+        icon: Icons.cloud_off_rounded,
+        color: Colors.deepOrange,
+        title: 'فشل الاتصال بالخادم',
+        description:
+            'لا يمكن الوصول إلى الخادم حالياً.\n'
+            'يرجى التحقق من اتصالك بالإنترنت.',
+        helpText:
+            'تأكد من أنك متصل بالإنترنت، ثم حاول مرة أخرى. '
+            'إذا كان الإنترنت يعمل بشكل صحيح، فقد تكون هناك مشكلة مؤقتة في الخادم.',
+      );
     }
 
     // Default/Unknown error

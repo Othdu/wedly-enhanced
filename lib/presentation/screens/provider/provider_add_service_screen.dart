@@ -90,139 +90,67 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     setState(() {
       _dynamicSections.clear();
 
-      switch (_selectedCategory) {
-        case 'تصوير فوتوغرافي':
-          _initializePhotographySections();
-          debugPrint(
-            '✅ Photography sections initialized: ${_dynamicSections.length} sections',
-          );
-          break;
-        case 'كوش وديكور':
-          _initializeDecorationSections();
-          debugPrint(
-            '✅ Decoration sections initialized: ${_dynamicSections.length} sections',
-          );
-          break;
-        case 'قاعات أفراح':
-        case 'القاعات':
-          // Venues don't have dynamic sections, just fixed fields
-          debugPrint('✅ Venue category selected - using fixed fields only');
-          break;
-        // For all other categories, use generic dynamic sections
-        default:
-          // Generic initialization for other categories
-          debugPrint('ℹ️ Using generic dynamic sections for: $_selectedCategory');
-          break;
+      // Check if this is a venue category
+      final isVenue = _isVenueCategory(_selectedCategory!);
+
+      if (isVenue) {
+        // Venues don't have dynamic sections, just fixed fields
+        debugPrint('✅ Venue category selected - using fixed fields only');
+      } else {
+        // All other categories get the generic dynamic sections template
+        _initializeGenericSections();
+        debugPrint(
+          '✅ Generic sections initialized for $_selectedCategory: ${_dynamicSections.length} sections',
+        );
       }
     });
   }
 
-  void _initializePhotographySections() {
-    // Pre-filled photography packages from booking screen
+  /// Check if the category is a venue (supports multiple naming conventions)
+  bool _isVenueCategory(String category) {
+    final venueNames = [
+      'قاعات أفراح',
+      'القاعات',
+      'قاعات',
+      'venue',
+      'venues',
+    ];
+    return venueNames.any((name) => category.toLowerCase().contains(name.toLowerCase()));
+  }
+
+  /// Generic sections template for all non-venue categories
+  void _initializeGenericSections() {
     _dynamicSections = [
       {
         'id': '1',
-        'title': 'جلسة',
-        'description': 'جلسة تصوير',
-        'selectionType': 'single', // single or multiple
-        'options': [
-          {'text': 'البوم صغير 40×15 + بوستر 70×50 + 50 كارت', 'price': '5000'},
-          {'text': 'البوم 45×30', 'price': '5500'},
-          {'text': 'البوم 80×30', 'price': '6000'},
-        ],
-      },
-      {
-        'id': '2',
-        'title': 'نصف يوم',
-        'description': 'جلسة (مصورين 2)',
+        'title': 'الباقات',
+        'description': 'أضف باقات الخدمة المتاحة',
         'selectionType': 'single',
-        'options': [
-          {'text': 'البوم صغير 40×15 + بوستر 70×50 + 50 كارت', 'price': '7000'},
-          {'text': 'البوم 45×30', 'price': '7500'},
-          {'text': 'البوم 80×30', 'price': '8000'},
-        ],
-      },
-      {
-        'id': '3',
-        'title': 'يوم كامل',
-        'description': 'تجهيزات الزفاف\nجلسة تصوير\nحفلة (مصورين 2)',
-        'selectionType': 'single',
-        'options': [
-          {'text': 'البوم صغير 40×15 + بوستر 70×50 + 50 كارت', 'price': '8500'},
-          {'text': 'البوم 45×30', 'price': '9000'},
-          {'text': 'البوم 80×30', 'price': '9500'},
-        ],
-      },
-      {
-        'id': '4',
-        'title': 'بدون طباعة',
-        'description': '',
-        'selectionType': 'single',
-        'options': [
-          {'text': 'جلسة تصوير زفاف  ', 'price': '2800'},
-          {'text': 'جلسة خطوبة أو كتب كتاب ', 'price': '2500'},
-          {'text': 'حفلة (مصور واحد)  ', 'price': '1800'},
-          {'text': 'حفلة (مصورين 2)  ', 'price': '2400'},
-        ],
+        'options': [],
       },
     ];
   }
 
-  void _initializeCarSections() {
-    _dynamicSections = [
-      {
-        'id': '1',
-        'title': 'الإضافات',
-        'description': 'إضافات السيارة',
-        'selectionType': 'multiple',
-        'options': [
-          {'text': 'تزيين فاخر للسيارة', 'price': '500'},
-          {'text': 'سائق إضافي احتياطي', 'price': '300'},
-          {'text': 'خدمة التصوير الفوتوغرافي', 'price': '800'},
-          {'text': 'باقة ورد داخل السيارة', 'price': '200'},
-        ],
-      },
-    ];
-  }
+  /// Calculate price from dynamic sections (minimum price from all options)
+  /// Returns 0 if no options with valid prices exist
+  double _calculatePriceFromSections() {
+    double? minPrice;
 
-  void _initializeWeddingDressSections() {
-    _dynamicSections = [
-      {
-        'id': '1',
-        'title': 'الأنواع المتاحة',
-        'description': 'أنواع الفساتين',
-        'selectionType': 'multiple',
-        'options': [
-          {'text': 'فساتين الأميرات', 'price': '0'},
-          {'text': 'فساتين حورية البحر', 'price': '0'},
-          {'text': 'فساتين مستقيمة (Sheath)', 'price': '0'},
-          {'text': 'فساتين خصر عالي (Empire)', 'price': '0'},
-          {'text': 'فساتين قصيرة', 'price': '0'},
-        ],
-      },
-    ];
-  }
+    for (final section in _dynamicSections) {
+      final options = section['options'] as List;
+      for (final option in options) {
+        final priceStr = option['price']?.toString() ?? '0';
+        final price = double.tryParse(priceStr) ?? 0;
+        if (price > 0) {
+          if (minPrice == null || price < minPrice) {
+            minPrice = price;
+          }
+        }
+      }
+    }
 
-  void _initializeDecorationSections() {
-    _dynamicSections = [
-      {
-        'id': '1',
-        'title': 'المكونات',
-        'description': 'مكونات الديكور',
-        'selectionType': 'multiple',
-        'options': [
-          {'text': 'ديكور كامل للمنصة', 'price': '0'},
-          {'text': 'تنسيق الكراسي والطاولات', 'price': '0'},
-          {'text': 'إضاءة احترافية', 'price': '0'},
-          {'text': 'ورد طبيعي + تنسيق إضافي', 'price': '0'},
-          {'text': 'خلفية مصممة (Backdrop)', 'price': '0'},
-          {'text': 'ديكور طاولات', 'price': '0'},
-          {'text': 'ضيافة بسيطة (اختياري)', 'price': '0'},
-        ],
-      },
-    ];
+    return minPrice ?? 0;
   }
-
 
   Future<void> _pickImage() async {
     if (_isPickingImage) return;
@@ -380,25 +308,15 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     debugPrint('🔍 Building category-specific fields for: $_selectedCategory');
     debugPrint('🔍 Dynamic sections count: ${_dynamicSections.length}');
 
-    switch (_selectedCategory) {
-      case 'قاعات أفراح':
-      case 'القاعات':
-        final fields = _buildVenueFields();
-        debugPrint('✅ Built ${fields.length} venue fields');
-        return fields;
-      case 'تصوير فوتوغرافي':
-      case 'كوش وديكور':
-      case 'فرق موسيقية':
-      case 'تجميل وميك أب':
-      case 'تنظيم حفلات':
-      case 'كيك وحلويات':
-      case 'دي جي':
-        final fields = _buildDynamicSectionFields();
-        debugPrint('✅ Built ${fields.length} dynamic fields');
-        return fields;
-      default:
-        debugPrint('⚠️ Unknown category: $_selectedCategory');
-        return [];
+    if (_isVenueCategory(_selectedCategory!)) {
+      final fields = _buildVenueFields();
+      debugPrint('✅ Built ${fields.length} venue fields');
+      return fields;
+    } else {
+      // All non-venue categories use dynamic sections
+      final fields = _buildDynamicSectionFields();
+      debugPrint('✅ Built ${fields.length} dynamic fields');
+      return fields;
     }
   }
 
@@ -1637,6 +1555,17 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         );
         final categoryId = selectedCategoryModel.id;
 
+        // Calculate price for non-venue categories from sections or general price field
+        double? servicePrice;
+        if (!isVenueCategory) {
+          if (_generalPriceController.text.isNotEmpty) {
+            servicePrice = double.tryParse(_generalPriceController.text);
+          } else {
+            // Use minimum price from dynamic sections
+            servicePrice = _calculatePriceFromSections();
+          }
+        }
+
         // Create the service with image file (will be uploaded as part of service creation)
         final newService = ServiceModel(
           id: '',
@@ -1646,11 +1575,9 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           category: categoryId, // Send the category ID, not the Arabic name
           providerId: authState.user.id,
           imageFile: _selectedImages.isNotEmpty ? _selectedImages[0] : null,
-          // General price for non-venue categories (optional)
-          price: !isVenueCategory && _generalPriceController.text.isNotEmpty
-              ? double.tryParse(_generalPriceController.text)
-              : null,
-          // Venue-specific pricing (morning/evening)
+          // General price for non-venue categories (from input or calculated from sections)
+          price: servicePrice,
+          // Venue-specific pricing (morning/evening) - only for venues
           morningPrice: isVenueCategory && _morningPriceController.text.isNotEmpty
               ? double.tryParse(_morningPriceController.text)
               : null,

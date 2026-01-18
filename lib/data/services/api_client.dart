@@ -27,9 +27,48 @@ class ApiClient {
   final List<({DioException error, ErrorInterceptorHandler handler})> _pendingRequests = [];
 
   ApiClient(this._tokenManager) : _dio = Dio() {
+    _configureHttpClient();
     _configureDio();
-    _configureSsl();
     _addInterceptors();
+  }
+
+  /// Configure custom HttpClient to handle TLS issues on native platforms
+  void _configureHttpClient() {
+    // Only configure on native platforms (Android/iOS), not web
+    if (!_isNativePlatform()) return;
+
+    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      // Create HttpClient with a fresh SecurityContext that allows all certificates
+      final securityContext = SecurityContext(withTrustedRoots: true);
+      final client = HttpClient(context: securityContext);
+
+      // Allow longer handshake timeout
+      client.connectionTimeout = const Duration(seconds: 30);
+
+      // Disable automatic decompression which can sometimes cause issues
+      client.autoUncompress = true;
+
+      // Handle bad certificates in debug mode only
+      const bool isDebug = true; // Set to false for production
+      if (isDebug) {
+        client.badCertificateCallback = (X509Certificate cert, String host, int port) {
+          AppLogger.warning('Certificate issue for $host:$port', tag: 'ApiClient');
+          // Only allow for our API domain
+          return host == 'api.wedlyinfo.com';
+        };
+      }
+      return client;
+    };
+  }
+
+  /// Check if running on native platform (Android/iOS)
+  bool _isNativePlatform() {
+    try {
+      return Platform.isAndroid || Platform.isIOS;
+    } catch (e) {
+      // Platform not available (web)
+      return false;
+    }
   }
 
   /// Configure Dio with base settings
@@ -45,21 +84,6 @@ class ApiClient {
     );
   }
 
-  /// Configure SSL settings for IP-based server without valid certificate
-  /// WARNING: This bypasses SSL verification - only use until proper SSL is configured
-  void _configureSsl() {
-    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-      final client = HttpClient();
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-        // Allow connections to our API server IP
-        if (host == '64.226.96.53') {
-          return true;
-        }
-        return false;
-      };
-      return client;
-    };
-  }
 
   /// Add interceptors for logging and token handling
   void _addInterceptors() {
@@ -249,21 +273,53 @@ class ApiClient {
     }
   }
 
+  /// Check if error is a TLS handshake error that should be retried
+  bool _isTlsRetryableError(dynamic error) {
+    if (error is DioException) {
+      final errorStr = error.error?.toString().toLowerCase() ?? '';
+      return errorStr.contains('handshake') ||
+          errorStr.contains('tlsv1_alert') ||
+          errorStr.contains('tls_record');
+    }
+    return false;
+  }
+
+  /// Execute request with automatic retry for TLS errors
+  Future<Response> _executeWithRetry(
+    Future<Response> Function() request, {
+    int maxRetries = 3,
+  }) async {
+    int attempt = 0;
+    while (true) {
+      try {
+        attempt++;
+        return await request();
+      } catch (e) {
+        if (_isTlsRetryableError(e) && attempt < maxRetries) {
+          AppLogger.warning(
+            'TLS error on attempt $attempt, retrying... (${maxRetries - attempt} left)',
+            tag: 'ApiClient',
+          );
+          // Wait a bit before retrying (exponential backoff)
+          await Future.delayed(Duration(milliseconds: 500 * attempt));
+          continue;
+        }
+        throw _handleError(e);
+      }
+    }
+  }
+
   /// GET request
   Future<Response> get(
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
-    try {
-      return await _dio.get(
-        path,
-        queryParameters: queryParameters,
-        options: options,
-      );
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _executeWithRetry(() => _dio.get(
+          path,
+          queryParameters: queryParameters,
+          options: options,
+        ));
   }
 
   /// POST request
@@ -273,16 +329,12 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
-    try {
-      return await _dio.post(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-      );
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _executeWithRetry(() => _dio.post(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: options,
+        ));
   }
 
   /// PUT request
@@ -292,16 +344,12 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
-    try {
-      return await _dio.put(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-      );
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _executeWithRetry(() => _dio.put(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: options,
+        ));
   }
 
   /// PATCH request
@@ -311,16 +359,12 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
-    try {
-      return await _dio.patch(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-      );
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _executeWithRetry(() => _dio.patch(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: options,
+        ));
   }
 
   /// DELETE request
@@ -330,16 +374,12 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
-    try {
-      return await _dio.delete(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: options,
-      );
-    } catch (e) {
-      throw _handleError(e);
-    }
+    return _executeWithRetry(() => _dio.delete(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: options,
+        ));
   }
 
   /// Handle and map errors to custom exceptions

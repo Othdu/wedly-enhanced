@@ -257,7 +257,7 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
 
                     // Service Details Section
                     _buildSectionHeader('تفاصيل الخدمة'),
-                    _buildInfoRow('نوع الخدمة', booking.eventType),
+                    _buildInfoRow('نوع الخدمة', booking.serviceName),
                     _buildInfoRow('التاريخ', '${_formatDate(booking.bookingDate)}: ${_formatTime(booking.bookingDate)}'),
                     _buildInfoRow('السعر', '${_formatNumber(booking.totalAmount)} جنيه'),
                     _buildInfoRow('الوقت', '${_formatTime(booking.bookingDate)} مساءً'),

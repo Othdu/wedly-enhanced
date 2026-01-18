@@ -29,9 +29,12 @@ class BannerBloc extends Bloc<BannerEvent, BannerState> {
         debugPrint('  - Banner ID: ${banner.id}, Image: ${banner.imageUrl}');
       }
 
+      debugPrint('🎯 BannerBloc: Emitting BannerLoaded with ${banners.length} banners');
       emit(BannerLoaded(banners: banners));
-    } catch (e) {
+      debugPrint('🎯 BannerBloc: State emitted successfully');
+    } catch (e, stackTrace) {
       debugPrint('❌ BannerBloc: Error loading banners: $e');
+      debugPrint('❌ BannerBloc: Stack trace: $stackTrace');
       emit(const BannerError(
         message: 'فشل تحميل العروض. يرجى المحاولة مرة أخرى.',
       ));

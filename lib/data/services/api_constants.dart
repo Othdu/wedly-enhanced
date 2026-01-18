@@ -3,7 +3,7 @@
 /// Updated to match real Wedly API at https://api.wedlyinfo.com
 class ApiConstants {
   // Base URL - Real Wedly API
-  static const String baseUrl = 'https://64.226.96.53';
+  static const String baseUrl = 'https://api.wedlyinfo.com';
 
   // Timeout durations
   static const Duration connectionTimeout = Duration(seconds: 30);
@@ -111,6 +111,10 @@ class ApiConstants {
   static const String addToCart = '/api/cart';
   static const String clearCart = '/api/cart';
   static String removeFromCart(String itemId) => '/api/cart/$itemId';
+
+  // Payment Endpoints
+  static const String initiatePayment = '/api/payments/cart'; // POST - Initiate Paymob payment for cart
+  static const String paymobWebhook = '/webhooks/paymob'; // POST - Paymob webhook (public, HMAC verified)
 
   // Notifications Endpoints
   static const String notifications = '/api/notifications';

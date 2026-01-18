@@ -160,7 +160,7 @@ class AuthUpdateProfileImageRequested extends AuthEvent {
 }
 
 class AuthSocialLoginRequested extends AuthEvent {
-  final String provider; // 'google' or 'facebook'
+  final String provider; // 'google'
 
   const AuthSocialLoginRequested({
     required this.provider,

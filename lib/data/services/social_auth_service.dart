@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
-/// Service for handling social authentication (Google & Facebook)
+/// Service for handling social authentication (Google)
 /// This service works with native SDKs and sends tokens to backend
 class SocialAuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -58,58 +57,11 @@ class SocialAuthService {
     }
   }
 
-  /// Sign in with Facebook
-  /// Uses flutter_facebook_auth for native Facebook login
-  Future<Map<String, dynamic>> signInWithFacebook() async {
-    try {
-      // Trigger the sign-in flow
-      final LoginResult loginResult = await FacebookAuth.instance.login(
-        permissions: ['email', 'public_profile'],
-      );
-
-      if (loginResult.status != LoginStatus.success) {
-        if (loginResult.status == LoginStatus.cancelled) {
-          throw Exception('تم إلغاء تسجيل الدخول');
-        }
-        throw Exception('فشل تسجيل الدخول: ${loginResult.message}');
-      }
-
-      // Get the access token
-      final AccessToken? accessToken = loginResult.accessToken;
-      if (accessToken == null) {
-        throw Exception('فشل الحصول على رمز الوصول');
-      }
-
-      // Get user data from Facebook
-      final userData = await FacebookAuth.instance.getUserData();
-
-      // Return user data to be sent to your backend
-      return {
-        'provider': 'facebook',
-        'provider_id': userData['id'] ?? '',
-        'email': userData['email'] ?? '',
-        'name': userData['name'] ?? '',
-        'profile_image_url': userData['picture']?['data']?['url'],
-        'access_token': accessToken.tokenString,
-      };
-    } catch (e) {
-      debugPrint('❌ Facebook Sign In Error: $e');
-      if (e.toString().contains('network_error')) {
-        throw Exception('خطأ في الاتصال بالإنترنت');
-      } else if (e.toString().contains('تم إلغاء')) {
-        rethrow;
-      }
-      throw Exception('فشل تسجيل الدخول بواسطة Facebook');
-    }
-  }
 
   /// Sign out from all social providers
   Future<void> signOut() async {
     try {
-      await Future.wait([
-        _googleSignIn.signOut(),
-        FacebookAuth.instance.logOut(),
-      ]);
+      await _googleSignIn.signOut();
     } catch (e) {
       debugPrint('❌ Social Sign Out Error: $e');
       // Continue even if sign out fails

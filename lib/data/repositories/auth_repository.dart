@@ -202,7 +202,7 @@ class AuthRepository {
       await _performLocalLogout();
     }
 
-    // Sign out from Google/Facebook to clear cached account
+    // Sign out from Google to clear cached account
     try {
       final socialAuthService = SocialAuthService();
       await socialAuthService.signOut();
@@ -935,7 +935,7 @@ class AuthRepository {
     }
   }
 
-  /// Social login (Google/Facebook)
+  /// Social login (Google)
   Future<UserModel> socialLogin({
     required String provider,
     required String email,
@@ -1031,17 +1031,18 @@ class AuthRepository {
     String? accessToken,
     String? idToken,
   }) async {
+    // Validate id_token is provided for Google login
+    if (idToken == null || idToken.isEmpty) {
+      throw ValidationException(
+        message: 'Google ID token is required for authentication',
+      );
+    }
+
+    // According to API spec, only send id_token for Google login
     final response = await _apiClient!.post(
-      ApiConstants.socialLogin,
+      ApiConstants.googleLogin, // Use the correct endpoint
       data: {
-        'provider': provider, // 'google' or 'facebook'
-        'provider_id': providerId,
-        'email': email,
-        'name': name,
-        if (profileImageUrl != null) 'profile_image_url': profileImageUrl,
-        if (firebaseToken != null) 'firebase_token': firebaseToken,
-        if (accessToken != null) 'access_token': accessToken,
-        if (idToken != null) 'id_token': idToken,
+        'id_token': idToken, // Only send id_token as per API spec
       },
     );
 
