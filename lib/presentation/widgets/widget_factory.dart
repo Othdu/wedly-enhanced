@@ -61,8 +61,8 @@ class WidgetFactory {
         showWeeks: settings['showWeeks'] as bool? ?? true,
         showDays: settings['showDays'] as bool? ?? true,
         showHours: settings['showHours'] as bool? ?? true,
+        showMinutes: settings['showMinutes'] as bool? ?? true,
         showSeconds: settings['showSeconds'] as bool? ?? true,
-        compact: settings['compact'] as bool? ?? false,
       ),
     );
   }

@@ -38,25 +38,15 @@ class ApiClient {
     if (!_isNativePlatform()) return;
 
     (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-      // Create HttpClient with a fresh SecurityContext that allows all certificates
-      final securityContext = SecurityContext(withTrustedRoots: true);
-      final client = HttpClient(context: securityContext);
+      // Use default HttpClient with Android's system certificate trust store
+      final client = HttpClient();
 
-      // Allow longer handshake timeout
-      client.connectionTimeout = const Duration(seconds: 30);
+      // Match the timeout from ApiConstants for consistency
+      client.connectionTimeout = ApiConstants.connectionTimeout;
 
-      // Disable automatic decompression which can sometimes cause issues
-      client.autoUncompress = true;
+      // Don't override certificate validation - trust Android's system certificates
+      // The server SSL is working fine, so we don't need custom certificate handling
 
-      // Handle bad certificates in debug mode only
-      const bool isDebug = true; // Set to false for production
-      if (isDebug) {
-        client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-          AppLogger.warning('Certificate issue for $host:$port', tag: 'ApiClient');
-          // Only allow for our API domain
-          return host == 'api.wedlyinfo.com';
-        };
-      }
       return client;
     };
   }

@@ -262,8 +262,6 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     try {
       emit(const CartLoading());
 
-      await cartRepository.initializeMockData();
-
       final items = await cartRepository.getCartItems('current_user');
       final itemCount = await cartRepository.getCartItemCount();
       final totalPrice = await cartRepository.getTotalPrice();

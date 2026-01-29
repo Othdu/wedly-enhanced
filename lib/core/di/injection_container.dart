@@ -31,10 +31,6 @@ import 'package:wedly/logic/blocs/banner/banner_bloc.dart';
 
 final getIt = GetIt.instance;
 
-/// Set to true to use mock data, false to use real API
-/// Change this when backend is ready
-const bool _useMockData = false;
-
 Future<void> setupDependencyInjection() async {
   // Core Services
   getIt.registerLazySingleton<FlutterSecureStorage>(
@@ -45,101 +41,70 @@ Future<void> setupDependencyInjection() async {
     () => TokenManager(getIt<FlutterSecureStorage>()),
   );
 
-  // API Client (only register if not using mock data)
-  if (!_useMockData) {
-    getIt.registerLazySingleton<ApiClient>(
-      () => ApiClient(getIt<TokenManager>()),
-    );
+  // API Client
+  getIt.registerLazySingleton<ApiClient>(
+    () => ApiClient(getIt<TokenManager>()),
+  );
 
-    // Image Upload Service (depends on ApiClient)
-    getIt.registerLazySingleton<ImageUploadService>(
-      () => ImageUploadService(getIt<ApiClient>()),
-    );
-  }
+  // Image Upload Service
+  getIt.registerLazySingleton<ImageUploadService>(
+    () => ImageUploadService(getIt<ApiClient>()),
+  );
 
   // Repositories
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      tokenManager: _useMockData ? null : getIt<TokenManager>(),
-      useMockData: _useMockData,
+      apiClient: getIt<ApiClient>(),
+      tokenManager: getIt<TokenManager>(),
     ),
   );
 
   getIt.registerLazySingleton<ServiceRepository>(
     () => ServiceRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
+      apiClient: getIt<ApiClient>(),
     ),
   );
 
   getIt.registerLazySingleton<BookingRepository>(
     () => BookingRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
-  );
-
-  getIt.registerLazySingleton<CartRepository>(
-    () => CartRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
-  );
-
-  getIt.registerLazySingleton<VenueRepository>(
-    () => VenueRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
-  );
-
-  getIt.registerLazySingleton<ReviewRepository>(
-    () => ReviewRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
-  );
-
-  getIt.registerLazySingleton<OfferRepository>(
-    () => OfferRepository(
       apiClient: getIt<ApiClient>(),
     ),
   );
 
+  getIt.registerLazySingleton<CartRepository>(
+    () => CartRepository(apiClient: getIt<ApiClient>()),
+  );
+
+  getIt.registerLazySingleton<VenueRepository>(
+    () => VenueRepository(apiClient: getIt<ApiClient>()),
+  );
+
+  getIt.registerLazySingleton<ReviewRepository>(
+    () => ReviewRepository(apiClient: getIt<ApiClient>()),
+  );
+
+  getIt.registerLazySingleton<OfferRepository>(
+    () => OfferRepository(apiClient: getIt<ApiClient>()),
+  );
+
   getIt.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
+    () => NotificationRepository(apiClient: getIt<ApiClient>()),
   );
 
   getIt.registerLazySingleton<AddressRepository>(
-    () => AddressRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
+    () => AddressRepository(apiClient: getIt<ApiClient>()),
   );
 
   getIt.registerLazySingleton<BannerRepository>(
-    () => BannerRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
+    () => BannerRepository(apiClient: getIt<ApiClient>()),
   );
 
   getIt.registerLazySingleton<CategoryRepository>(
-    () => CategoryRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
+    () => CategoryRepository(apiClient: getIt<ApiClient>()),
   );
 
   getIt.registerLazySingleton<PaymentRepository>(
-    () => PaymentRepository(
-      apiClient: _useMockData ? null : getIt<ApiClient>(),
-      useMockData: _useMockData,
-    ),
+    () => PaymentRepository(apiClient: getIt<ApiClient>()),
   );
 
   // BLoCs - registered as factories for new instances

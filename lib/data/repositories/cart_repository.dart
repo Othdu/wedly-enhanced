@@ -1,67 +1,64 @@
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
-import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/api_constants.dart';
 
 class CartRepository {
-  final ApiClient? apiClient;
-  final bool useMockData;
+  final ApiClient _apiClient;
 
-  CartRepository({
-    this.apiClient,
-    this.useMockData = true,
-  });
-
-  // Local cache (for mock mode)
-  static const String _cartKey = 'cart_items';
-  List<CartItemModel> _cartItems = [];
-  bool _isInitialized = false;
-
-  // ==================== PUBLIC METHODS ====================
+  CartRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   /// Get all cart items for a user
   Future<List<CartItemModel>> getCartItems(String userId) async {
-    if (useMockData || apiClient == null) {
-      return _mockGetCartItems(userId);
+    try {
+      final response = await _apiClient.get(ApiConstants.cart);
+      final responseData = response.data['data'] ?? response.data;
+
+      dynamic cartItemsList;
+      if (responseData is Map) {
+        cartItemsList = responseData['items'] ?? responseData['cart_items'] ?? [];
+      } else if (responseData is List) {
+        cartItemsList = responseData;
+      } else {
+        cartItemsList = [];
+      }
+
+      if (cartItemsList is! List) {
+        debugPrint('⚠️ Cart API returned unexpected format: $cartItemsList');
+        return [];
+      }
+
+      return cartItemsList
+          .map((json) => CartItemModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error in getCartItems: $e');
+      rethrow;
     }
-    return _apiGetCartItems();
   }
 
   /// Add item to cart
   Future<void> addToCart(CartItemModel item) async {
-    if (useMockData || apiClient == null) {
-      return _mockAddToCart(item);
-    }
-    return _apiAddToCart(item);
+    await _apiClient.post(
+      ApiConstants.addToCart,
+      data: item.toJson(),
+    );
   }
 
   /// Remove item from cart
   Future<void> removeFromCart(String itemId) async {
-    if (useMockData || apiClient == null) {
-      return _mockRemoveFromCart(itemId);
-    }
-    return _apiRemoveFromCart(itemId);
+    await _apiClient.delete(ApiConstants.removeFromCart(itemId));
   }
 
   /// Update cart item
   Future<void> updateCartItem(CartItemModel item) async {
-    if (useMockData || apiClient == null) {
-      return _mockUpdateCartItem(item);
-    }
-    // API doesn't have update endpoint, so we remove and re-add
-    await _apiRemoveFromCart(item.id);
-    await _apiAddToCart(item);
+    await removeFromCart(item.id);
+    await addToCart(item);
   }
 
   /// Clear all cart items
   Future<void> clearCart() async {
-    if (useMockData || apiClient == null) {
-      return _mockClearCart();
-    }
-    return _apiClearCart();
+    await _apiClient.delete(ApiConstants.clearCart);
   }
 
   /// Get cart item count
@@ -74,213 +71,5 @@ class CartRepository {
   Future<double> getTotalPrice() async {
     final items = await getCartItems('');
     return items.fold<double>(0.0, (sum, item) => sum + item.totalPrice);
-  }
-
-  /// Initialize with mock data for testing (only in mock mode)
-  Future<void> initializeMockData() async {
-    if (useMockData || apiClient == null) {
-      await _loadCart();
-      if (_cartItems.isNotEmpty) {
-        return;
-      }
-
-      // Mock services for cart
-      final venueService = ServiceModel(
-        id: '1',
-        name: 'قاعة رؤيا',
-        description: 'قاعة فخمة للمناسبات',
-        imageUrl:
-            'https://images.unsplash.com/photo-1519167758481-83f29da1b3e4',
-        price: 12000,
-        category: 'قاعات',
-        providerId: 'provider1',
-        rating: 4.8,
-        reviewCount: 120,
-      );
-
-      final photographyService = ServiceModel(
-        id: '2',
-        name: 'المصور / مصطفى محمود',
-        description: 'تصوير احترافي',
-        imageUrl:
-            'https://images.unsplash.com/photo-1542038784456-1ea8e935640e',
-        price: 9000,
-        category: 'تصوير',
-        providerId: 'provider2',
-        rating: 4.9,
-        reviewCount: 85,
-      );
-
-      _cartItems.addAll([
-        CartItemModel(
-          id: 'cart_item_1',
-          service: venueService,
-          date: '15 نوفمبر',
-          time: 'الساعة 8:00 مساءً',
-          servicePrice: 12000,
-          photographerPrice: 0,
-          addedAt: DateTime.now().subtract(const Duration(hours: 2)),
-        ),
-        CartItemModel(
-          id: 'cart_item_2',
-          service: photographyService,
-          date: '15 نوفمبر',
-          time: 'الساعة 5:00 مساءً',
-          servicePrice: 9000,
-          photographerPrice: 0,
-          addedAt: DateTime.now().subtract(const Duration(hours: 1)),
-        ),
-      ]);
-
-      await _saveCart();
-    }
-  }
-
-  // ==================== API METHODS ====================
-
-  /// API: Get cart items
-  Future<List<CartItemModel>> _apiGetCartItems() async {
-    try {
-      final response = await apiClient!.get(ApiConstants.cart);
-      final responseData = response.data['data'] ?? response.data;
-
-      // Handle different response structures
-      dynamic cartItemsList;
-
-      if (responseData is Map) {
-        // If response is a map, try to get 'items' key
-        cartItemsList = responseData['items'] ?? responseData['cart_items'] ?? [];
-      } else if (responseData is List) {
-        // If response is already a list
-        cartItemsList = responseData;
-      } else {
-        // Fallback to empty list
-        cartItemsList = [];
-      }
-
-      // Ensure we have a list
-      if (cartItemsList is! List) {
-        debugPrint('⚠️ Cart API returned unexpected format: $cartItemsList');
-        return [];
-      }
-
-      final items = cartItemsList
-          .map((json) {
-            final item = CartItemModel.fromJson(json as Map<String, dynamic>);
-            debugPrint('📦 Cart item loaded - ID: ${item.id}, Service: ${item.service.name}');
-            return item;
-          })
-          .toList();
-      debugPrint('✅ Total cart items loaded: ${items.length}');
-      return items;
-    } catch (e) {
-      debugPrint('❌ Error in _apiGetCartItems: $e');
-      rethrow;
-    }
-  }
-
-  /// API: Add item to cart
-  Future<void> _apiAddToCart(CartItemModel item) async {
-    final jsonData = item.toJson();
-    debugPrint('🛒 CartRepository._apiAddToCart - Sending to API:');
-    debugPrint('   time_slot: "${jsonData['time_slot']}"');
-    jsonData.forEach((key, value) {
-      debugPrint('   $key: $value');
-    });
-    await apiClient!.post(
-      ApiConstants.addToCart,
-      data: jsonData,
-    );
-  }
-
-  /// API: Remove item from cart
-  Future<void> _apiRemoveFromCart(String itemId) async {
-    try {
-      debugPrint('🗑️ CartRepository._apiRemoveFromCart called');
-      debugPrint('   Item ID type: ${itemId.runtimeType}');
-      debugPrint('   Item ID value: "$itemId"');
-      debugPrint('   Item ID length: ${itemId.length}');
-
-      final endpoint = ApiConstants.removeFromCart(itemId);
-      debugPrint('🌐 DELETE endpoint: $endpoint');
-
-      await apiClient!.delete(endpoint);
-      debugPrint('✅ Successfully deleted cart item: $itemId');
-    } catch (e) {
-      debugPrint('❌ Error in _apiRemoveFromCart:');
-      debugPrint('   Item ID: $itemId');
-      debugPrint('   Error: $e');
-      debugPrint('   Error type: ${e.runtimeType}');
-      rethrow;
-    }
-  }
-
-  /// API: Clear cart
-  Future<void> _apiClearCart() async {
-    await apiClient!.delete(ApiConstants.clearCart);
-  }
-
-  // ==================== MOCK METHODS (SharedPreferences) ====================
-
-  /// Load cart from SharedPreferences
-  Future<void> _loadCart() async {
-    if (_isInitialized) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final cartJson = prefs.getString(_cartKey);
-
-    if (cartJson != null) {
-      final List<dynamic> decoded = json.decode(cartJson);
-      _cartItems =
-          decoded.map((item) => CartItemModel.fromJson(item)).toList();
-    }
-
-    _isInitialized = true;
-  }
-
-  /// Save cart to SharedPreferences
-  Future<void> _saveCart() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cartJson = json.encode(
-      _cartItems.map((item) => item.toJson()).toList(),
-    );
-    await prefs.setString(_cartKey, cartJson);
-  }
-
-  Future<List<CartItemModel>> _mockGetCartItems(String userId) async {
-    await _loadCart();
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_cartItems);
-  }
-
-  Future<void> _mockAddToCart(CartItemModel item) async {
-    await _loadCart();
-    await Future.delayed(const Duration(milliseconds: 300));
-    _cartItems.add(item);
-    await _saveCart();
-  }
-
-  Future<void> _mockRemoveFromCart(String itemId) async {
-    await _loadCart();
-    await Future.delayed(const Duration(milliseconds: 300));
-    _cartItems.removeWhere((item) => item.id == itemId);
-    await _saveCart();
-  }
-
-  Future<void> _mockUpdateCartItem(CartItemModel item) async {
-    await _loadCart();
-    await Future.delayed(const Duration(milliseconds: 300));
-    final index = _cartItems.indexWhere((i) => i.id == item.id);
-    if (index != -1) {
-      _cartItems[index] = item;
-      await _saveCart();
-    }
-  }
-
-  Future<void> _mockClearCart() async {
-    await _loadCart();
-    await Future.delayed(const Duration(milliseconds: 300));
-    _cartItems.clear();
-    await _saveCart();
   }
 }

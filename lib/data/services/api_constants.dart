@@ -5,9 +5,9 @@ class ApiConstants {
   // Base URL - Real Wedly API
   static const String baseUrl = 'https://api.wedlyinfo.com';
 
-  // Timeout durations
-  static const Duration connectionTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 30);
+  // Timeout durations - reduced for faster failure on non-existent endpoints
+  static const Duration connectionTimeout = Duration(seconds: 10);
+  static const Duration receiveTimeout = Duration(seconds: 15);
 
   // Auth Endpoints
   static const String login = '/api/auth/login';

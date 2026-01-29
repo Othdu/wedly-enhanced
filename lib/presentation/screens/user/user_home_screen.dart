@@ -110,6 +110,10 @@ class _UserHomeScreenState extends State<UserHomeScreen>
             return SkeletonLoading.homeScreen();
           }
 
+          if (homeState is HomeError) {
+            return _buildErrorView(context, homeState.message);
+          }
+
           if (homeState is HomeLoaded) {
             return RefreshIndicator(
               onRefresh: () async {
@@ -504,6 +508,93 @@ class _UserHomeScreenState extends State<UserHomeScreen>
           ),
         );
       },
+    );
+  }
+
+  /// Build error view with retry button
+  Widget _buildErrorView(BuildContext context, String message) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            const Color(0xFFD4AF37).withValues(alpha: 0.1),
+            const Color(0xFFF5F5F5),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Error icon
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.wifi_off_rounded,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // Error message
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // Retry button
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final authState = context.read<AuthBloc>().state;
+                    String? userId;
+                    if (authState is AuthAuthenticated) {
+                      userId = authState.user.id;
+                    }
+                    context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
+                    context.read<BannerBloc>().add(const BannersRequested());
+                  },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text(
+                    'إعادة المحاولة',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

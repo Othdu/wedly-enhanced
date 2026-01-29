@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wedly/core/constants/app_colors.dart';
 import 'package:wedly/core/constants/app_strings.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
+import 'package:wedly/logic/blocs/home/home_bloc.dart';
+import 'package:wedly/logic/blocs/home/home_state.dart';
 import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
 import 'package:wedly/logic/blocs/notification/notification_state.dart';
 import 'package:wedly/presentation/widgets/profile_picture_widget.dart';
+import 'package:wedly/presentation/widgets/countdown_timer_widget.dart';
 import 'package:wedly/routes/app_router.dart';
 
 class UserProfileScreen extends StatelessWidget {
@@ -75,118 +77,25 @@ class UserProfileScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // Wedding Date Countdown Card
-                    if (user.weddingDate != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.gold, Color(0xFFD4AF37)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                    // Wedding Date Countdown Card (from reservations)
+                    BlocBuilder<HomeBloc, HomeState>(
+                      builder: (context, homeState) {
+                        if (homeState is HomeLoaded && homeState.countdown != null) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: CountdownTimerWidget(
+                              countdown: homeState.countdown!,
+                              showWeeks: false,
+                              showDays: true,
+                              showHours: true,
+                              showMinutes: true,
+                              showSeconds: true,
                             ),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.gold.withValues(alpha: 0.3),
-                                blurRadius: 15,
-                                spreadRadius: 2,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.favorite,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'العد التنازلي ليوم زفافك',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                    textDirection: TextDirection.rtl,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Icon(
-                                    Icons.favorite,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.calendar_today,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${user.weddingDate!.year}-${user.weddingDate!.month.toString().padLeft(2, '0')}-${user.weddingDate!.day.toString().padLeft(2, '0')}',
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      textDirection: TextDirection.ltr,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      '${user.weddingDate!.difference(DateTime.now()).inDays}',
-                                      style: const TextStyle(
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.gold,
-                                      ),
-                                    ),
-                                    const Text(
-                                      'يوم متبقي',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black87,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      textDirection: TextDirection.rtl,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
 
                     // Profile Management Section
                     _buildSection(
