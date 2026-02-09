@@ -37,7 +37,12 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       // Merge API items with local cache to preserve timeSlot
       final List<CartItemModel> mergedItems = [];
       for (final apiItem in apiItems) {
-        final cachedItem = _localItemCache[apiItem.id];
+        // Try both cache keys: by API ID and by service+date
+        final cachedById = _localItemCache[apiItem.id];
+        final cacheKeyByService = '${apiItem.service.id}_${apiItem.date}';
+        final cachedByService = _localItemCache[cacheKeyByService];
+        final cachedItem = cachedById ?? cachedByService;
+
         if (cachedItem != null) {
           // Use cached item's timeSlot if API returned empty/default
           final preservedTimeSlot = (apiItem.timeSlot.isEmpty || apiItem.timeSlot == 'morning')
@@ -47,12 +52,16 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
           final mergedItem = apiItem.copyWith(timeSlot: preservedTimeSlot);
           mergedItems.add(mergedItem);
-          debugPrint('   - ${mergedItem.service.name}: timeSlot="${mergedItem.timeSlot}" (preserved from cache: ${preservedTimeSlot != apiItem.timeSlot})');
+
+          // Update cache with the correct API ID
+          _localItemCache[apiItem.id] = mergedItem;
+
+          debugPrint('   - ${mergedItem.service.name}: timeSlot="${mergedItem.timeSlot}" (ID: ${apiItem.id}, preserved from cache)');
         } else {
           mergedItems.add(apiItem);
           // Cache API item for future reference
           _localItemCache[apiItem.id] = apiItem;
-          debugPrint('   - ${apiItem.service.name}: timeSlot="${apiItem.timeSlot}" (from API, no cache)');
+          debugPrint('   - ${apiItem.service.name}: timeSlot="${apiItem.timeSlot}" (ID: ${apiItem.id}, from API)');
         }
       }
 
@@ -80,35 +89,56 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       debugPrint('🛒 CartBloc._onCartItemAdded - Adding item with timeSlot: "${event.item.timeSlot}"');
 
       // Cache the item with correct timeSlot BEFORE adding to API
-      _localItemCache[event.item.id] = event.item;
-      debugPrint('🛒 CartBloc - Cached item ${event.item.id} with timeSlot: "${event.item.timeSlot}"');
-
-      // Get current items before adding (to preserve local data)
-      List<CartItemModel> currentItems = [];
-      if (state is CartLoaded) {
-        currentItems = List.from((state as CartLoaded).items);
-      }
+      // Use service ID as the cache key since the local ID will change
+      final cacheKey = '${event.item.service.id}_${event.item.date}';
+      _localItemCache[cacheKey] = event.item;
+      debugPrint('🛒 CartBloc - Cached item with key "$cacheKey" timeSlot: "${event.item.timeSlot}"');
 
       // Add to API/storage
       await cartRepository.addToCart(event.item);
 
-      // IMPORTANT: Use the original item with correct timeSlot
-      // Don't reload from API because API might not return time_slot correctly
-      currentItems.add(event.item);
+      // IMPORTANT: Reload from API to get the correct backend-generated ID
+      // This is necessary because the local ID (timestamp) won't work for delete operations
+      final apiItems = await cartRepository.getCartItems('');
 
-      debugPrint('🛒 CartBloc - Items after add:');
-      for (final item in currentItems) {
-        debugPrint('   - ${item.service.name}: timeSlot="${item.timeSlot}"');
+      debugPrint('🛒 CartBloc - Reloaded ${apiItems.length} items from API after add');
+
+      // Merge API items with local cache to preserve timeSlot
+      final List<CartItemModel> mergedItems = [];
+      for (final apiItem in apiItems) {
+        // Try to find cached item by service ID + date (since IDs don't match)
+        final itemCacheKey = '${apiItem.service.id}_${apiItem.date}';
+        final cachedItem = _localItemCache[itemCacheKey];
+
+        if (cachedItem != null) {
+          // Use cached item's timeSlot if API returned empty/default
+          final preservedTimeSlot = (apiItem.timeSlot.isEmpty || apiItem.timeSlot == 'morning')
+              && cachedItem.timeSlot.isNotEmpty
+              ? cachedItem.timeSlot
+              : apiItem.timeSlot;
+
+          final mergedItem = apiItem.copyWith(timeSlot: preservedTimeSlot);
+          mergedItems.add(mergedItem);
+
+          // Update cache with correct API ID
+          _localItemCache[apiItem.id] = mergedItem;
+
+          debugPrint('   - ${mergedItem.service.name}: timeSlot="${mergedItem.timeSlot}" (ID: ${apiItem.id})');
+        } else {
+          mergedItems.add(apiItem);
+          _localItemCache[apiItem.id] = apiItem;
+          debugPrint('   - ${apiItem.service.name}: timeSlot="${apiItem.timeSlot}" (ID: ${apiItem.id}, no cache)');
+        }
       }
 
-      final itemCount = currentItems.length;
-      final totalPrice = currentItems.fold<double>(
+      final itemCount = mergedItems.length;
+      final totalPrice = mergedItems.fold<double>(
         0.0,
         (sum, item) => sum + (item.totalPrice),
       );
 
       emit(CartLoaded(
-        items: currentItems,
+        items: mergedItems,
         itemCount: itemCount,
         totalPrice: totalPrice,
       ));
@@ -352,9 +382,26 @@ class CartBloc extends Bloc<CartEvent, CartState> {
               debugPrint('   💰 Using regular evening price: $currentPrice');
             }
           } else {
-            // Regular service - use finalPrice (with discount) if available, otherwise use regular price
-            currentPrice = currentService.finalPrice ?? currentService.price ?? item.servicePrice;
-            debugPrint('   💰 Using finalPrice/price: $currentPrice');
+            // Check if service has dynamic sections
+            // Backend doesn't store selected options, so we can't recalculate
+            try {
+              final sections = await serviceRepository.getDynamicSections(currentService.id);
+
+              if (sections.isNotEmpty) {
+                // Service has dynamic sections - use stored price from cart
+                currentPrice = item.servicePrice;
+                debugPrint('   💰 Service has dynamic sections - using stored cart price: $currentPrice');
+              } else {
+                // Regular service without dynamic sections - use current service price
+                currentPrice = currentService.finalPrice ?? currentService.price ?? item.servicePrice;
+                debugPrint('   💰 Regular service - using current service price: $currentPrice');
+              }
+            } catch (e) {
+              debugPrint('   ❌ Error checking dynamic sections: $e');
+              // Fallback to stored price if API call fails
+              currentPrice = item.servicePrice;
+              debugPrint('   💰 Using stored cart price (fallback): $currentPrice');
+            }
           }
 
           debugPrint('   📊 Stored price in cart: ${item.servicePrice}');

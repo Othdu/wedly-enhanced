@@ -150,3 +150,16 @@ class AuthGetWeddingDateSuccess extends AuthState {
   List<Object?> get props => [weddingDate, daysRemaining, message];
 }
 
+class AuthEventUpdateSuccess extends AuthState {
+  final UserModel user;
+  final String message;
+
+  const AuthEventUpdateSuccess({
+    required this.user,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [user, message];
+}
+

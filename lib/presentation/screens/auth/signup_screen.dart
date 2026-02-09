@@ -794,17 +794,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   if (Platform.isIOS) ...[
                                     _SocialLoginButton(
                                       imagePath: 'assets/images/apple.png',
-                                      onPressed: () {
-                                        // TODO: Implement Apple signup (requires apple_sign_in package)
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'تسجيل الدخول بواسطة Apple قريباً',
-                                              textDirection: TextDirection.rtl,
-                                            ),
-                                          ),
-                                        );
-                                      },
+                                      onPressed: _isLoading
+                                          ? null
+                                          : () => _handleSocialSignUp(context, 'apple'),
                                     ),
                                     const SizedBox(width: 16),
                                   ],

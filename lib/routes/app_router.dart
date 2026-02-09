@@ -18,9 +18,11 @@ import 'package:wedly/presentation/screens/provider/provider_add_service_screen.
 import 'package:wedly/presentation/screens/provider/provider_edit_service_screen.dart';
 import 'package:wedly/presentation/screens/provider/provider_edit_general_service_screen.dart';
 import 'package:wedly/presentation/screens/provider/provider_edit_venue_service_screen.dart';
+import 'package:wedly/presentation/screens/provider/provider_confirmed_bookings_screen.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 import 'package:wedly/presentation/screens/user/user_cart_screen.dart';
 import 'package:wedly/presentation/screens/user/user_edit_profile_screen.dart';
+import 'package:wedly/presentation/screens/user/user_manage_event_screen.dart';
 import 'package:wedly/presentation/screens/user/change_password_screen.dart';
 import 'package:wedly/presentation/screens/user/user_address_screen.dart';
 import 'package:wedly/presentation/screens/user/offers_list_screen.dart';
@@ -55,6 +57,7 @@ class AppRouter {
   static const String userHome = '/user';
   static const String userCart = '/user-cart';
   static const String userEditProfile = '/user-edit-profile';
+  static const String userManageEvent = '/user-manage-event';
   static const String userChangePassword = '/user-change-password';
   static const String userAddress = '/user-address';
   static const String offersList = '/offers-list';
@@ -78,6 +81,7 @@ class AppRouter {
   static const String providerEditService = '/provider/edit-service';
   static const String providerEditGeneralService = '/provider/edit-general-service';
   static const String providerEditVenueService = '/provider/edit-venue-service';
+  static const String providerConfirmedBookings = '/provider/confirmed-bookings';
 
   static void goToLogin(BuildContext context) {
     Navigator.of(context).pushAndRemoveUntil(
@@ -104,6 +108,10 @@ class AppRouter {
       MaterialPageRoute(builder: (_) => const ProviderNavigationWrapper()),
       (route) => false,
     );
+  }
+
+  static void goToProviderConfirmedBookings(BuildContext context) {
+    Navigator.of(context).pushNamed(providerConfirmedBookings);
   }
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
@@ -198,8 +206,14 @@ class AppRouter {
             child: ProviderEditVenueServiceScreen(service: service),
           ),
         );
+      case providerConfirmedBookings:
+        return MaterialPageRoute(
+          builder: (_) => const ProviderConfirmedBookingsScreen(),
+        );
       case userEditProfile:
         return MaterialPageRoute(builder: (_) => const UserEditProfileScreen());
+      case userManageEvent:
+        return MaterialPageRoute(builder: (_) => const UserManageEventScreen());
       case userChangePassword:
         return MaterialPageRoute(builder: (_) => const ChangePasswordScreen());
       case userAddress:

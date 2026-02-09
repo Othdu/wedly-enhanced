@@ -72,13 +72,18 @@ class _NotificationBadgeState extends State<NotificationBadge> {
                 borderRadius: _unreadCount > 9 ? BorderRadius.circular(9) : null,
               ),
               child: Center(
-                child: Text(
-                  _unreadCount > 99 ? '99+' : _unreadCount.toString(),
-                  style: TextStyle(
-                    color: widget.textColor ?? Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Builder(
+                  builder: (context) {
+                    final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                    return Text(
+                      _unreadCount > 99 ? '99+' : _unreadCount.toString(),
+                      style: TextStyle(
+                        color: widget.textColor ?? Colors.white,
+                        fontSize: (11 * scaleFactor).clamp(10.0, 13.0),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

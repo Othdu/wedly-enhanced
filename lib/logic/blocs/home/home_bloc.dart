@@ -7,16 +7,20 @@ import 'package:wedly/data/models/category_model.dart';
 import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/data/repositories/offer_repository.dart';
+import 'package:wedly/data/repositories/booking_repository.dart';
+import 'package:wedly/core/utils/enums.dart';
 import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/logic/blocs/home/home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final ServiceRepository serviceRepository;
   final OfferRepository offerRepository;
+  final BookingRepository bookingRepository;
 
   HomeBloc({
     required this.serviceRepository,
     required this.offerRepository,
+    required this.bookingRepository,
   }) : super(const HomeInitial()) {
     on<HomeServicesRequested>(_onHomeServicesRequested);
     on<HomeCategoriesRequested>(_onHomeCategoriesRequested);
@@ -30,7 +34,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     emit(const HomeLoading());
     try {
       // Run ALL requests in parallel for speed, but handle errors individually
-      // NOTE: Skipping layout and countdown - these endpoints don't exist on backend
+      // NOTE: Skipping layout - this endpoint doesn't exist on backend
       final results = await Future.wait([
         // 0: Categories (critical)
         serviceRepository.getCategoriesWithDetails().catchError((e) {
@@ -52,14 +56,18 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           debugPrint('⚠️ Failed to load offers: $e');
           return <OfferModel>[];
         }),
+        // 4: Countdown - try API first, fallback to calculating from bookings
+        event.userId != null
+            ? _getCountdownWithFallback(event.userId!)
+            : Future.value(null),
       ]);
 
       final categoriesWithDetails = (results[0] as List).cast<CategoryModel>();
       final services = (results[1] as List).cast<ServiceModel>();
       final categories = (results[2] as List).cast<String>();
       final offers = (results[3] as List).cast<OfferModel>();
+      final countdown = results[4] as CountdownModel?;
       const HomeLayoutModel? layout = null; // Endpoint doesn't exist
-      const CountdownModel? countdown = null; // Endpoint doesn't exist
 
       // Categories are critical - if empty, show error
       if (categoriesWithDetails.isEmpty) {
@@ -73,6 +81,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       debugPrint('   CategoriesWithDetails: ${categoriesWithDetails.length}');
       debugPrint('   Services: ${services.length}');
       debugPrint('   Offers: ${offers.length}');
+      debugPrint('   Countdown: ${countdown != null ? "Loaded (${countdown.weddingDate})" : "None"}');
 
       emit(HomeLoaded(
         services: services,
@@ -121,7 +130,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final currentState = state is HomeLoaded ? state as HomeLoaded : null;
 
       // Run ALL requests in parallel, fallback to current data on error
-      // NOTE: Skipping layout and countdown - these endpoints don't exist on backend
+      // NOTE: Skipping layout - this endpoint doesn't exist on backend
       final results = await Future.wait([
         serviceRepository.getCategoriesWithDetails().catchError((e) {
           return currentState?.categoriesWithDetails ?? <CategoryModel>[];
@@ -135,14 +144,21 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         offerRepository.getOffers().catchError((e) {
           return currentState?.offers ?? <OfferModel>[];
         }),
+        // Fetch countdown with fallback if userId provided
+        event.userId != null
+            ? _getCountdownWithFallback(event.userId!).catchError((e) {
+                debugPrint('⚠️ Silent refresh: Failed to load countdown: $e');
+                return currentState?.countdown;
+              })
+            : Future.value(currentState?.countdown),
       ]);
 
       final categoriesWithDetails = (results[0] as List).cast<CategoryModel>();
       final services = (results[1] as List).cast<ServiceModel>();
       final categories = (results[2] as List).cast<String>();
       final offers = (results[3] as List).cast<OfferModel>();
+      final countdown = results[4] as CountdownModel?;
       final layout = currentState?.layout; // Keep existing layout
-      final countdown = currentState?.countdown; // Keep existing countdown
 
       debugPrint('🔄 HomeBloc: Silent refresh completed - ${categoriesWithDetails.length} categories');
 
@@ -158,6 +174,71 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       // Silently fail - don't show error to user during background refresh
       debugPrint('🔄 HomeBloc: Silent refresh error (ignored): $e');
       // Keep current state - don't emit error
+    }
+  }
+
+  /// Get countdown with fallback to calculating from bookings
+  /// First tries API, then calculates from confirmed venue bookings
+  /// If API returns a past date, falls back to bookings for auto-correction
+  Future<CountdownModel?> _getCountdownWithFallback(String userId) async {
+    try {
+      // Try to get countdown from API first
+      final apiCountdown = await serviceRepository.getUserCountdown(userId);
+      if (apiCountdown != null) {
+        debugPrint('📅 Countdown from API: ${apiCountdown.weddingDate}');
+
+        // Check if the date is in the future
+        final now = DateTime.now();
+        if (apiCountdown.weddingDate.isAfter(now)) {
+          debugPrint('📅 API date is valid (in future), using it!');
+          return apiCountdown;
+        } else {
+          debugPrint('📅 API date is in the past, falling back to bookings...');
+        }
+      } else {
+        debugPrint('📅 API returned null, calculating from bookings...');
+      }
+    } catch (e) {
+      debugPrint('📅 API countdown failed: $e, calculating from bookings...');
+    }
+
+    // Fallback: Calculate countdown from confirmed venue bookings
+    try {
+      final bookings = await bookingRepository.getUserBookings(userId);
+      debugPrint('📅 Found ${bookings.length} total bookings');
+
+      // Filter for confirmed venue bookings
+      // Venues are identified by having a timeSlot (morning/evening) - this is the most reliable indicator
+      final venueBookings = bookings.where((booking) {
+        final isConfirmed = booking.status == BookingStatus.confirmed;
+        final isVenue = booking.timeSlot.isNotEmpty; // Only venues have morning/evening timeSlots
+
+        if (isVenue) {
+          debugPrint('📅 Found venue booking: ${booking.serviceName} - ${booking.bookingDate} - Status: ${booking.status.name} - timeSlot: ${booking.timeSlot}');
+        }
+        return isConfirmed && isVenue;
+      }).toList();
+
+      if (venueBookings.isEmpty) {
+        debugPrint('📅 No confirmed venue bookings found');
+        return null;
+      }
+
+      // Get the LATEST venue booking date as wedding date (users typically reschedule/book final venue later)
+      venueBookings.sort((a, b) => a.bookingDate.compareTo(b.bookingDate));
+      final weddingDate = venueBookings.last.bookingDate; // Changed from .first to .last
+
+      debugPrint('📅 Wedding date calculated from LATEST booking: $weddingDate');
+
+      return CountdownModel(
+        userId: userId,
+        weddingDate: weddingDate,
+        title: 'Wedding Countdown',
+        titleAr: 'العد التنازلي للفرح',
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to calculate countdown from bookings: $e');
+      return null;
     }
   }
 }

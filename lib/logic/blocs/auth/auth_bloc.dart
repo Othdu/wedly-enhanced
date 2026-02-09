@@ -26,6 +26,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSocialLoginRequested>(_onAuthSocialLoginRequested);
     on<AuthSetWeddingDateRequested>(_onAuthSetWeddingDateRequested);
     on<AuthGetWeddingDateRequested>(_onAuthGetWeddingDateRequested);
+    on<AuthSetEventRequested>(_onAuthSetEventRequested);
+    on<AuthDeleteEventRequested>(_onAuthDeleteEventRequested);
 
     // Listen to session expiry events from repository
     authRepository.sessionExpiredStream.listen((_) {
@@ -307,11 +309,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (event.provider == 'google') {
         socialData = await socialAuthService.signInWithGoogle();
+      } else if (event.provider == 'apple') {
+        socialData = await socialAuthService.signInWithApple();
       } else {
         throw Exception('مزود غير مدعوم');
       }
 
       // Send social login data to backend
+      // Apple uses identity_token instead of id_token
       final user = await authRepository.socialLogin(
         provider: socialData['provider'],
         email: socialData['email'],
@@ -319,7 +324,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         providerId: socialData['provider_id'],
         profileImageUrl: socialData['profile_image_url'],
         accessToken: socialData['access_token'],
-        idToken: socialData['id_token'],
+        idToken: socialData['id_token'] ?? socialData['identity_token'],
       );
 
       emit(AuthAuthenticated(user));
@@ -379,6 +384,67 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(currentState);
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'get_wedding_date')));
+      // Re-emit current authenticated state after error
+      emit(currentState);
+    }
+  }
+
+  Future<void> _onAuthSetEventRequested(
+    AuthSetEventRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    emit(const AuthLoading());
+    try {
+      final result = await authRepository.setEvent(
+        eventName: event.eventName,
+        eventDate: event.eventDate,
+      );
+
+      // Update user with new event date and name
+      final updatedUser = currentState.user.copyWith(
+        weddingDate: event.eventDate,
+        eventName: event.eventName,
+      );
+
+      emit(AuthEventUpdateSuccess(
+        user: updatedUser,
+        message: result['message'] ?? 'تم حفظ مناسبتك بنجاح',
+      ));
+      // Emit updated authenticated state with new event date
+      emit(AuthAuthenticated(updatedUser));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'set_event')));
+      // Re-emit current authenticated state after error
+      emit(currentState);
+    }
+  }
+
+  Future<void> _onAuthDeleteEventRequested(
+    AuthDeleteEventRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    emit(const AuthLoading());
+    try {
+      final result = await authRepository.deleteEvent();
+
+      // Update user with past date to hide countdown
+      final pastDate = DateTime(2020, 12, 12);
+      final updatedUser = currentState.user.copyWith(weddingDate: pastDate);
+
+      emit(AuthEventUpdateSuccess(
+        user: updatedUser,
+        message: result['message'] ?? 'تم حذف المناسبة بنجاح',
+      ));
+      // Emit updated authenticated state
+      emit(AuthAuthenticated(updatedUser));
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'delete_event')));
       // Re-emit current authenticated state after error
       emit(currentState);
     }

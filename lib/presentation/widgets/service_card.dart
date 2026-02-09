@@ -92,10 +92,15 @@ class ServiceCard extends StatelessWidget {
                       ),
                   ],
                   const SizedBox(height: 4),
-                  Chip(
-                    label: Text(service.category),
-                    labelStyle: const TextStyle(fontSize: 12),
-                    padding: EdgeInsets.zero,
+                  Builder(
+                    builder: (context) {
+                      final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.4);
+                      return Chip(
+                        label: Text(service.category),
+                        labelStyle: TextStyle(fontSize: (12 * scaleFactor).clamp(11.0, 15.0)),
+                        padding: EdgeInsets.zero,
+                      );
+                    },
                   ),
                 ],
               ),

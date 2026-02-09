@@ -25,8 +25,8 @@ class CategoryServiceCard extends StatelessWidget {
     );
   }
 
-  // Build price widget based on service type
-  Widget _buildPriceWidget() {
+  // Build price widget based on service type with responsive font sizes
+  Widget _buildPriceWidget(double priceFontSize, double oldPriceFontSize) {
     // For venues: show minimum of morning/evening price
     if (service.morningPrice != null || service.eveningPrice != null) {
       final morningPrice = service.morningPrice ?? double.infinity;
@@ -34,10 +34,10 @@ class CategoryServiceCard extends StatelessWidget {
       final minPrice = morningPrice < eveningPrice ? morningPrice : eveningPrice;
 
       if (minPrice == double.infinity) {
-        return const Text(
+        return Text(
           'السعر غير متاح حالياً',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: oldPriceFontSize,
             color: Colors.black54,
           ),
           textDirection: TextDirection.rtl,
@@ -52,10 +52,10 @@ class CategoryServiceCard extends StatelessWidget {
           children: [
             Text(
               'من ${_formatPrice(discountedPrice)} جنيه',
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: priceFontSize,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFD4AF37),
+                color: const Color(0xFFD4AF37),
               ),
               textDirection: TextDirection.rtl,
             ),
@@ -63,7 +63,7 @@ class CategoryServiceCard extends StatelessWidget {
             Text(
               '${_formatPrice(minPrice)} جنيه',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: oldPriceFontSize,
                 color: Colors.grey[500],
                 decoration: TextDecoration.lineThrough,
               ),
@@ -75,8 +75,8 @@ class CategoryServiceCard extends StatelessWidget {
 
       return Text(
         'من ${_formatPrice(minPrice)} جنيه',
-        style: const TextStyle(
-          fontSize: 16,
+        style: TextStyle(
+          fontSize: priceFontSize,
           fontWeight: FontWeight.bold,
           color: Colors.black87,
         ),
@@ -93,10 +93,10 @@ class CategoryServiceCard extends StatelessWidget {
           children: [
             Text(
               'من ${_formatPrice(service.finalPrice!)} جنيه',
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: priceFontSize,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFD4AF37),
+                color: const Color(0xFFD4AF37),
               ),
               textDirection: TextDirection.rtl,
             ),
@@ -104,7 +104,7 @@ class CategoryServiceCard extends StatelessWidget {
             Text(
               '${_formatPrice(service.price!)} جنيه',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: oldPriceFontSize,
                 color: Colors.grey[500],
                 decoration: TextDecoration.lineThrough,
               ),
@@ -116,8 +116,8 @@ class CategoryServiceCard extends StatelessWidget {
 
       return Text(
         'من ${_formatPrice(service.price!)} جنيه',
-        style: const TextStyle(
-          fontSize: 16,
+        style: TextStyle(
+          fontSize: priceFontSize,
           fontWeight: FontWeight.bold,
           color: Colors.black87,
         ),
@@ -126,10 +126,10 @@ class CategoryServiceCard extends StatelessWidget {
     }
 
     // No price available
-    return const Text(
+    return Text(
       'السعر غير متاح حالياً',
       style: TextStyle(
-        fontSize: 14,
+        fontSize: oldPriceFontSize,
         color: Colors.black54,
       ),
       textDirection: TextDirection.rtl,
@@ -138,6 +138,21 @@ class CategoryServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen width for responsive sizing
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scaleFactor = (screenWidth / 375).clamp(0.9, 1.4);
+
+    // Responsive font sizes with minimum values
+    final nameFontSize = (18 * scaleFactor).clamp(16.0, 22.0);
+    final priceFontSize = (18 * scaleFactor).clamp(16.0, 22.0);
+    final oldPriceFontSize = (15 * scaleFactor).clamp(14.0, 18.0);
+    final detailFontSize = (15 * scaleFactor).clamp(14.0, 18.0);
+    final badgeFontSize = (14 * scaleFactor).clamp(13.0, 17.0);
+    final ratingFontSize = (15 * scaleFactor).clamp(14.0, 18.0);
+    final reviewFontSize = (14 * scaleFactor).clamp(13.0, 17.0);
+    final buttonFontSize = (17 * scaleFactor).clamp(16.0, 20.0);
+    final iconSize = (20 * scaleFactor).clamp(18.0, 24.0);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -202,7 +217,7 @@ class CategoryServiceCard extends StatelessWidget {
                         Text(
                           '(${service.reviewCount ?? 0})',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: reviewFontSize,
                             color: Colors.grey[600],
                             fontWeight: FontWeight.w500,
                           ),
@@ -210,23 +225,23 @@ class CategoryServiceCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           service.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: TextStyle(
+                            fontSize: ratingFontSize,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
                         const SizedBox(width: 2),
-                        const Icon(
+                        Icon(
                           Icons.star_rounded,
-                          color: Color(0xFFFFB400),
-                          size: 18,
+                          color: const Color(0xFFFFB400),
+                          size: iconSize,
                         ),
                       ] else ...[
                         Text(
                           'جديد',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: badgeFontSize,
                             color: Colors.grey[600],
                             fontWeight: FontWeight.w500,
                           ),
@@ -258,10 +273,10 @@ class CategoryServiceCard extends StatelessWidget {
                     ),
                     child: Text(
                       'خصم ${service.discountPercentage!.toInt()}%',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: badgeFontSize,
                       ),
                       textDirection: TextDirection.rtl,
                     ),
@@ -279,8 +294,8 @@ class CategoryServiceCard extends StatelessWidget {
                 // Service Name
                 Text(
                   service.name,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: nameFontSize,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -299,7 +314,7 @@ class CategoryServiceCard extends StatelessWidget {
                       Text(
                         'السعة: ${service.chairCount} كرسي',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: detailFontSize,
                           color: Colors.grey[700],
                           fontWeight: FontWeight.w500,
                         ),
@@ -308,7 +323,7 @@ class CategoryServiceCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Icon(
                         Icons.event_seat,
-                        size: 18,
+                        size: iconSize,
                         color: Colors.grey[600],
                       ),
                     ],
@@ -323,7 +338,7 @@ class CategoryServiceCard extends StatelessWidget {
                           child: Text(
                             CityTranslator.translate(service.city!),
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: detailFontSize,
                               color: Colors.grey[700],
                             ),
                             textDirection: TextDirection.rtl,
@@ -333,7 +348,7 @@ class CategoryServiceCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Icon(
                           Icons.location_on,
-                          size: 18,
+                          size: iconSize,
                           color: Colors.grey[600],
                         ),
                       ],
@@ -342,7 +357,7 @@ class CategoryServiceCard extends StatelessWidget {
                 ],
 
                 // Price Row
-                _buildPriceWidget(),
+                _buildPriceWidget(priceFontSize, oldPriceFontSize),
 
                 const SizedBox(height: 16),
 
@@ -360,10 +375,10 @@ class CategoryServiceCard extends StatelessWidget {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
+                    child: Text(
                       'عرض التفاصيل',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: buttonFontSize,
                         fontWeight: FontWeight.bold,
                       ),
                       textDirection: TextDirection.rtl,

@@ -98,20 +98,29 @@ class _LoginScreenState extends State<LoginScreen> {
               SafeArea(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
+                  child: Builder(
+                    builder: (context) {
+                      // Responsive font sizes
+                      final screenWidth = MediaQuery.of(context).size.width;
+                      final scaleFactor = (screenWidth / 375).clamp(0.85, 1.4);
+                      final logoFontSize = (48 * scaleFactor).clamp(36.0, 60.0);
+                      final titleFontSize = (26 * scaleFactor).clamp(22.0, 32.0);
+                      final subtitleFontSize = (15 * scaleFactor).clamp(14.0, 18.0);
+
+                      return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 40),
                       // Logo
                       Center(
                         child: RichText(
-                          text: const TextSpan(
+                          text: TextSpan(
                             style: TextStyle(
-                              fontSize: 48,
+                              fontSize: logoFontSize,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1,
                             ),
-                            children: [
+                            children: const [
                               TextSpan(
                                 text: 'We',
                                 style: TextStyle(color: AppColors.black),
@@ -147,8 +156,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               // Title
                               Text(
                                 'تسجيل الدخول',
-                                style: const TextStyle(
-                                  fontSize: 24,
+                                style: TextStyle(
+                                  fontSize: titleFontSize,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.gold,
                                 ),
@@ -160,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               Text(
                                 'سجّل دخولك وأكمل خطتك لحفلتك بخطوات بسيطة وسريعة.',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: subtitleFontSize,
                                   color: AppColors.textSecondary,
                                   height: 1.5,
                                 ),
@@ -352,17 +361,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   if (Platform.isIOS) ...[
                                     _SocialLoginButton(
                                       imagePath: 'assets/images/apple.png',
-                                      onPressed: () {
-                                        // TODO: Implement Apple login (requires apple_sign_in package)
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'تسجيل الدخول بواسطة Apple قريباً',
-                                              textDirection: TextDirection.rtl,
-                                            ),
-                                          ),
-                                        );
-                                      },
+                                      onPressed: isLoading
+                                          ? null
+                                          : () => _handleSocialLogin(context, 'apple'),
                                     ),
                                     const SizedBox(width: 16),
                                   ],
@@ -411,6 +412,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 40),
                     ],
+                  );
+                    },
                   ),
                 ),
               ),

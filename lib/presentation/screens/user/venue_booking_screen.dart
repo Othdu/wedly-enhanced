@@ -4,13 +4,18 @@ import 'package:wedly/data/models/venue_model.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
+import 'package:wedly/data/repositories/booking_repository.dart';
 import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/logic/blocs/cart/cart_event.dart';
+import 'package:wedly/logic/blocs/cart/cart_state.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/core/utils/duplicate_booking_checker.dart';
+import 'package:wedly/presentation/widgets/duplicate_booking_warning_dialog.dart';
+import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 
 /// Venue booking confirmation screen matching the screenshot design
 /// Shows booking summary receipt, calendar date picker, and personal info form
@@ -500,7 +505,7 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
                           child: Text(
                             day,
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey.shade500,
                             ),
@@ -580,7 +585,7 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
                     '—',
                     style: TextStyle(
                       color: Colors.red.shade400,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -591,7 +596,7 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 13,
             color: Colors.grey.shade600,
           ),
         ),
@@ -785,7 +790,7 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
         width: double.infinity,
         height: 56,
         child: ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
             if (_selectedDate == null) {
               _showErrorDialog(
                 title: 'لم يتم اختيار تاريخ',
@@ -863,6 +868,53 @@ class _VenueBookingScreenState extends State<VenueBookingScreen> {
             );
             debugPrint('🎯 Cart item created with timeSlot: "${cartItem.timeSlot}"');
             debugPrint('🎯 Cart item toJson: ${cartItem.toJson()}');
+
+            // Check for duplicate bookings before adding to cart
+            final authState = context.read<AuthBloc>().state;
+            if (authState is AuthAuthenticated) {
+              final bookingRepository = getIt<BookingRepository>();
+              final duplicateChecker = DuplicateBookingChecker(
+                bookingRepository: bookingRepository,
+              );
+
+              // Get current cart items
+              final cartState = context.read<CartBloc>().state;
+              final currentCartItems = cartState is CartLoaded ? cartState.items : <CartItemModel>[];
+
+              final duplicates = await duplicateChecker.checkForDuplicates(
+                userId: authState.user.id,
+                serviceId: widget.venue.id,
+                serviceName: widget.venue.name,
+                bookingDate: _selectedDate!,
+                currentCartItems: currentCartItems,
+              );
+
+              if (duplicates.isNotEmpty && mounted) {
+                // Show warning dialog
+                final shouldProceed = await showDialog<bool>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => DuplicateBookingWarningDialog(
+                    duplicates: duplicates,
+                    actionButtonText: 'إضافة للسلة',
+                    onViewBookings: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const UserNavigationWrapper(initialIndex: 2),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                  ),
+                );
+
+                if (shouldProceed != true) {
+                  return; // User cancelled
+                }
+              }
+            }
+
+            if (!mounted) return;
 
             // Add to cart
             context.read<CartBloc>().add(CartItemAdded(item: cartItem));

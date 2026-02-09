@@ -183,3 +183,20 @@ class AuthGetWeddingDateRequested extends AuthEvent {
   const AuthGetWeddingDateRequested();
 }
 
+class AuthSetEventRequested extends AuthEvent {
+  final String eventName;
+  final DateTime eventDate;
+
+  const AuthSetEventRequested({
+    required this.eventName,
+    required this.eventDate,
+  });
+
+  @override
+  List<Object?> get props => [eventName, eventDate];
+}
+
+class AuthDeleteEventRequested extends AuthEvent {
+  const AuthDeleteEventRequested();
+}
+

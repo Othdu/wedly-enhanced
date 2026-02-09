@@ -22,6 +22,7 @@ class ApiConstants {
   static const String getCurrentUser = '/api/auth/me';
   static const String googleLogin = '/api/auth/google-login';
   static const String socialLogin = '/api/auth/google-login'; // Kept for backward compatibility
+  static const String deleteAccount = '/api/auth/delete-account'; // DELETE - Request account deletion
 
   // User Endpoints
   static const String userProfile = '/api/users/profile';
@@ -31,6 +32,8 @@ class ApiConstants {
   static const String switchRole = '/api/users/switch-role';
   static const String getWeddingDate = '/api/users/wedding-date';
   static const String setWeddingDate = '/api/users/wedding-date';
+  static const String setEvent = '/api/users/event';
+  static const String deleteEvent = '/api/users/event';
 
   // Service Endpoints
   static const String services = '/api/services';
@@ -61,6 +64,9 @@ class ApiConstants {
   static String getServiceAvailableDates(dynamic id, String month, {String? timeSlot}) =>
       '/api/services/$id/available-dates?month=$month${timeSlot != null ? '&time_slot=$timeSlot' : ''}';
 
+  // Home Layout Configuration
+  static String homeLayout(String screenName) => '/api/home/layout?screen=$screenName';
+
   // Services with filters - GET /api/services with query params
   static String servicesWithFilters({
     String? category,
@@ -88,8 +94,7 @@ class ApiConstants {
     return '/api/services${queryString.isNotEmpty ? '?$queryString' : ''}';
   }
 
-  static String homeLayout(String screenName) => '/api/layout/$screenName';
-  static String userCountdown(String userId) => '/api/user/$userId/countdown';
+  static const String userWeddingDate = '/api/users/wedding-date'; // GET/POST wedding date
 
   // Category Endpoints
   static const String categories = '/api/categories';
@@ -131,6 +136,7 @@ class ApiConstants {
   static String deleteOffer(String id) => '/api/offers/$id'; // DELETE
   static String getProviderOffers(String providerId) => '/api/providers/$providerId/offers';
   static String submitServiceOffer(String serviceId) => '/api/offers/services/$serviceId'; // PATCH - Submit offer for service
+  static String approveServiceOffer(String serviceId) => '/api/admin/offers/services/$serviceId/approve'; // PATCH - Approve offer (admin only)
 
   // Reviews Endpoints
   static String updateReview(String id) => '/api/reviews/$id';
@@ -146,21 +152,10 @@ class ApiConstants {
   static const String createVenue = '/api/venues'; // POST
   static String venueById(String id) => '/api/venues/$id';
   static String updateVenue(String id) => '/api/venues/$id'; // PUT
+
   // Venue Available Dates (calendar view) - requires month param (YYYY-MM format)
-  static String getVenueAvailableDates(dynamic id, String month, {String? timeSlot}) =>
+  static String getVenueAvailableDates(String id, String month, {String? timeSlot}) =>
       '/api/venues/$id/available-dates?month=$month${timeSlot != null ? '&time_slot=$timeSlot' : ''}';
-
-  // Address Endpoints
-  static const String addressCities = '/api/addresses/cities';
-  static String addressDistricts(String city) => '/api/addresses/districts?city=$city';
-  static const String userAddress = '/api/users/address';
-  static String updateUserAddress(String id) => '/api/users/address/$id';
-  static String deleteUserAddress(String id) => '/api/users/address/$id';
-
-  // Admin Endpoints
-  static const String adminUsers = '/api/users/admin/users';
-  static String adminUserById(String id) => '/api/users/admin/users/$id';
-  static String updateUserActivation(String id) => '/api/users/admin/users/$id/activation';
 
   // Banner Endpoints
   static const String banners = '/api/banners'; // GET - Get all active banners (public)

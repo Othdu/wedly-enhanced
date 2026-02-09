@@ -9,27 +9,73 @@ class BookingRepository {
   BookingRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   /// Get all bookings for a specific user
+  /// Fetches all pages of bookings automatically
   Future<List<BookingModel>> getUserBookings(String userId) async {
-    final response = await _apiClient.get(ApiConstants.userBookings);
-    final responseData = response.data['data'] ?? response.data;
-    final bookingsList = responseData['bookings'] ?? responseData;
+    final List<BookingModel> allBookings = [];
+    int currentPage = 1;
+    int totalPages = 1;
 
-    return (bookingsList as List)
-        .map((json) => BookingModel.fromJson(json))
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    // Fetch all pages
+    do {
+      final response = await _apiClient.get(
+        '${ApiConstants.userBookings}?page=$currentPage&limit=50',
+      );
+      final responseData = response.data['data'] ?? response.data;
+      final bookingsList = responseData['bookings'] ?? responseData;
+
+      // Get pagination info
+      final pagination = responseData['pagination'];
+      if (pagination != null) {
+        totalPages = pagination['total_pages'] ?? 1;
+      }
+
+      // Parse and add bookings from this page
+      final pageBookings = (bookingsList as List)
+          .map((json) => BookingModel.fromJson(json))
+          .toList();
+      allBookings.addAll(pageBookings);
+
+      currentPage++;
+    } while (currentPage <= totalPages);
+
+    // Sort by creation date (newest first)
+    allBookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return allBookings;
   }
 
   /// Get all bookings for a specific provider
+  /// Fetches all pages of bookings automatically
   Future<List<BookingModel>> getProviderBookings(String providerId) async {
-    final response = await _apiClient.get(ApiConstants.providerBookings);
-    final responseData = response.data['data'] ?? response.data;
-    final bookingsList = responseData['bookings'] ?? responseData;
+    final List<BookingModel> allBookings = [];
+    int currentPage = 1;
+    int totalPages = 1;
 
-    return (bookingsList as List)
-        .map((json) => BookingModel.fromJson(json))
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    // Fetch all pages
+    do {
+      final response = await _apiClient.get(
+        '${ApiConstants.providerBookings}?page=$currentPage&limit=50',
+      );
+      final responseData = response.data['data'] ?? response.data;
+      final bookingsList = responseData['bookings'] ?? responseData;
+
+      // Get pagination info
+      final pagination = responseData['pagination'];
+      if (pagination != null) {
+        totalPages = pagination['total_pages'] ?? 1;
+      }
+
+      // Parse and add bookings from this page
+      final pageBookings = (bookingsList as List)
+          .map((json) => BookingModel.fromJson(json))
+          .toList();
+      allBookings.addAll(pageBookings);
+
+      currentPage++;
+    } while (currentPage <= totalPages);
+
+    // Sort by creation date (newest first)
+    allBookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return allBookings;
   }
 
   /// Get bookings by status

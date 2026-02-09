@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedly/core/utils/app_logger.dart';
 import 'package:wedly/core/utils/enums.dart';
@@ -119,6 +120,16 @@ class AuthRepository {
 
     try {
       final user = UserModel.fromJson(jsonDecode(userJson));
+
+      // Load event name from local storage (fallback for when backend doesn't have endpoint yet)
+      final localEventName = prefs.getString('user_event_name');
+
+      // If user doesn't have event name but we have it locally, merge it
+      if (user.eventName == null && localEventName != null) {
+        debugPrint('📝 Loading event name from local storage: $localEventName');
+        return user.copyWith(eventName: localEventName);
+      }
+
       return user;
     } catch (e) {
       return null;
@@ -166,6 +177,17 @@ class AuthRepository {
       final response = await _apiClient.get(ApiConstants.getCurrentUser);
       final responseData = response.data['data'] ?? response.data;
       _currentUser = UserModel.fromJson(responseData['user'] ?? responseData);
+
+      // Load event name from local storage if not in API response (fallback)
+      if (_currentUser!.eventName == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final localEventName = prefs.getString('user_event_name');
+        if (localEventName != null) {
+          debugPrint('📝 Merging local event name into user from API: $localEventName');
+          _currentUser = _currentUser!.copyWith(eventName: localEventName);
+        }
+      }
+
       await _saveUserToCache(_currentUser!);
       return _currentUser;
     } catch (e) {
@@ -281,6 +303,10 @@ class AuthRepository {
 
   /// Set wedding date
   Future<Map<String, dynamic>> setWeddingDate(DateTime weddingDate) async {
+    debugPrint('🌐 AuthRepository.setWeddingDate called with: $weddingDate');
+    debugPrint('🌐 ISO format: ${weddingDate.toIso8601String()}');
+    debugPrint('🌐 Endpoint: ${ApiConstants.setWeddingDate}');
+
     final response = await _apiClient.post(
       ApiConstants.setWeddingDate,
       data: {
@@ -288,12 +314,16 @@ class AuthRepository {
       },
     );
 
+    debugPrint('🌐 Response status: ${response.statusCode}');
+    debugPrint('🌐 Response data: ${response.data}');
+
     final responseData = response.data['data'] ?? response.data;
 
     // Update local user with wedding date
     if (_currentUser != null) {
       _currentUser = _currentUser!.copyWith(weddingDate: weddingDate);
       await _saveUserToCache(_currentUser!);
+      debugPrint('🌐 Updated local user with wedding date');
     }
 
     return {
@@ -314,6 +344,210 @@ class AuthRepository {
       'wedding_date': responseData['wedding_date'],
       'days_remaining': responseData['days_remaining'],
     };
+  }
+
+  /// Set custom event with name and date
+  /// Falls back to wedding date endpoint if new endpoint not available
+  Future<Map<String, dynamic>> setEvent({
+    required String eventName,
+    required DateTime eventDate,
+  }) async {
+    debugPrint('🌐 AuthRepository.setEvent called with: $eventName, $eventDate');
+
+    try {
+      debugPrint('🔄 Trying new event endpoint: ${ApiConstants.setEvent}');
+      // Try new event endpoint first
+      final response = await _apiClient.post(
+        ApiConstants.setEvent,
+        data: {
+          'event_name': eventName,
+          'event_date': eventDate.toIso8601String(),
+        },
+      );
+
+      debugPrint('✅ Event endpoint succeeded!');
+      final responseData = response.data['data'] ?? response.data;
+
+      // Update local user with event date and name
+      if (_currentUser != null) {
+        _currentUser = _currentUser!.copyWith(
+          weddingDate: eventDate,
+          eventName: eventName,
+        );
+        await _saveUserToCache(_currentUser!);
+        debugPrint('🌐 Updated local user with event date and name');
+      }
+
+      return {
+        'success': responseData['success'] ?? true,
+        'message': responseData['message'] ?? 'تم حفظ مناسبتك بنجاح',
+        'event_name': eventName,
+        'event_date': eventDate.toIso8601String(),
+      };
+    } catch (e) {
+      debugPrint('⚠️ Exception caught in setEvent: ${e.runtimeType}');
+      debugPrint('⚠️ Exception details: $e');
+
+      // Check if it's a 404 error (NotFoundException or DioException with 404 status)
+      bool is404 = false;
+      if (e is NotFoundException) {
+        debugPrint('⚠️ NotFoundException caught - endpoint not available');
+        is404 = true;
+      } else if (e is ApiException && e.statusCode == 404) {
+        debugPrint('⚠️ ApiException with 404 status');
+        is404 = true;
+      } else if (e is DioException) {
+        debugPrint('⚠️ DioException - Type: ${e.type}, Status: ${e.response?.statusCode}');
+        is404 = e.response?.statusCode == 404;
+      }
+
+      // If endpoint returns 404, fall back to old wedding date endpoint
+      if (is404) {
+        debugPrint('🔄 Event endpoint not found (404), activating fallback...');
+        debugPrint('📝 Storing event name locally: $eventName');
+
+        try {
+          // Use old endpoint for date only
+          final fallbackResponse = await _apiClient.post(
+            ApiConstants.setWeddingDate,
+            data: {
+              'wedding_date': eventDate.toIso8601String(),
+            },
+          );
+
+          // Store event name locally in SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_event_name', eventName);
+          debugPrint('✅ Event name stored locally');
+
+          // Update local user with event date and name
+          if (_currentUser != null) {
+            _currentUser = _currentUser!.copyWith(
+              weddingDate: eventDate,
+              eventName: eventName,
+            );
+            await _saveUserToCache(_currentUser!);
+            debugPrint('🌐 Updated local user with event date and name (fallback)');
+          }
+
+          final responseData = fallbackResponse.data['data'] ?? fallbackResponse.data;
+          return {
+            'success': responseData['success'] ?? true,
+            'message': 'تم حفظ مناسبتك بنجاح',
+            'event_name': eventName,
+            'event_date': eventDate.toIso8601String(),
+            'fallback': true, // Indicate this used fallback
+          };
+        } catch (fallbackError) {
+          debugPrint('❌ Fallback also failed: $fallbackError');
+          rethrow;
+        }
+      }
+
+      // Re-throw other errors
+      debugPrint('❌ Re-throwing non-404 error');
+      rethrow;
+    }
+  }
+
+  /// Delete event (set date to past date to hide countdown)
+  /// Falls back to wedding date endpoint if new endpoint not available
+  Future<Map<String, dynamic>> deleteEvent() async {
+    debugPrint('🌐 AuthRepository.deleteEvent called');
+
+    // Set date to past date (2020-12-12) to hide countdown
+    final pastDate = DateTime(2020, 12, 12);
+
+    try {
+      // Try new event endpoint first
+      final response = await _apiClient.post(
+        ApiConstants.deleteEvent,
+        data: {
+          'event_date': pastDate.toIso8601String(),
+        },
+      );
+
+      final responseData = response.data['data'] ?? response.data;
+
+      // Clear event name from local storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_event_name');
+
+      // Update local user with past date to hide countdown
+      if (_currentUser != null) {
+        _currentUser = _currentUser!.copyWith(
+          weddingDate: pastDate,
+          eventName: null,
+        );
+        await _saveUserToCache(_currentUser!);
+        debugPrint('🌐 Updated local user - event deleted');
+      }
+
+      return {
+        'success': responseData['success'] ?? true,
+        'message': responseData['message'] ?? 'تم حذف المناسبة بنجاح',
+      };
+    } catch (e) {
+      debugPrint('⚠️ Exception caught in deleteEvent: ${e.runtimeType}');
+      debugPrint('⚠️ Exception details: $e');
+
+      // Check if it's a 404 error (NotFoundException or DioException with 404 status)
+      bool is404 = false;
+      if (e is NotFoundException) {
+        debugPrint('⚠️ NotFoundException caught - endpoint not available');
+        is404 = true;
+      } else if (e is ApiException && e.statusCode == 404) {
+        debugPrint('⚠️ ApiException with 404 status');
+        is404 = true;
+      } else if (e is DioException) {
+        debugPrint('⚠️ DioException - Type: ${e.type}, Status: ${e.response?.statusCode}');
+        is404 = e.response?.statusCode == 404;
+      }
+
+      // If endpoint returns 404, fall back to old wedding date endpoint
+      if (is404) {
+        debugPrint('🔄 Event endpoint not found (404), activating fallback for delete...');
+
+        try {
+          // Use old endpoint for date only
+          final fallbackResponse = await _apiClient.post(
+            ApiConstants.setWeddingDate,
+            data: {
+              'wedding_date': pastDate.toIso8601String(),
+            },
+          );
+
+          // Clear event name from local storage
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('user_event_name');
+          debugPrint('✅ Event name cleared from local storage');
+
+          // Update local user with past date to hide countdown
+          if (_currentUser != null) {
+            _currentUser = _currentUser!.copyWith(
+              weddingDate: pastDate,
+              eventName: null,
+            );
+            await _saveUserToCache(_currentUser!);
+            debugPrint('🌐 Updated local user - event deleted (fallback)');
+          }
+
+          final responseData = fallbackResponse.data['data'] ?? fallbackResponse.data;
+          return {
+            'success': responseData['success'] ?? true,
+            'message': 'تم حذف المناسبة بنجاح',
+            'fallback': true, // Indicate this used fallback
+          };
+        } catch (fallbackError) {
+          debugPrint('❌ Delete fallback also failed: $fallbackError');
+          rethrow;
+        }
+      }
+
+      // Re-throw other errors
+      debugPrint('❌ Re-throwing non-404 error from deleteEvent');
+      rethrow;
+    }
   }
 
   /// Register new user

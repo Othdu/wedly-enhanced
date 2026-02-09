@@ -34,6 +34,123 @@ class _UserCartScreenState extends State<UserCartScreen> {
     });
   }
 
+  /// Check if cart contains duplicate bookings (same service, same date)
+  Future<Map<String, List<CartItemModel>>> _findDuplicatesInCart(
+    List<CartItemModel> items,
+  ) async {
+    final duplicateGroups = <String, List<CartItemModel>>{};
+
+    for (int i = 0; i < items.length; i++) {
+      for (int j = i + 1; j < items.length; j++) {
+        final item1 = items[i];
+        final item2 = items[j];
+
+        // Check if same service and same date
+        if (item1.service.id == item2.service.id && item1.date == item2.date) {
+          final key = '${item1.service.id}_${item1.date}';
+          final existing = duplicateGroups[key] ?? [];
+          if (!existing.contains(item1)) existing.add(item1);
+          if (!existing.contains(item2)) existing.add(item2);
+          duplicateGroups[key] = existing;
+        }
+      }
+    }
+
+    return duplicateGroups;
+  }
+
+  /// Build duplicate warning banner widget
+  Widget _buildDuplicateWarningBanner(Map<String, List<CartItemModel>> duplicates) {
+    if (duplicates.isEmpty) return const SizedBox.shrink();
+
+    final totalDuplicates = duplicates.values.fold<int>(
+      0,
+      (sum, group) => sum + (group.length > 1 ? group.length : 0),
+    );
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade300, width: 2),
+      ),
+      child: Directionality(
+        textDirection: ui.TextDirection.rtl,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 24),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'تحذير: لديك حجوزات مكررة في السلة',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'وجدنا $totalDuplicates عنصر مكرر (نفس الخدمة ونفس التاريخ). يرجى مراجعة حجوزاتك قبل المتابعة.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade800,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...duplicates.entries.map((entry) {
+              final items = entry.value;
+              if (items.isEmpty) return const SizedBox.shrink();
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.copy, size: 16, color: Colors.orange.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${items.first.service.name} - ${items.first.date} (${items.length}x)',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+            Text(
+              '💡 يمكنك حذف العناصر المكررة باستخدام زر الحذف أو المتابعة إذا كنت ترغب في حجزها جميعاً.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade700,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showDeleteConfirmationDialog(BuildContext context, CartItemModel item) {
     showDialog(
       context: context,
@@ -204,6 +321,17 @@ class _UserCartScreenState extends State<UserCartScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
+                      // Duplicate warning banner
+                      FutureBuilder<Map<String, List<CartItemModel>>>(
+                        future: _findDuplicatesInCart(loadedState.items),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                            return _buildDuplicateWarningBanner(snapshot.data!);
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+
                       // Cart items
                       ...loadedState.items.map((item) => _buildCartItem(item)),
 
@@ -412,10 +540,10 @@ class _UserCartScreenState extends State<UserCartScreen> {
                         child: Center(
                           child: Text(
                             '${index + 1}',
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: TextStyle(
+                              fontSize: (12 * (MediaQuery.of(context).size.width / 375)).clamp(11.0, 15.0),
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFFD4AF37),
+                              color: const Color(0xFFD4AF37),
                             ),
                           ),
                         ),
@@ -438,7 +566,7 @@ class _UserCartScreenState extends State<UserCartScreen> {
                             Text(
                               '${item.date} • ${item.time}',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: (12 * (MediaQuery.of(context).size.width / 375)).clamp(11.0, 15.0),
                                 color: Colors.grey[500],
                               ),
                             ),
@@ -446,12 +574,18 @@ class _UserCartScreenState extends State<UserCartScreen> {
                         ),
                       ),
                       // Price
-                      Text(
-                        '${NumberFormat('#,###').format(item.servicePrice)} جنيه',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF333333),
+                      Flexible(
+                        flex: 0,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '${NumberFormat('#,###').format(item.servicePrice)} جنيه',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -505,10 +639,10 @@ class _UserCartScreenState extends State<UserCartScreen> {
                         ),
                         child: Text(
                           _getItemCountText(state.items.length),
-                          style: const TextStyle(
-                            fontSize: 11,
+                          style: TextStyle(
+                            fontSize: (11 * (MediaQuery.of(context).size.width / 375)).clamp(11.0, 14.0),
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFD4AF37),
+                            color: const Color(0xFFD4AF37),
                           ),
                         ),
                       ),

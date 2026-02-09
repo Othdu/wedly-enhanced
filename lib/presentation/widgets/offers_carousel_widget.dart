@@ -272,35 +272,45 @@ class _OffersCarouselWidgetState extends State<OffersCarouselWidget> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        offer.descriptionAr,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                        textDirection: TextDirection.rtl,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Builder(
+                        builder: (context) {
+                          final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.4);
+                          return Text(
+                            offer.descriptionAr,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: (13 * scaleFactor).clamp(12.0, 16.0),
+                            ),
+                            textDirection: TextDirection.rtl,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: accentColor,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'عرض التفاصيل',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          textDirection: TextDirection.rtl,
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.4);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accentColor,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'عرض التفاصيل',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: (13 * scaleFactor).clamp(12.0, 16.0),
+                              ),
+                              textDirection: TextDirection.rtl,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

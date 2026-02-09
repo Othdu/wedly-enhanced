@@ -116,6 +116,7 @@ Future<void> setupDependencyInjection() async {
     () => HomeBloc(
       serviceRepository: getIt<ServiceRepository>(),
       offerRepository: getIt<OfferRepository>(),
+      bookingRepository: getIt<BookingRepository>(),
     ),
   );
 

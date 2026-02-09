@@ -6,8 +6,8 @@ import 'package:wedly/logic/blocs/search/search_bloc.dart';
 import 'package:wedly/logic/blocs/search/search_event.dart';
 import 'package:wedly/logic/blocs/search/search_state.dart';
 import 'package:wedly/data/models/service_model.dart';
-import 'package:wedly/presentation/widgets/skeleton_image.dart';
 import 'package:wedly/presentation/widgets/skeleton_loading.dart';
+import 'package:wedly/presentation/widgets/category_service_card.dart';
 import 'package:wedly/routes/app_router.dart';
 
 class UserSearchScreen extends StatefulWidget {
@@ -351,7 +351,10 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                           itemCount: state.services.length,
                           itemBuilder: (context, index) {
                             final service = state.services[index];
-                            return _buildServiceCard(context, service);
+                            return CategoryServiceCard(
+                              service: service,
+                              onTap: () => _navigateToServiceDetails(context, service),
+                            );
                           },
                         );
                       }
@@ -410,182 +413,6 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
     );
   }
 
-  Widget _buildServiceCard(BuildContext context, ServiceModel service) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        // [تعديل] - إزالة crossAxisAlignment لأن Directionality تتكفل بها
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // صورة الخدمة
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Stack(
-              children: [
-                SkeletonImage(
-                  imageUrl: service.imageUrl,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  errorWidget: const Icon(
-                    Icons.image_not_supported,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // تفاصيل الخدمة
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              // [تعديل] - إزالة crossAxisAlignment
-              children: [
-                // اسم الخدمة
-                Text(
-                  service.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  // [تعديل] - إزالة textAlign
-                ),
-                const SizedBox(height: 8),
-
-                // صف التقييم والسعر
-                Row(
-                  // [تعديل] - إزالة mainAxisAlignment
-                  children: [
-                    // التقييم
-                    if (service.rating != null)
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Color(0xFFD4AF37),
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            service.rating!.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                    const Spacer(),
-
-                    // السعر - with discount if applicable
-                    if (service.hasApprovedOffer && service.finalPrice != null)
-                      Row(
-                        children: [
-                          Text(
-                            'من ${_formatPrice(service.finalPrice)} جنيه',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFFD4AF37),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${_formatPrice(service.price)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[500],
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      Text(
-                        'من ${_formatPrice(service.price)} جنيه',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                  ],
-                ),
-
-                // عدد الكراسي إذا كانت قاعة
-                if (service.category == 'قاعات' && service.chairCount != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    // [تحسين] - جعل النص يملأ العرض لضمان المحاذاة
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Text(
-                        'السعة: ${service.chairCount} فرد',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                        // [تعديل] - إزالة textAlign
-                      ),
-                    ),
-                  ),
-
-                const SizedBox(height: 12),
-
-                // زر الإجراء
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _navigateToServiceDetails(context, service);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'عرض التفاصيل',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatPrice(double? price) {
-    if (price == null) return '0';
-    if (price >= 1000) {
-      return '${(price / 1000).toStringAsFixed(price % 1000 == 0 ? 0 : 1)}k';
-    }
-    return price.toStringAsFixed(0);
-  }
 
   Widget _buildSuggestionsPanel(
     BuildContext context,

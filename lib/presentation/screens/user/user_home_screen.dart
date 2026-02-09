@@ -131,8 +131,9 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                   // Custom App Bar with user info
                   _buildAppBar(context),
 
-                  // Countdown (only shows if user has booked venue)
-                  if (homeState.countdown != null)
+                  // Countdown (only shows if user has booked venue and date is in future)
+                  if (homeState.countdown != null &&
+                      homeState.countdown!.timeRemaining.inSeconds > 0)
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -426,13 +427,18 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                                   minHeight: 20,
                                 ),
                                 child: Center(
-                                  child: Text(
-                                    itemCount > 9 ? '9+' : '$itemCount',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  child: Builder(
+                                    builder: (context) {
+                                      final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                                      return Text(
+                                        itemCount > 9 ? '9+' : '$itemCount',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: (11 * scaleFactor).clamp(10.0, 13.0),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
@@ -487,13 +493,18 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                                   minHeight: 20,
                                 ),
                                 child: Center(
-                                  child: Text(
-                                    unreadCount > 9 ? '9+' : '$unreadCount',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  child: Builder(
+                                    builder: (context) {
+                                      final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                                      return Text(
+                                        unreadCount > 9 ? '9+' : '$unreadCount',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: (11 * scaleFactor).clamp(10.0, 13.0),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                               ),

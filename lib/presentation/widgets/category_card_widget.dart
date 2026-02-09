@@ -15,6 +15,13 @@ class CategoryCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen width for responsive sizing
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scaleFactor = (screenWidth / 375).clamp(0.9, 1.4);
+
+    // Responsive font size with minimum value
+    final categoryFontSize = (16 * scaleFactor).clamp(14.0, 20.0);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -65,11 +72,11 @@ class CategoryCardWidget extends StatelessWidget {
                 child: Text(
                   category.nameAr,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: categoryFontSize,
                     fontWeight: FontWeight.bold,
-                    shadows: [
+                    shadows: const [
                       Shadow(
                         color: Colors.black45,
                         offset: Offset(0, 1),

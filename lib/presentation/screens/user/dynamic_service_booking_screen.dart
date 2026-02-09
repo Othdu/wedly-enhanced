@@ -3,9 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
+import 'package:wedly/data/repositories/booking_repository.dart';
 import 'package:wedly/logic/blocs/cart/cart_bloc.dart';
 import 'package:wedly/logic/blocs/cart/cart_event.dart';
+import 'package:wedly/logic/blocs/cart/cart_state.dart';
+import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/core/utils/duplicate_booking_checker.dart';
+import 'package:wedly/presentation/widgets/duplicate_booking_warning_dialog.dart';
+import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 
 /// Dynamic service booking screen that adapts its UI based on service structure from API
 /// Handles services with dynamic sections (single/multiple choice options)
@@ -47,7 +54,6 @@ class _DynamicServiceBookingScreenState
   }
 
   /// Fetch booked dates for the current displayed month
-  /// For non-venue services, any booking (morning or evening) blocks the entire day
   Future<void> _fetchBookedDates() async {
     setState(() {
       _isLoadingDates = true;
@@ -57,12 +63,10 @@ class _DynamicServiceBookingScreenState
       final serviceRepository = getIt<ServiceRepository>();
       final monthStr = '${_displayedMonth.year}-${_displayedMonth.month.toString().padLeft(2, '0')}';
 
-      // Don't pass timeSlot - we want ALL bookings for this service
-      // Any booking (morning or evening) will block the entire day
       final result = await serviceRepository.getServiceAvailableDates(
         widget.service.id,
         monthStr,
-        // No timeSlot parameter - get all bookings
+        timeSlot: 'morning',
       );
 
       final bookedDates = (result['booked_dates'] as List<dynamic>?)
@@ -209,7 +213,7 @@ class _DynamicServiceBookingScreenState
     return true;
   }
 
-  void _handleBooking() {
+  Future<void> _handleBooking() async {
     // Validate that selections are made
     if (!_hasRequiredSelections()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -262,6 +266,53 @@ class _DynamicServiceBookingScreenState
       selectedSectionId: selectedSectionId,
       selectedOptionIds: selectedOptionIds,
     );
+
+    // Check for duplicate bookings before adding to cart
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      final bookingRepository = getIt<BookingRepository>();
+      final duplicateChecker = DuplicateBookingChecker(
+        bookingRepository: bookingRepository,
+      );
+
+      // Get current cart items
+      final cartState = context.read<CartBloc>().state;
+      final currentCartItems = cartState is CartLoaded ? cartState.items : <CartItemModel>[];
+
+      final duplicates = await duplicateChecker.checkForDuplicates(
+        userId: authState.user.id,
+        serviceId: widget.service.id,
+        serviceName: widget.service.name,
+        bookingDate: _selectedDate!,
+        currentCartItems: currentCartItems,
+      );
+
+      if (duplicates.isNotEmpty && mounted) {
+        // Show warning dialog
+        final shouldProceed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => DuplicateBookingWarningDialog(
+            duplicates: duplicates,
+            actionButtonText: 'إضافة للسلة',
+            onViewBookings: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => const UserNavigationWrapper(initialIndex: 2),
+                ),
+                (route) => false,
+              );
+            },
+          ),
+        );
+
+        if (shouldProceed != true) {
+          return; // User cancelled
+        }
+      }
+    }
+
+    if (!mounted) return;
 
     // Add to cart
     context.read<CartBloc>().add(CartItemAdded(item: cartItem));
@@ -1064,7 +1115,7 @@ class _DynamicServiceBookingScreenState
                           child: Text(
                             day,
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Colors.grey.shade500,
                             ),
@@ -1111,7 +1162,7 @@ class _DynamicServiceBookingScreenState
                     '—',
                     style: TextStyle(
                       color: Colors.red.shade400,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1122,7 +1173,7 @@ class _DynamicServiceBookingScreenState
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 13,
             color: Colors.grey.shade600,
           ),
         ),

@@ -58,6 +58,20 @@ class ProviderServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen width for responsive sizing
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scaleFactor = (screenWidth / 375).clamp(0.9, 1.4);
+
+    // Responsive font sizes with minimum values to prevent tiny text
+    final nameFontSize = (15 * scaleFactor).clamp(14.0, 18.0);
+    final priceFontSize = (14 * scaleFactor).clamp(13.0, 17.0);
+    final ratingFontSize = (14 * scaleFactor).clamp(13.0, 17.0);
+    final reviewFontSize = (12 * scaleFactor).clamp(11.0, 15.0);
+    final badgeFontSize = (12 * scaleFactor).clamp(11.0, 14.0);
+    final buttonFontSize = (15 * scaleFactor).clamp(14.0, 18.0);
+    final badgeIconSize = (14 * scaleFactor).clamp(12.0, 16.0);
+    final starIconSize = (18 * scaleFactor).clamp(16.0, 22.0);
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -125,16 +139,16 @@ class ProviderServiceCard extends StatelessWidget {
                         color: Colors.orange,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.schedule, color: Colors.white, size: 12),
-                          SizedBox(width: 4),
+                          Icon(Icons.schedule, color: Colors.white, size: badgeIconSize),
+                          const SizedBox(width: 4),
                           Text(
                             'تحت المراجعة',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
+                              fontSize: badgeFontSize,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -163,14 +177,14 @@ class ProviderServiceCard extends StatelessWidget {
                           Icon(
                             service.isActive ? Icons.visibility : Icons.visibility_off,
                             color: Colors.white,
-                            size: 12,
+                            size: badgeIconSize,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             service.isActive ? 'مفعّل' : 'معطّل',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
+                              fontSize: badgeFontSize,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -196,8 +210,8 @@ class ProviderServiceCard extends StatelessWidget {
                   Flexible(
                     child: Text(
                       service.name,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontSize: nameFontSize,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
                         height: 1.3,
@@ -217,8 +231,8 @@ class ProviderServiceCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           _priceDisplayText,
-                          style: const TextStyle(
-                            fontSize: 11,
+                          style: TextStyle(
+                            fontSize: priceFontSize,
                             fontWeight: FontWeight.w500,
                             color: Colors.black54,
                           ),
@@ -235,24 +249,24 @@ class ProviderServiceCard extends StatelessWidget {
                             children: [
                               Text(
                                 service.rating!.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  fontSize: 13,
+                                style: TextStyle(
+                                  fontSize: ratingFontSize,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.black87,
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(
+                              Icon(
                                 Icons.star,
                                 color: AppColors.gold,
-                                size: 16,
+                                size: starIconSize,
                               ),
                               if (service.reviewCount != null)
                                 Flexible(
                                   child: Text(
                                     ' (${service.reviewCount})',
-                                    style: const TextStyle(
-                                      fontSize: 10,
+                                    style: TextStyle(
+                                      fontSize: reviewFontSize,
                                       color: Colors.black54,
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -262,10 +276,10 @@ class ProviderServiceCard extends StatelessWidget {
                           ),
                         )
                       else
-                        const Flexible(
+                        Flexible(
                           child: Text(
                             'لا توجد تقييمات',
-                            style: TextStyle(fontSize: 11, color: Colors.black38),
+                            style: TextStyle(fontSize: priceFontSize, color: Colors.black38),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -288,10 +302,10 @@ class ProviderServiceCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'تعديل',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: buttonFontSize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

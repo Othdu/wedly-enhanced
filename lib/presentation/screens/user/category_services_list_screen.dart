@@ -62,7 +62,7 @@ class _CategoryServicesListScreenState
 
   void _applyFilters() {
     _loadServices();
-    Navigator.pop(context); // Close the filter bottom sheet
+    // Note: Navigator.pop is handled by the filter widget itself
   }
 
   void _clearFilters() {
@@ -74,7 +74,7 @@ class _CategoryServicesListScreenState
       _hasOfferOnly = false;
     });
     _loadServices();
-    Navigator.pop(context); // Close the filter bottom sheet
+    // Note: Navigator.pop is handled by the filter widget itself
   }
 
   @override
@@ -170,13 +170,6 @@ class _CategoryServicesListScreenState
 
   /// Show filter bottom sheet
   void _showFilterBottomSheet(List<String> availableCities) {
-    // Temporary filter values for the modal
-    String? tempCity = _selectedCity;
-    double? tempMinPrice = _minPrice;
-    double? tempMaxPrice = _maxPrice;
-    double? tempRating = _selectedRating;
-    bool tempHasOffer = _hasOfferOnly;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -184,281 +177,35 @@ class _CategoryServicesListScreenState
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.85,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                    // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            setModalState(() {
-                              tempCity = null;
-                              tempMinPrice = null;
-                              tempMaxPrice = null;
-                              tempRating = null;
-                              tempHasOffer = false;
-                            });
-                          },
-                          child: const Text(
-                            'مسح الكل',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                        const Text(
-                          'الفلاتر',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // City filter
-                    if (availableCities.isNotEmpty) ...[
-                      const Text(
-                        'المدينة',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textDirection: TextDirection.rtl,
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: DropdownButton<String>(
-                          value: tempCity,
-                          isExpanded: true,
-                          underline: const SizedBox(),
-                          hint: const Text('الكل'),
-                          items: [
-                            const DropdownMenuItem<String>(
-                              value: null,
-                              child: Text('الكل'),
-                            ),
-                            ...availableCities.map((city) => DropdownMenuItem<String>(
-                                  value: city,
-                                  child: Text(city),
-                                )),
-                          ],
-                          onChanged: (value) {
-                            setModalState(() {
-                              tempCity = value;
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Price range
-                    const Text(
-                      'نطاق السعر',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textDirection: TextDirection.rtl,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              hintText: 'من',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                            ),
-                            controller: TextEditingController(
-                              text: tempMinPrice?.toInt().toString() ?? '',
-                            ),
-                            onChanged: (value) {
-                              tempMinPrice = double.tryParse(value);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              hintText: 'إلى',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                            ),
-                            controller: TextEditingController(
-                              text: tempMaxPrice?.toInt().toString() ?? '',
-                            ),
-                            onChanged: (value) {
-                              tempMaxPrice = double.tryParse(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Rating filter
-                    const Text(
-                      'التقييم (الحد الأدنى)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textDirection: TextDirection.rtl,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [1, 2, 3, 4, 5].map((rating) {
-                        final isSelected = tempRating == rating.toDouble();
-                        return GestureDetector(
-                          onTap: () {
-                            setModalState(() {
-                              tempRating = isSelected ? null : rating.toDouble();
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFFD4AF37)
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.star,
-                                  size: 16,
-                                  color: isSelected ? Colors.white : Colors.amber,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '$rating+',
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.black87,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Has offer toggle
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Switch(
-                          value: tempHasOffer,
-                          activeTrackColor: const Color(0xFFD4AF37).withValues(alpha: 0.5),
-                          thumbColor: WidgetStateProperty.resolveWith((states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return const Color(0xFFD4AF37);
-                            }
-                            return Colors.grey;
-                          }),
-                          onChanged: (value) {
-                            setModalState(() {
-                              tempHasOffer = value;
-                            });
-                          },
-                        ),
-                        const Text(
-                          'العروض فقط',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Apply button
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedCity = tempCity;
-                          _minPrice = tempMinPrice;
-                          _maxPrice = tempMaxPrice;
-                          _selectedRating = tempRating;
-                          _hasOfferOnly = tempHasOffer;
-                        });
-                        _applyFilters();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4AF37),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'تطبيق الفلاتر',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => _FilterBottomSheet(
+        initialCity: _selectedCity,
+        initialMinPrice: _minPrice,
+        initialMaxPrice: _maxPrice,
+        initialRating: _selectedRating,
+        initialHasOffer: _hasOfferOnly,
+        availableCities: availableCities,
+        onApply: (city, minPrice, maxPrice, rating, hasOffer) {
+          setState(() {
+            _selectedCity = city;
+            _minPrice = minPrice;
+            _maxPrice = maxPrice;
+            _selectedRating = rating;
+            _hasOfferOnly = hasOffer;
+          });
+          _applyFilters();
+        },
+        onClear: () {
+          setState(() {
+            _selectedCity = null;
+            _minPrice = null;
+            _maxPrice = null;
+            _selectedRating = null;
+            _hasOfferOnly = false;
+          });
+          _loadServices();
+          Navigator.pop(context);
+        },
+      ),
     );
   }
 
@@ -977,6 +724,567 @@ class _CategoryServicesListScreenState
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Optimized filter bottom sheet with proper controller management
+class _FilterBottomSheet extends StatefulWidget {
+  final String? initialCity;
+  final double? initialMinPrice;
+  final double? initialMaxPrice;
+  final double? initialRating;
+  final bool initialHasOffer;
+  final List<String> availableCities;
+  final Function(String?, double?, double?, double?, bool) onApply;
+  final VoidCallback onClear;
+
+  const _FilterBottomSheet({
+    required this.initialCity,
+    required this.initialMinPrice,
+    required this.initialMaxPrice,
+    required this.initialRating,
+    required this.initialHasOffer,
+    required this.availableCities,
+    required this.onApply,
+    required this.onClear,
+  });
+
+  @override
+  State<_FilterBottomSheet> createState() => _FilterBottomSheetState();
+}
+
+class _FilterBottomSheetState extends State<_FilterBottomSheet> {
+  late TextEditingController _minPriceController;
+  late TextEditingController _maxPriceController;
+  late String? _selectedCity;
+  late double? _selectedRating;
+  late bool _hasOfferOnly;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controllers with current values
+    _minPriceController = TextEditingController(
+      text: widget.initialMinPrice?.toInt().toString() ?? '',
+    );
+    _maxPriceController = TextEditingController(
+      text: widget.initialMaxPrice?.toInt().toString() ?? '',
+    );
+    _selectedCity = widget.initialCity;
+    _selectedRating = widget.initialRating;
+    _hasOfferOnly = widget.initialHasOffer;
+  }
+
+  @override
+  void dispose() {
+    // Properly dispose controllers to prevent memory leaks
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
+    super.dispose();
+  }
+
+  void _clearAll() {
+    setState(() {
+      _selectedCity = null;
+      _minPriceController.clear();
+      _maxPriceController.clear();
+      _selectedRating = null;
+      _hasOfferOnly = false;
+    });
+  }
+
+  void _apply() {
+    final minPrice = double.tryParse(_minPriceController.text);
+    final maxPrice = double.tryParse(_maxPriceController.text);
+    widget.onApply(_selectedCity, minPrice, maxPrice, _selectedRating, _hasOfferOnly);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Modern drag handle
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Header with gradient
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [
+                  const Color(0xFFD4AF37).withValues(alpha: 0.1),
+                  const Color(0xFFD4AF37).withValues(alpha: 0.05),
+                ],
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Close button
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, size: 20),
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(),
+                  ),
+                ),
+                // Title with icon
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.tune,
+                        color: Color(0xFFD4AF37),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'الفلاتر',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+                // Clear all button
+                TextButton.icon(
+                  onPressed: _clearAll,
+                  icon: const Icon(Icons.clear_all, size: 16),
+                  label: const Text('مسح الكل'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red.shade400,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Scrollable content
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // City filter card
+                  if (widget.availableCities.isNotEmpty) ...[
+                    _buildFilterSection(
+                      icon: Icons.location_city,
+                      title: 'المدينة',
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: DropdownButton<String>(
+                          value: _selectedCity,
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          hint: const Text('اختر المدينة'),
+                          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFD4AF37)),
+                          items: [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('الكل'),
+                            ),
+                            ...widget.availableCities.map(
+                              (city) => DropdownMenuItem<String>(
+                                value: city,
+                                child: Text(city),
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCity = value;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Price range card
+                  _buildFilterSection(
+                    icon: Icons.payments_outlined,
+                    title: 'نطاق السعر',
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildPriceField(
+                            controller: _minPriceController,
+                            hint: 'من',
+                            icon: Icons.arrow_upward,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.remove,
+                              size: 16,
+                              color: Color(0xFFD4AF37),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildPriceField(
+                            controller: _maxPriceController,
+                            hint: 'إلى',
+                            icon: Icons.arrow_downward,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Rating filter card
+                  _buildFilterSection(
+                    icon: Icons.star_rounded,
+                    title: 'التقييم',
+                    subtitle: 'الحد الأدنى',
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.center,
+                      children: [1, 2, 3, 4, 5].map((rating) {
+                        final isSelected = _selectedRating == rating.toDouble();
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _selectedRating = isSelected ? null : rating.toDouble();
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: isSelected
+                                      ? const LinearGradient(
+                                          colors: [Color(0xFFD4AF37), Color(0xFFB8941E)],
+                                        )
+                                      : null,
+                                  color: isSelected ? null : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFFD4AF37)
+                                        : Colors.grey.shade300,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.star_rounded,
+                                      size: 18,
+                                      color: isSelected ? Colors.white : const Color(0xFFD4AF37),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '$rating+',
+                                      style: TextStyle(
+                                        color: isSelected ? Colors.white : Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Offers toggle card
+                  _buildFilterSection(
+                    icon: Icons.local_offer,
+                    title: 'العروض الخاصة',
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _hasOfferOnly
+                            ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _hasOfferOnly
+                              ? const Color(0xFFD4AF37).withValues(alpha: 0.3)
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'العروض فقط',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: _hasOfferOnly ? const Color(0xFFD4AF37) : Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'عرض الخدمات التي تحتوي على عروض خاصة',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Switch(
+                            value: _hasOfferOnly,
+                            activeTrackColor: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                            thumbColor: WidgetStateProperty.resolveWith((states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return const Color(0xFFD4AF37);
+                              }
+                              return Colors.grey.shade400;
+                            }),
+                            onChanged: (value) {
+                              setState(() {
+                                _hasOfferOnly = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Apply button with gradient
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFD4AF37), Color(0xFFB8941E)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _apply,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          alignment: Alignment.center,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'تطبيق الفلاتر',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build consistent filter sections
+  Widget _buildFilterSection({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFFD4AF37),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(width: 6),
+              Text(
+                '($subtitle)',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 12),
+        child,
+      ],
+    );
+  }
+
+  // Helper method to build price input fields
+  Widget _buildPriceField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(
+            color: Colors.grey.shade400,
+            fontWeight: FontWeight.normal,
+          ),
+          prefixIcon: Icon(
+            icon,
+            size: 16,
+            color: const Color(0xFFD4AF37),
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 14,
+          ),
+        ),
       ),
     );
   }

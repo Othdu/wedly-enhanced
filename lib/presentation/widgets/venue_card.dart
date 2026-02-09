@@ -14,8 +14,50 @@ class VenueCard extends StatelessWidget {
     this.onTap,
   });
 
+  // Helper method to build price text showing lowest of morning/evening
+  Widget _buildPriceText(double fontSize) {
+    // Calculate the lowest price between morning and evening
+    final morningPrice = venue.morningPrice ?? double.infinity;
+    final eveningPrice = venue.eveningPrice ?? double.infinity;
+    final minPrice = morningPrice < eveningPrice ? morningPrice : eveningPrice;
+
+    // If both prices are unavailable, use pricePerPerson as fallback
+    if (minPrice == double.infinity) {
+      return Text(
+        'من ${venue.pricePerPerson.toInt()} جنيه',
+        style: TextStyle(
+          fontSize: fontSize,
+          color: Colors.black87,
+        ),
+        textDirection: TextDirection.rtl,
+        textAlign: TextAlign.left,
+      );
+    }
+
+    // Show the minimum price
+    return Text(
+      'من ${minPrice.toInt()} جنيه',
+      style: TextStyle(
+        fontSize: fontSize,
+        color: Colors.black87,
+      ),
+      textDirection: TextDirection.rtl,
+      textAlign: TextAlign.left,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Get screen width for responsive sizing
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scaleFactor = (screenWidth / 375).clamp(0.9, 1.4);
+
+    // Responsive font sizes with minimum values
+    final nameFontSize = (18 * scaleFactor).clamp(16.0, 22.0);
+    final detailFontSize = (16 * scaleFactor).clamp(14.0, 20.0);
+    final buttonFontSize = (17 * scaleFactor).clamp(16.0, 20.0);
+    final iconSize = (22 * scaleFactor).clamp(20.0, 26.0);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -62,8 +104,8 @@ class VenueCard extends StatelessWidget {
                 // Venue Name
                 Text(
                   venue.name,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: nameFontSize,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -77,25 +119,17 @@ class VenueCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Price on the left
+                    // Price on the left (showing lowest of morning/evening)
                     Expanded(
-                      child: Text(
-                        'من ${venue.pricePerPerson.toInt()} جنيه',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
-                        textDirection: TextDirection.rtl,
-                        textAlign: TextAlign.left,
-                      ),
+                      child: _buildPriceText(detailFontSize),
                     ),
 
                     // Capacity in the middle
                     Expanded(
                       child: Text(
                         'السعة: ${venue.capacity} فرد',
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: TextStyle(
+                          fontSize: detailFontSize,
                           color: Colors.black87,
                         ),
                         textDirection: TextDirection.rtl,
@@ -108,16 +142,16 @@ class VenueCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.star,
-                            color: Color(0xFFFFB400),
-                            size: 20,
+                            color: const Color(0xFFFFB400),
+                            size: iconSize,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             venue.rating.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontSize: 14,
+                            style: TextStyle(
+                              fontSize: detailFontSize,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
                             ),
@@ -144,10 +178,10 @@ class VenueCard extends StatelessWidget {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
+                    child: Text(
                       'عرض التفاصيل',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: buttonFontSize,
                         fontWeight: FontWeight.bold,
                       ),
                       textDirection: TextDirection.rtl,

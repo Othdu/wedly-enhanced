@@ -70,8 +70,12 @@ class BookingModel extends Equatable {
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     // Helper to get value from snake_case or camelCase key
     // Handles null values properly without type cast issues
+    // If value is a populated MongoDB object (Map), extracts _id automatically
     String? getStringField(String snakeCase, String camelCase) {
       final value = json[snakeCase] ?? json[camelCase];
+      if (value is Map) {
+        return (value['_id'] ?? value['id'])?.toString();
+      }
       return value?.toString();
     }
 

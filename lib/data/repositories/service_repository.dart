@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/models/category_model.dart';
 import 'package:wedly/data/models/countdown_model.dart';
@@ -7,6 +9,7 @@ import 'package:wedly/data/models/offer_model.dart';
 import 'package:wedly/data/models/home_layout_model.dart';
 import 'package:wedly/data/services/api_client.dart';
 import 'package:wedly/data/services/api_constants.dart';
+import 'package:wedly/core/constants/app_constants.dart';
 
 class ServiceRepository {
   final ApiClient _apiClient;
@@ -31,7 +34,7 @@ class ServiceRepository {
       throw Exception('API response is not a list for services');
     }
 
-    return (servicesData as List).map((json) {
+    return servicesData.map((json) {
       return ServiceModel.fromJson(json as Map<String, dynamic>);
     }).toList();
   }
@@ -80,7 +83,7 @@ class ServiceRepository {
       throw Exception('API response is not a list for category $category');
     }
 
-    final services = (servicesData as List).map((json) {
+    final services = servicesData.map((json) {
       return ServiceModel.fromJson(json as Map<String, dynamic>);
     }).toList();
 
@@ -119,15 +122,9 @@ class ServiceRepository {
     throw Exception('Invalid categories response');
   }
 
-  /// Get all cities
+  /// Get all cities (using hardcoded list - no API endpoint exists)
   Future<List<String>> getCities() async {
-    final response = await _apiClient.get(ApiConstants.addressCities);
-    final responseData = response.data['data'] ?? response.data;
-    final cities = responseData['cities'] ?? responseData;
-    if (cities is List) {
-      return cities.cast<String>();
-    }
-    throw Exception('Invalid cities response from API');
+    return List.from(AppConstants.egyptianCities);
   }
 
   /// Get services for a specific provider
@@ -145,12 +142,52 @@ class ServiceRepository {
 
   /// Add a new service (provider only)
   Future<ServiceModel> addService(ServiceModel service) async {
-    final response = await _apiClient.post(
-      ApiConstants.createService,
-      data: service.toJson(),
-    );
-    final responseData = response.data['data'] ?? response.data;
-    return ServiceModel.fromJson(responseData['service'] ?? responseData);
+    // If service has an image file, use multipart/form-data
+    if (service.imageFile != null) {
+      final formData = FormData();
+
+      // Add all service fields to form data
+      final jsonData = service.toJson();
+      jsonData.forEach((key, value) {
+        if (value != null) {
+          // Convert non-null values to strings for multipart
+          if (value is double || value is int) {
+            formData.fields.add(MapEntry(key, value.toString()));
+          } else if (value is bool) {
+            formData.fields.add(MapEntry(key, value.toString()));
+          } else if (value is String) {
+            formData.fields.add(MapEntry(key, value));
+          }
+          // Skip complex types (lists, maps) as they're not in the API spec
+        }
+      });
+
+      // Add the image file (API expects field name "image" as binary)
+      formData.files.add(
+        MapEntry(
+          'image',
+          await MultipartFile.fromFile(
+            service.imageFile!.path,
+            filename: service.imageFile!.path.split('/').last,
+          ),
+        ),
+      );
+
+      final response = await _apiClient.post(
+        ApiConstants.createService,
+        data: formData,
+      );
+      final responseData = response.data['data'] ?? response.data;
+      return ServiceModel.fromJson(responseData['service'] ?? responseData);
+    } else {
+      // Fallback to JSON if no image file (though API requires image)
+      final response = await _apiClient.post(
+        ApiConstants.createService,
+        data: service.toJson(),
+      );
+      final responseData = response.data['data'] ?? response.data;
+      return ServiceModel.fromJson(responseData['service'] ?? responseData);
+    }
   }
 
   /// Update an existing service
@@ -185,11 +222,41 @@ class ServiceRepository {
   }
 
   /// Get user's wedding countdown
+  /// Fetches from GET /api/users/wedding-date (uses auth token, no userId needed)
   Future<CountdownModel?> getUserCountdown(String userId) async {
-    final response = await _apiClient.get(ApiConstants.userCountdown(userId));
-    final responseData = response.data['data'] ?? response.data;
-    if (responseData != null) {
-      return CountdownModel.fromJson(responseData);
+    try {
+      final response = await _apiClient.get(ApiConstants.userWeddingDate);
+      final responseData = response.data['data'] ?? response.data;
+
+      if (responseData != null && responseData['wedding_date'] != null) {
+        // Parse the wedding_date from the API response
+        final weddingDate = DateTime.parse(responseData['wedding_date'] as String);
+
+        // Get custom event name from API or local storage (fallback)
+        String? eventName = responseData['event_name'] as String?;
+
+        // If API doesn't have event name, try to get it from local storage
+        if (eventName == null || eventName.isEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          eventName = prefs.getString('user_event_name');
+          debugPrint('📝 Loading event name from local storage: $eventName');
+        }
+
+        final titleAr = eventName != null && eventName.isNotEmpty
+            ? 'العد التنازلي لـ$eventName'
+            : 'العد التنازلي للفرح';
+
+        return CountdownModel(
+          userId: userId,
+          weddingDate: weddingDate,
+          title: 'Event Countdown',
+          titleAr: titleAr,
+        );
+      }
+    } catch (e) {
+      // Return null if endpoint doesn't exist or returns error
+      // The caller will handle the fallback
+      return null;
     }
     return null;
   }
@@ -228,23 +295,41 @@ class ServiceRepository {
       ApiConstants.getServiceAvailableDates(serviceId, month, timeSlot: timeSlot),
     );
     final responseData = response.data['data'] ?? response.data;
+
+    // API returns a "days" array where each entry has date, booked_slots, available_slots
+    final days = (responseData['days'] as List?) ?? [];
+
+    final bookedDates = <String>[];
+    final availableDates = <String>[];
+    final morningBookedDates = <String>[];
+    final eveningBookedDates = <String>[];
+
+    for (final day in days) {
+      final dayMap = day as Map<String, dynamic>;
+      final date = dayMap['date'] as String;
+      final bookedSlots = (dayMap['booked_slots'] as List?) ?? [];
+      final availableSlots = (dayMap['available_slots'] as List?) ?? [];
+
+      // Track per-slot booked dates
+      if (bookedSlots.contains('morning')) morningBookedDates.add(date);
+      if (bookedSlots.contains('evening')) eveningBookedDates.add(date);
+
+      // If a specific timeSlot was requested, use that slot's status
+      // Otherwise (no timeSlot), any booked slot blocks the whole day
+      if (timeSlot != null) {
+        if (bookedSlots.contains(timeSlot)) bookedDates.add(date);
+        if (availableSlots.contains(timeSlot)) availableDates.add(date);
+      } else {
+        if (bookedSlots.isNotEmpty) bookedDates.add(date);
+        if (availableSlots.isNotEmpty) availableDates.add(date);
+      }
+    }
+
     return {
-      'availableDates': (responseData['available_dates'] as List?)
-              ?.map((d) => DateTime.parse(d.toString()))
-              .toList() ??
-          [],
-      'bookedDates': (responseData['booked_dates'] as List?)
-              ?.map((d) => DateTime.parse(d.toString()))
-              .toList() ??
-          [],
-      'morningBookedDates': (responseData['morning_booked_dates'] as List?)
-              ?.map((d) => DateTime.parse(d.toString()))
-              .toList() ??
-          [],
-      'eveningBookedDates': (responseData['evening_booked_dates'] as List?)
-              ?.map((d) => DateTime.parse(d.toString()))
-              .toList() ??
-          [],
+      'available_dates': availableDates,
+      'booked_dates': bookedDates,
+      'morning_booked_dates': morningBookedDates,
+      'evening_booked_dates': eveningBookedDates,
     };
   }
 

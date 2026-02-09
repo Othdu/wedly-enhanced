@@ -298,13 +298,18 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(
-                                    '${widget.venue.morningPrice!.toInt()}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade500,
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
+                                  Builder(
+                                    builder: (context) {
+                                      final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                                      return Text(
+                                        '${widget.venue.morningPrice!.toInt()}',
+                                        style: TextStyle(
+                                          fontSize: (12 * scaleFactor).clamp(11.0, 15.0),
+                                          color: Colors.grey.shade500,
+                                          decoration: TextDecoration.lineThrough,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               )
@@ -401,13 +406,18 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(
-                                    '${widget.venue.eveningPrice!.toInt()}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade500,
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
+                                  Builder(
+                                    builder: (context) {
+                                      final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                                      return Text(
+                                        '${widget.venue.eveningPrice!.toInt()}',
+                                        style: TextStyle(
+                                          fontSize: (12 * scaleFactor).clamp(11.0, 15.0),
+                                          color: Colors.grey.shade500,
+                                          decoration: TextDecoration.lineThrough,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               )
@@ -851,18 +861,23 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                       color: const Color(0xFFD4AF37),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.edit, color: Colors.white, size: 12),
-                        SizedBox(width: 4),
-                        Text(
-                          'تقييمك - اضغط للتعديل',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        const Icon(Icons.edit, color: Colors.white, size: 12),
+                        const SizedBox(width: 4),
+                        Builder(
+                          builder: (context) {
+                            final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                            return Text(
+                              'تقييمك - اضغط للتعديل',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: (12 * scaleFactor).clamp(11.0, 15.0),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

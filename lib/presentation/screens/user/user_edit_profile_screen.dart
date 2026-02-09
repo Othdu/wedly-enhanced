@@ -24,7 +24,6 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   String? _selectedCity;
-  DateTime? _selectedWeddingDate;
 
   @override
   void initState() {
@@ -43,7 +42,6 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           _emailController.text = authState.user.email;
           _phoneController.text = authState.user.phone ?? '';
           _selectedCity = authState.user.city;
-          _selectedWeddingDate = authState.user.weddingDate;
         });
       }
     });
@@ -398,105 +396,6 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
                               return null;
                             },
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // Wedding Date Picker
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'تاريخ الزفاف',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.gold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          InkWell(
-                            onTap: () async {
-                              final DateTime? pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: _selectedWeddingDate ?? DateTime.now().add(const Duration(days: 365)),
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 3650)),
-                                builder: (context, child) {
-                                  return Theme(
-                                    data: Theme.of(context).copyWith(
-                                      colorScheme: const ColorScheme.light(
-                                        primary: AppColors.gold,
-                                        onPrimary: Colors.white,
-                                        onSurface: Colors.black,
-                                      ),
-                                    ),
-                                    child: child!,
-                                  );
-                                },
-                              );
-                              if (pickedDate != null && mounted) {
-                                setState(() {
-                                  _selectedWeddingDate = pickedDate;
-                                });
-                                // Save wedding date immediately
-                                if (mounted) {
-                                  context.read<AuthBloc>().add(
-                                    AuthSetWeddingDateRequested(weddingDate: pickedDate),
-                                  );
-                                }
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 16,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.grey.shade200,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_today,
-                                    color: AppColors.gold,
-                                    size: 20,
-                                  ),
-                                  Text(
-                                    _selectedWeddingDate != null
-                                        ? '${_selectedWeddingDate!.year}-${_selectedWeddingDate!.month.toString().padLeft(2, '0')}-${_selectedWeddingDate!.day.toString().padLeft(2, '0')}'
-                                        : 'اختر تاريخ الزفاف',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: _selectedWeddingDate != null
-                                          ? Colors.black87
-                                          : Colors.grey.shade400,
-                                    ),
-                                    textDirection: TextDirection.ltr,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (_selectedWeddingDate != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                'باقي ${_selectedWeddingDate!.difference(DateTime.now()).inDays} يوم على الزفاف',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.gold.withValues(alpha: 0.8),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textDirection: TextDirection.rtl,
-                              ),
-                            ),
                         ],
                       ),
                     ],

@@ -1,9 +1,23 @@
 import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:wedly/data/models/countdown_model.dart';
 
-/// Widget that displays a countdown timer for the wedding date
-/// Elegant, soft design - reusable across different screens
+extension ColorWithValuesCompat on Color {
+  Color withValues({double? alpha, double? red, double? green, double? blue}) {
+    final int a =
+        alpha == null ? this.alpha : (alpha.clamp(0.0, 1.0) * 255).round();
+    final int r =
+        red == null ? this.red : (red.clamp(0.0, 1.0) * 255).round();
+    final int g =
+        green == null ? this.green : (green.clamp(0.0, 1.0) * 255).round();
+    final int b =
+        blue == null ? this.blue : (blue.clamp(0.0, 1.0) * 255).round();
+    return Color.fromARGB(a, r, g, b);
+  }
+}
+
 class CountdownTimerWidget extends StatefulWidget {
   final CountdownModel countdown;
   final bool showWeeks;
@@ -33,226 +47,184 @@ class CountdownTimerWidget extends StatefulWidget {
 class _CountdownTimerWidgetState extends State<CountdownTimerWidget>
     with SingleTickerProviderStateMixin {
   Timer? _timer;
-  late AnimationController _animationController;
+  late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
-  // Soft elegant colors
-  static const Color _cardBg = Color(0xFFFAF8F5);
-  static const Color _accentColor = Color(0xFFB8860B); // Dark goldenrod
-  static const Color _textPrimary = Color(0xFF3D3D3D);
-  static const Color _textSecondary = Color(0xFF6B6B6B);
-  static const Color _dividerColor = Color(0xFFE8E4DF);
+  static const Color _goldPrimary = Color(0xFFD4AF37);
+  static const Color _goldLight = Color(0xFFE8D48A);
+  static const Color _goldDark = Color(0xFFB8860B);
+  static const Color _textDark = Color(0xFF2D2D2D);
+  static const Color _textMuted = Color(0xFF6B6B6B);
 
   @override
   void initState() {
     super.initState();
+
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
 
-    _animationController = AnimationController(
+    _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
 
-    _pulseAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _animationController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final timeRemaining = widget.countdown.timeRemaining;
-    final days = timeRemaining.inDays;
+    final totalDays = timeRemaining.inDays;
     final hours = timeRemaining.inHours % 24;
     final minutes = timeRemaining.inMinutes % 60;
     final seconds = timeRemaining.inSeconds % 60;
-    final weeks = days ~/ 7;
-    final remainingDays = days % 7;
+    final weeks = totalDays ~/ 7;
+    final remainingDays = totalDays % 7;
 
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        margin: widget.margin ?? const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-        decoration: BoxDecoration(
-          color: _cardBg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: _dividerColor,
-            width: 1,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          margin: widget.margin ?? const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFDF8),
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              spreadRadius: 0,
-              offset: const Offset(0, 4),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 28, 18, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: _goldPrimary.withValues(alpha: 0.35), width: 1.4),
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Container(
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: _dividerColor, width: 1),
-                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _goldPrimary.withValues(alpha: 0.18), width: 1.0),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildRingsIcon(),
-                  const SizedBox(width: 10),
-                  Text(
-                    widget.countdown.titleAr,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: _textPrimary,
-                      letterSpacing: 0.5,
-                    ),
-                    textDirection: TextDirection.rtl,
+                  _buildHeaderClassic(),
+                  const SizedBox(height: 16),
+                  _buildDateBadgeClassic(),
+                  const SizedBox(height: 20),
+                  _buildCountdownRow(
+                    weeks: weeks,
+                    days: widget.showWeeks ? remainingDays : totalDays,
+                    hours: hours,
+                    minutes: minutes,
+                    seconds: seconds,
                   ),
-                  const SizedBox(width: 10),
-                  _buildRingsIcon(),
+                  const SizedBox(height: 16),
+                  _buildDaysRemainingClassic(totalDays),
                 ],
               ),
             ),
-
-            // Date display
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    color: _accentColor.withValues(alpha: 0.7),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _formatDate(widget.countdown.weddingDate),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: _textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Countdown boxes
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if (widget.showSeconds)
-                    _buildCountdownBox(seconds, 'ثانية'),
-                  if (widget.showMinutes)
-                    _buildCountdownBox(minutes, 'دقيقة'),
-                  if (widget.showHours)
-                    _buildCountdownBox(hours, 'ساعة'),
-                  if (widget.showDays && !widget.showWeeks)
-                    _buildCountdownBox(days, 'يوم', isMain: true),
-                  if (widget.showDays && widget.showWeeks)
-                    _buildCountdownBox(remainingDays, 'يوم'),
-                  if (widget.showWeeks)
-                    _buildCountdownBox(weeks, 'أسبوع', isMain: true),
-                ],
-              ),
-            ),
-
-            // Bottom message
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: _accentColor.withValues(alpha: 0.06),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: Icon(
-                      Icons.favorite,
-                      color: _accentColor.withValues(alpha: 0.6),
-                      size: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _getMotivationalMessage(days),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textDirection: TextDirection.rtl,
-                  ),
-                  const SizedBox(width: 8),
-                  ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: Icon(
-                      Icons.favorite,
-                      color: _accentColor.withValues(alpha: 0.6),
-                      size: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildRingsIcon() {
-    return SizedBox(
-      width: 24,
-      height: 20,
-      child: Stack(
-        children: [
-          Positioned(
-            left: 0,
-            top: 2,
-            child: Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: _accentColor, width: 2),
+  Widget _buildHeaderClassic() {
+    final w = MediaQuery.of(context).size.width;
+    final titleSize = (w * 0.052).clamp(14.0, 22.0);
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ScaleTransition(
+              scale: _pulseAnimation,
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _goldPrimary.withValues(alpha: 0.18),
+                  border: Border.all(color: _goldPrimary.withValues(alpha: 0.35)),
+                ),
+                child: Icon(Icons.favorite, color: _goldDark, size: 20),
               ),
             ),
-          ),
-          Positioned(
-            right: 0,
-            top: 2,
-            child: Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: _accentColor, width: 2),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  widget.countdown.titleAr,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textHeightBehavior: const TextHeightBehavior(
+                    applyHeightToFirstAscent: false,
+                    applyHeightToLastDescent: false,
+                  ),
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w900,
+                    color: _goldDark,
+                    height: 1.25,
+                    letterSpacing: 0.2,
+                  ),
+                ),
               ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: 92,
+          height: 2,
+          decoration: BoxDecoration(
+            color: _goldPrimary.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateBadgeClassic() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFDF8),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _goldPrimary.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.calendar_month_rounded, color: _goldDark, size: 20),
+          const SizedBox(width: 10),
+          Text(
+            _formatDate(widget.countdown.weddingDate),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: _textDark,
             ),
           ),
         ],
@@ -260,68 +232,136 @@ class _CountdownTimerWidgetState extends State<CountdownTimerWidget>
     );
   }
 
-  Widget _buildCountdownBox(int value, String label, {bool isMain = false}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: isMain ? 64 : 56,
-          height: isMain ? 64 : 56,
-          decoration: BoxDecoration(
-            color: isMain ? _accentColor.withValues(alpha: 0.1) : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isMain
-                  ? _accentColor.withValues(alpha: 0.3)
-                  : _dividerColor,
-              width: isMain ? 1.5 : 1,
-            ),
+  Widget _buildCountdownRow({
+    required int weeks,
+    required int days,
+    required int hours,
+    required int minutes,
+    required int seconds,
+  }) {
+    final List<Widget> timeUnits = [];
+
+    if (widget.showWeeks) {
+      timeUnits.add(Expanded(child: _buildTimeUnitClassic(weeks, 'أسبوع', highlight: true)));
+    }
+    if (widget.showDays) {
+      timeUnits.add(
+        Expanded(
+          child: _buildTimeUnitClassic(
+            days,
+            'يوم',
+            highlight: !widget.showWeeks,
           ),
-          child: Center(
-            child: Text(
-              value.toString().padLeft(2, '0'),
-              style: TextStyle(
-                fontSize: isMain ? 26 : 22,
-                fontWeight: FontWeight.w700,
-                color: isMain ? _accentColor : _textPrimary,
-                height: 1,
+        ),
+      );
+    }
+    if (widget.showHours) {
+      timeUnits.add(Expanded(child: _buildTimeUnitClassic(hours, 'ساعة')));
+    }
+    if (widget.showMinutes) {
+      timeUnits.add(Expanded(child: _buildTimeUnitClassic(minutes, 'دقيقة')));
+    }
+    if (widget.showSeconds) {
+      timeUnits.add(Expanded(child: _buildTimeUnitClassic(seconds, 'ثانية')));
+    }
+
+    return Row(children: timeUnits);
+  }
+
+  Widget _buildTimeUnitClassic(int value, String label, {bool highlight = false}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final box = (w - 8).clamp(36.0, 78.0);
+        final numSize = (box * 0.42).clamp(16.0, 34.0);
+        final labelSize = (box * 0.18).clamp(9.0, 14.0);
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: box,
+              height: box,
+              decoration: BoxDecoration(
+                color: highlight ? const Color(0xFFFFF6D9) : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: highlight
+                      ? _goldPrimary.withValues(alpha: 0.45)
+                      : _goldPrimary.withValues(alpha: 0.18),
+                  width: highlight ? 1.6 : 1.1,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  value.toString().padLeft(2, '0'),
+                  style: TextStyle(
+                    fontSize: numSize,
+                    fontWeight: FontWeight.w900,
+                    color: _textDark,
+                    height: 1,
+                    fontFeatures: const [ui.FontFeature.tabularFigures()],
+                  ),
+                ),
               ),
             ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: labelSize,
+                fontWeight: FontWeight.w700,
+                color: highlight ? _goldDark : _textMuted,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDaysRemainingClassic(int totalDays) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFDF8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _goldPrimary.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.timer_outlined, color: _goldDark, size: 18),
+          const SizedBox(width: 10),
+          Text(
+            'باقي $totalDays يوم على الزفاف',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: _goldDark,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: isMain ? _accentColor : _textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
-          textDirection: TextDirection.rtl,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   String _formatDate(DateTime date) {
-    final months = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر'
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
-  }
-
-  String _getMotivationalMessage(int days) {
-    if (days == 0) {
-      return 'اليوم هو يوم زفافك! مبروك!';
-    } else if (days == 1) {
-      return 'غداً يوم زفافك!';
-    } else if (days <= 7) {
-      return 'أيام قليلة وتبدأ حياتك الجديدة';
-    } else if (days <= 30) {
-      return 'قريباً ستبدأ أجمل رحلة';
-    } else {
-      return 'استمتع بفترة الخطوبة';
-    }
   }
 }

@@ -53,8 +53,26 @@
 	<string>نحتاج للوصول إلى مكتبة الصور لحفظ الصور</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>نحتاج للوصول إلى موقعك لتحديد موقع الخدمة المقدمة</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>نحتاج للوصول إلى موقعك لتحديد موقع الخدمة المقدمة</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>نستخدم بياناتك لتحسين تجربتك في التطبيق وعرض محتوى مخصص لك</string>
+	<!-- URL Schemes the app can query (required for url_launcher) -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>https</string>
+		<string>http</string>
+		<string>whatsapp</string>
+		<string>comgooglemaps</string>
+	</array>
+	<!-- App Transport Security for WebView -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

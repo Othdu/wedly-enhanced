@@ -10,6 +10,7 @@ import '../../../logic/blocs/booking/booking_state.dart';
 import '../../widgets/booking_card_new.dart';
 import '../../widgets/error_view.dart';
 import 'provider_booking_details_screen.dart';
+import 'provider_confirmed_bookings_screen.dart';
 
 class ProviderBookingsScreen extends StatefulWidget {
   const ProviderBookingsScreen({super.key});
@@ -87,6 +88,38 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyBackground,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'الحجوزات',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.check_circle_outline,
+              color: AppColors.gold,
+            ),
+            tooltip: 'عرض الحجوزات المكتملة',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (newContext) => BlocProvider.value(
+                    value: context.read<BookingBloc>(),
+                    child: const ProviderConfirmedBookingsScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [

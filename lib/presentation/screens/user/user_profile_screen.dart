@@ -4,12 +4,9 @@ import 'package:wedly/core/constants/app_strings.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
 import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
-import 'package:wedly/logic/blocs/home/home_bloc.dart';
-import 'package:wedly/logic/blocs/home/home_state.dart';
 import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
 import 'package:wedly/logic/blocs/notification/notification_state.dart';
 import 'package:wedly/presentation/widgets/profile_picture_widget.dart';
-import 'package:wedly/presentation/widgets/countdown_timer_widget.dart';
 import 'package:wedly/routes/app_router.dart';
 
 class UserProfileScreen extends StatelessWidget {
@@ -77,26 +74,6 @@ class UserProfileScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // Wedding Date Countdown Card (from reservations)
-                    BlocBuilder<HomeBloc, HomeState>(
-                      builder: (context, homeState) {
-                        if (homeState is HomeLoaded && homeState.countdown != null) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: CountdownTimerWidget(
-                              countdown: homeState.countdown!,
-                              showWeeks: false,
-                              showDays: true,
-                              showHours: true,
-                              showMinutes: true,
-                              showSeconds: true,
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-
                     // Profile Management Section
                     _buildSection(
                       context,
@@ -110,6 +87,16 @@ class UserProfileScreen extends StatelessWidget {
                             Navigator.of(
                               context,
                             ).pushNamed('/user-edit-profile');
+                          },
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.celebration,
+                          title: 'مناسبتك',
+                          onTap: () {
+                            Navigator.of(
+                              context,
+                            ).pushNamed('/user-manage-event');
                           },
                         ),
                         _buildMenuItem(
@@ -294,7 +281,7 @@ class UserProfileScreen extends StatelessWidget {
                           badge > 9 ? '9+' : '$badge',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 9,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

@@ -75,12 +75,13 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Visa (Available)
+                    // Visa (Disabled until SDK is integrated)
                     _buildPaymentOption(
                       value: 'visa',
                       title: 'فيزا / بطاقة ائتمان',
                       icon: Icons.credit_card,
-                      isDisabled: false,
+                      isDisabled: true,
+                      subtitle: 'قريباً',
                     ),
 
                     const SizedBox(height: 40),

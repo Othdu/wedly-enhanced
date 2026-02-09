@@ -19,6 +19,7 @@ import 'package:wedly/logic/blocs/home/home_bloc.dart';
 import 'package:wedly/logic/blocs/home/home_event.dart';
 import 'package:wedly/presentation/screens/user/user_navigation_wrapper.dart';
 import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/core/utils/enums.dart';
 import 'package:intl/intl.dart';
 
 class PaymentConfirmationScreen extends StatefulWidget {
@@ -360,13 +361,18 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
               : null,
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: isActive ? const Color(0xFFD4AF37) : Colors.grey[400],
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
+        Builder(
+          builder: (context) {
+            final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+            return Text(
+              label,
+              style: TextStyle(
+                fontSize: (11 * scaleFactor).clamp(10.0, 14.0),
+                color: isActive ? const Color(0xFFD4AF37) : Colors.grey[400],
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+            );
+          },
         ),
       ],
     );
@@ -437,16 +443,15 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                 color: const Color(0xFFD4AF37),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  '${NumberFormat('#,###').format(widget.totalAmount.toInt())} جنيه',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+              child: Text(
+                '${NumberFormat('#,###').format(widget.totalAmount.toInt())} جنيه',
+                style: TextStyle(
+                  fontSize: (14 * MediaQuery.of(context).size.width / 375).clamp(13.0, 17.0),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ),
@@ -788,6 +793,30 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     );
   }
 
+  /// Format conflict date from API response (handles ISO and DD/MM/YYYY formats)
+  String _formatConflictDate(String dateString) {
+    try {
+      DateTime date;
+      if (dateString.contains('T')) {
+        // ISO format
+        date = DateTime.parse(dateString);
+      } else if (dateString.contains('/')) {
+        // DD/MM/YYYY format
+        final parts = dateString.split('/');
+        date = DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+      } else {
+        return dateString; // Return as-is if unrecognized
+      }
+      return DateFormat('dd/MM/yyyy', 'ar').format(date);
+    } catch (_) {
+      return dateString;
+    }
+  }
+
   String _formatDate(String dateString) {
     try {
       DateTime date = DateTime.parse(dateString);
@@ -978,13 +1007,18 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                       color: Colors.green.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text(
-                      '-${discountPercentage.toInt()}%',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Builder(
+                      builder: (context) {
+                        final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                        return Text(
+                          '-${discountPercentage.toInt()}%',
+                          style: TextStyle(
+                            fontSize: (11 * scaleFactor).clamp(10.0, 14.0),
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -1146,20 +1180,18 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
             const SizedBox(width: 12),
             Flexible(
               flex: 2,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Directionality(
-                  textDirection: ui.TextDirection.ltr,
-                  child: Text(
-                    '\u202B${NumberFormat('#,###').format(widget.totalAmount.toInt())} جنية\u202C',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.right,
+              child: Directionality(
+                textDirection: ui.TextDirection.ltr,
+                child: Text(
+                  '\u202B${NumberFormat('#,###').format(widget.totalAmount.toInt())} جنية\u202C',
+                  style: TextStyle(
+                    fontSize: (17 * MediaQuery.of(context).size.width / 375).clamp(15.0, 20.0),
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
                   ),
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
             ),
@@ -1606,6 +1638,34 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
 
   /// Handle Visa/card payment via Paymob
   Future<void> _handleVisaPayment() async {
+    // Check for duplicate bookings first
+    final duplicates = await _checkForDuplicateBookings();
+    if (!mounted) return;
+
+    if (duplicates.isNotEmpty) {
+      final shouldProceed = await _showDuplicateWarningDialog(duplicates);
+      if (!shouldProceed) {
+        return; // User cancelled
+      }
+    }
+    if (!mounted) return;
+
+    // Pre-compute venue booking info BEFORE opening WebView
+    // This is needed because we need to set the wedding date after successful payment
+    // Venues are identified by having a timeSlot (morning/evening)
+    DateTime? venueWeddingDate;
+    final venueBooking = widget.cartItems.firstWhere(
+      (item) => item.timeSlot.isNotEmpty, // Only venues have morning/evening timeSlots
+      orElse: () => widget.cartItems.first,
+    );
+
+    final isVenueBooking = venueBooking.timeSlot.isNotEmpty;
+
+    if (isVenueBooking) {
+      venueWeddingDate = _parseBookingDate(venueBooking.date);
+      debugPrint('🎯 VISA: Venue booking detected (timeSlot: ${venueBooking.timeSlot}), wedding date: $venueWeddingDate');
+    }
+
     // Show loading dialog
     showDialog(
       context: context,
@@ -1673,13 +1733,28 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           MaterialPageRoute(
             builder: (context) => PaymobWebViewScreen(
               iframeUrl: paymentData['iframe_url'],
-              onPaymentComplete: (success, message) {
+              onPaymentComplete: (success, message) async {
                 Navigator.of(context).pop(); // Close WebView
 
                 if (success) {
                   // Payment successful - backend webhook will create bookings
                   // Clear cart and show success
                   context.read<CartBloc>().add(CartCleared());
+
+                  // Set wedding date if user booked a venue (VISA payment)
+                  if (venueWeddingDate != null) {
+                    debugPrint('🎯 VISA PAYMENT SUCCESS - Setting wedding date to: $venueWeddingDate');
+                    try {
+                      final authRepository = getIt<AuthRepository>();
+                      final result = await authRepository.setWeddingDate(venueWeddingDate);
+                      debugPrint('✅ VISA: Wedding date set successfully: $venueWeddingDate');
+                      debugPrint('✅ VISA: Server response: $result');
+                    } catch (e) {
+                      debugPrint('❌ VISA: Failed to set wedding date: $e');
+                      // Don't fail the whole flow if setting wedding date fails
+                    }
+                  }
+
                   _showSuccessDialog();
                 } else {
                   // Payment failed
@@ -1703,8 +1778,245 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
     }
   }
 
+  /// Check if user is trying to book a service they already have booked for the same date
+  Future<List<Map<String, dynamic>>> _checkForDuplicateBookings() async {
+    try {
+      final authState = context.read<AuthBloc>().state;
+      final user = authState is AuthAuthenticated ? authState.user : null;
+      if (user == null) return [];
+
+      final bookingRepository = getIt<BookingRepository>();
+      final existingBookings = await bookingRepository.getUserBookings(user.id);
+
+      final duplicates = <Map<String, dynamic>>[];
+
+      for (var cartItem in widget.cartItems) {
+        final cartDate = _parseBookingDate(cartItem.date);
+        debugPrint('🔍 DupCheck: cart service.id="${cartItem.service.id}" date="${cartItem.date}" parsed=$cartDate');
+
+        for (var booking in existingBookings) {
+          // Only check pending and confirmed bookings (not cancelled or completed)
+          if (booking.status == BookingStatus.cancelled ||
+              booking.status == BookingStatus.completed) {
+            continue;
+          }
+
+          debugPrint('🔍 DupCheck: existing booking.serviceId="${booking.serviceId}" date=${booking.bookingDate} status=${booking.status}');
+
+          // Check if same service and same date
+          if (booking.serviceId == cartItem.service.id) {
+            // Compare dates (ignoring time)
+            final bookingDate = DateTime(
+              booking.bookingDate.year,
+              booking.bookingDate.month,
+              booking.bookingDate.day,
+            );
+            final newBookingDate = DateTime(
+              cartDate.year,
+              cartDate.month,
+              cartDate.day,
+            );
+
+            if (bookingDate == newBookingDate) {
+              duplicates.add({
+                'cart_item_name': cartItem.service.name, // The item in cart
+                'service_name': booking.serviceName, // The existing booking
+                'booking_date': DateFormat('dd/MM/yyyy', 'ar').format(booking.bookingDate),
+                'time_slot': booking.timeSlot,
+                'status': booking.status.name,
+                'source': 'existing_booking',
+              });
+            }
+          }
+        }
+      }
+
+      return duplicates;
+    } catch (e) {
+      debugPrint('Error checking for duplicate bookings: $e');
+      return [];
+    }
+  }
+
+  /// Show duplicate booking warning dialog
+  Future<bool> _showDuplicateWarningDialog(List<Map<String, dynamic>> duplicates) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Directionality(
+        textDirection: ui.TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              const SizedBox(width: 8),
+              const Text(
+                'تحذير: حجز مكرر',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'لديك حجز سابق لنفس الخدمة في نفس التاريخ:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...duplicates.map((duplicate) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.event, size: 18, color: Colors.orange),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            duplicate['service_name'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '📅 ${duplicate['booking_date']} - ${duplicate['time_slot'] == 'morning' ? 'صباحاً' : 'مساءً'}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    Text(
+                      '📌 الحالة: ${_getStatusText(duplicate['status'])}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              const SizedBox(height: 12),
+              const Text(
+                'هل تريد المتابعة بالحجز المكرر؟',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // Don't proceed
+              },
+              child: const Text(
+                'إلغاء',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // Don't proceed
+                // Navigate to bookings
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const UserNavigationWrapper(initialIndex: 2),
+                  ),
+                  (route) => false,
+                );
+              },
+              child: const Text(
+                'عرض حجوزاتي',
+                style: TextStyle(
+                  color: Color(0xFFD4AF37),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(true); // Proceed anyway
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'متابعة الحجز',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return result ?? false;
+  }
+
+  /// Get Arabic text for booking status
+  String _getStatusText(String? status) {
+    switch (status) {
+      case 'pending':
+        return 'قيد الانتظار';
+      case 'confirmed':
+        return 'مؤكد';
+      case 'completed':
+        return 'مكتمل';
+      case 'cancelled':
+        return 'ملغي';
+      default:
+        return status ?? '';
+    }
+  }
+
   /// Handle cash on delivery payment (original flow)
   Future<void> _handleCashPayment() async {
+    // Check for duplicate bookings first
+    final duplicates = await _checkForDuplicateBookings();
+    if (!mounted) return;
+
+    if (duplicates.isNotEmpty) {
+      final shouldProceed = await _showDuplicateWarningDialog(duplicates);
+      if (!shouldProceed) {
+        return; // User cancelled
+      }
+    }
+    if (!mounted) return;
+
     // Show loading dialog
     showDialog(
       context: context,
@@ -1812,6 +2124,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           'guest_count': 1, // Always 1
           'event_location': eventLocation,
           'payment_method': 'cash', // Only cash for now
+          'status': 'pending', // New bookings should be pending for provider review
         };
 
         // Only add optional fields if they have values
@@ -1854,31 +2167,28 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
 
       // Set wedding date if user booked a venue
       // This triggers the countdown timer to appear on home screen
+      // Check for venue booking - venues are identified by having a timeSlot (morning/evening)
       final venueBooking = widget.cartItems.firstWhere(
-        (item) =>
-            item.service.category == '2' || // Category ID 2 is venues
-            item.service.category.toLowerCase() == 'venue' ||
-            item.service.category.toLowerCase() == 'venues' ||
-            item.service.category == 'قاعات الأفراح',
-        orElse: () => widget.cartItems.first, // fallback (shouldn't happen)
+        (item) => item.timeSlot.isNotEmpty, // Only venues have morning/evening timeSlots
+        orElse: () => widget.cartItems.first,
       );
 
-      // Check if we actually found a venue booking
-      final isVenueBooking =
-          venueBooking.service.category == '2' ||
-          venueBooking.service.category.toLowerCase() == 'venue' ||
-          venueBooking.service.category.toLowerCase() == 'venues' ||
-          venueBooking.service.category == 'قاعات الأفراح';
+      final isVenueBooking = venueBooking.timeSlot.isNotEmpty;
+
+      debugPrint('🔍 CASH: Venue detection - isVenueBooking=$isVenueBooking, timeSlot="${venueBooking.timeSlot}"');
 
       if (isVenueBooking && mounted) {
         final weddingDate = _parseBookingDate(venueBooking.date);
         final authRepository = getIt<AuthRepository>();
 
+        debugPrint('🎯 VENUE BOOKING DETECTED (timeSlot: ${venueBooking.timeSlot}) - Setting wedding date to: $weddingDate');
         try {
-          await authRepository.setWeddingDate(weddingDate);
+          final result = await authRepository.setWeddingDate(weddingDate);
           debugPrint('✅ Wedding date set successfully: $weddingDate');
-        } catch (e) {
-          debugPrint('⚠️ Failed to set wedding date: $e');
+          debugPrint('✅ Server response: $result');
+        } catch (e, stackTrace) {
+          debugPrint('❌ FAILED to set wedding date: $e');
+          debugPrint('❌ Stack trace: $stackTrace');
           // Don't fail the whole booking if setting wedding date fails
         }
       }
@@ -2005,15 +2315,22 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                     // Navigate to home
                     Navigator.of(context).popUntil((route) => route.isFirst);
 
-                    // Refresh HomeBloc to fetch updated countdown (if venue was booked)
+                    // Get auth state and HomeBloc before async gap
                     final authState = context.read<AuthBloc>().state;
+                    final homeBloc = context.read<HomeBloc>();
                     String? userId;
                     if (authState is AuthAuthenticated) {
                       userId = authState.user.id;
                     }
-                    context.read<HomeBloc>().add(
-                      HomeServicesRequested(userId: userId),
-                    );
+
+                    // Refresh HomeBloc with 2-second delay to ensure backend processed wedding date
+                    // Backend needs time to save the date before we fetch it again
+                    Future.delayed(const Duration(milliseconds: 2000), () {
+                      if (mounted) {
+                        debugPrint('🔄 Triggering home refresh after booking...');
+                        homeBloc.add(HomeServicesRequested(userId: userId));
+                      }
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD4AF37),
@@ -2178,11 +2495,53 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
       switch (statusCode) {
         case 409:
           // Conflict - date/time already booked
+          // Extract conflicting booking details from API response
+          String? conflictingServiceName;
+          String? conflictingDate;
+
+          if (error.data != null) {
+            final data = error.data is Map ? error.data as Map<String, dynamic> : null;
+            if (data != null) {
+              final conflictingBooking = data['conflicting_booking'] ?? data['conflict'];
+              if (conflictingBooking != null && conflictingBooking is Map) {
+                conflictingServiceName = conflictingBooking['service_name'] ?? conflictingBooking['serviceName'];
+                conflictingDate = conflictingBooking['booking_date'] ?? conflictingBooking['bookingDate'];
+              }
+            }
+          }
+
           title = 'الموعد محجوز';
-          message = 'هذا الموعد محجوز بالفعل. يرجى اختيار موعد آخر.';
+
+          // Build detailed message if we have conflicting booking info
+          if (conflictingServiceName != null && conflictingDate != null) {
+            final formattedDate = _formatConflictDate(conflictingDate);
+            message = 'لديك حجز آخر في نفس التاريخ:\n\n'
+                      '📅 الخدمة: $conflictingServiceName\n'
+                      '🗓️ التاريخ: $formattedDate\n\n'
+                      'يرجى اختيار موعد آخر أو إلغاء الحجز السابق.';
+          } else {
+            message = 'هذا الموعد محجوز بالفعل. يرجى اختيار موعد آخر.';
+          }
+
           icon = Icons.event_busy;
           iconColor = Colors.orange;
           actions = [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                // Navigate to user bookings screen
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const UserNavigationWrapper(initialIndex: 2), // Bookings tab
+                  ),
+                  (route) => false,
+                );
+              },
+              child: const Text(
+                'عرض حجوزاتي',
+                style: TextStyle(color: Color(0xFFD4AF37)),
+              ),
+            ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog

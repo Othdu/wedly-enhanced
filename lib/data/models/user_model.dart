@@ -11,6 +11,7 @@ class UserModel extends Equatable {
   final String? phone; // Phone number field
   final String? city; // City field
   final DateTime? weddingDate; // Wedding date field
+  final String? eventName; // Custom event name field
 
   const UserModel({
     required this.id,
@@ -22,10 +23,11 @@ class UserModel extends Equatable {
     this.phone,
     this.city,
     this.weddingDate,
+    this.eventName,
   });
 
   @override
-  List<Object?> get props => [id, email, name, role, gender, profileImageUrl, phone, city, weddingDate];
+  List<Object?> get props => [id, email, name, role, gender, profileImageUrl, phone, city, weddingDate, eventName];
 
   UserModel copyWith({
     String? id,
@@ -37,6 +39,7 @@ class UserModel extends Equatable {
     String? phone,
     String? city,
     DateTime? weddingDate,
+    String? eventName,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -48,6 +51,7 @@ class UserModel extends Equatable {
       phone: phone ?? this.phone,
       city: city ?? this.city,
       weddingDate: weddingDate ?? this.weddingDate,
+      eventName: eventName ?? this.eventName,
     );
   }
 
@@ -67,6 +71,7 @@ class UserModel extends Equatable {
       weddingDate: json['wedding_date'] != null
           ? DateTime.parse(json['wedding_date'] as String)
           : null,
+      eventName: json['event_name'] as String?,
     );
   }
 
@@ -81,6 +86,7 @@ class UserModel extends Equatable {
       'phone': phone,
       'city': city,
       'wedding_date': weddingDate?.toIso8601String(),
+      'event_name': eventName,
     };
   }
 

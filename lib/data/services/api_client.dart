@@ -500,6 +500,7 @@ class ApiClient {
           return ClientException(
             message: message,
             statusCode: statusCode,
+            data: response?.data,
           );
         } else if (statusCode >= 500) {
           return ServerException(

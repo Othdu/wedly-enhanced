@@ -44,6 +44,16 @@ class BookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen width for responsive sizing
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scaleFactor = (screenWidth / 375).clamp(0.9, 1.4);
+
+    // Responsive font sizes with minimum values
+    final titleFontSize = (17 * scaleFactor).clamp(15.0, 20.0);
+    final detailFontSize = (16 * scaleFactor).clamp(14.0, 19.0);
+    final badgeFontSize = (15 * scaleFactor).clamp(14.0, 18.0);
+    final buttonFontSize = (17 * scaleFactor).clamp(15.0, 20.0);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
@@ -94,8 +104,8 @@ class BookingCard extends StatelessWidget {
                     ),
                     child: Text(
                       '-${booking.discountPercentage!.toInt()}%',
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontSize: badgeFontSize,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
@@ -116,8 +126,8 @@ class BookingCard extends StatelessWidget {
                   textDirection: ui.TextDirection.rtl,
                   textAlign: TextAlign.left,
                   text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 15,
+                    style: TextStyle(
+                      fontSize: titleFontSize,
                       fontWeight: FontWeight.w600,
                       color: AppColors.gold,
                     ),
@@ -132,8 +142,8 @@ class BookingCard extends StatelessWidget {
                 // Date and Time
                 Text(
                   'التاريخ: ${_formatDate(booking.bookingDate)}',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: detailFontSize,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
@@ -145,8 +155,8 @@ class BookingCard extends StatelessWidget {
                 // Service Name
                 Text(
                   'نوع الخدمة: ${booking.serviceName}',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: detailFontSize,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
@@ -158,8 +168,8 @@ class BookingCard extends StatelessWidget {
                 // Price
                 Text(
                   'السعر: ${_formatNumber(booking.totalAmount)} جنيه',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: detailFontSize,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
@@ -182,10 +192,10 @@ class BookingCard extends StatelessWidget {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
+                    child: Text(
                       'عرض التفاصيل',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: buttonFontSize,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
