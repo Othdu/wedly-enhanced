@@ -84,7 +84,7 @@ flutter doctor
 
 # Option B: From GitHub
 cd ~/Desktop
-git clone YOUR_GITHUB_URL wedly-enhanced
+git clone https://github.com/Othdu/wedly-enhanced
 cd wedly-enhanced
 ```
 
@@ -104,13 +104,13 @@ open ios/Runner.xcworkspace
 3. Click **+** → Add Apple ID
 4. Sign in with your Apple Developer account
 
-#### Step 7: Configure Signing (MOST IMPORTANT)
+#---------------------------------------------### Step 7: Configure Signing (MOST IMPORTANT)
 1. In Xcode, select **Runner** (blue icon) in left sidebar
 2. Select **Runner** target under TARGETS
 3. Go to **Signing & Capabilities** tab
 4. Check **"Automatically manage signing"**
 5. Select your Team from dropdown
-6. Change **Bundle Identifier** to your chosen ID (e.g., `com.wedly.app`)
+6. Change **Bundle Identifier** to your chosen ID (e.g., `com.wedly.wedding`)
 7. Wait for "Signing Certificate" to appear (green checkmark)
 
 ⚠️ **Common Issues**:
