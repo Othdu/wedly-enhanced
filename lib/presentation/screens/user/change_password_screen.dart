@@ -224,9 +224,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             ),
           ),
         ),
-        body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -383,6 +386,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
         ),
       ),
+    ),
     ),
     );
   }

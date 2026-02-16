@@ -370,6 +370,10 @@ class _UserAddressScreenContent extends StatelessWidget {
                 controller: controller,
                 textDirection: TextDirection.rtl,
                 textAlign: TextAlign.right,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) {
+                  FocusScope.of(dialogContext).unfocus();
+                },
                 decoration: InputDecoration(
                   hintText: 'مثال: عمارة 12 - الدور الثالث',
                   hintTextDirection: TextDirection.rtl,

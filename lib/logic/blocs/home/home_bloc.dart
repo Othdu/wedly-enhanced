@@ -65,7 +65,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final categoriesWithDetails = (results[0] as List).cast<CategoryModel>();
       final services = (results[1] as List).cast<ServiceModel>();
       final categories = (results[2] as List).cast<String>();
-      final offers = (results[3] as List).cast<OfferModel>();
+      final rawOffers = (results[3] as List).cast<OfferModel>();
       final countdown = results[4] as CountdownModel?;
       const HomeLayoutModel? layout = null; // Endpoint doesn't exist
 
@@ -77,10 +77,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         return;
       }
 
+      // Filter out stale offers: cross-reference with services to remove
+      // offers whose service has discount_percentage=0 or has_offer=false
+      final offers = _filterActiveOffers(rawOffers, services);
+
       debugPrint('📊 HomeBloc Data Loaded:');
       debugPrint('   CategoriesWithDetails: ${categoriesWithDetails.length}');
       debugPrint('   Services: ${services.length}');
-      debugPrint('   Offers: ${offers.length}');
+      debugPrint('   Offers: ${rawOffers.length} raw → ${offers.length} active');
       debugPrint('   Countdown: ${countdown != null ? "Loaded (${countdown.weddingDate})" : "None"}');
 
       emit(HomeLoaded(
@@ -156,11 +160,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final categoriesWithDetails = (results[0] as List).cast<CategoryModel>();
       final services = (results[1] as List).cast<ServiceModel>();
       final categories = (results[2] as List).cast<String>();
-      final offers = (results[3] as List).cast<OfferModel>();
+      final rawOffers = (results[3] as List).cast<OfferModel>();
       final countdown = results[4] as CountdownModel?;
       final layout = currentState?.layout; // Keep existing layout
 
-      debugPrint('🔄 HomeBloc: Silent refresh completed - ${categoriesWithDetails.length} categories');
+      // Filter out stale offers
+      final offers = _filterActiveOffers(rawOffers, services);
+
+      debugPrint('🔄 HomeBloc: Silent refresh completed - ${categoriesWithDetails.length} categories, ${offers.length} active offers');
 
       emit(HomeLoaded(
         services: services,
@@ -240,6 +247,45 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       debugPrint('❌ Failed to calculate countdown from bookings: $e');
       return null;
     }
+  }
+
+  /// Filter out stale offers by cross-referencing with actual service data.
+  /// The offers API may still return offers for services that had their
+  /// discount removed (discount_percentage set to 0).
+  List<OfferModel> _filterActiveOffers(
+    List<OfferModel> offers,
+    List<ServiceModel> services,
+  ) {
+    // Build a lookup of services by ID
+    final serviceMap = <String, ServiceModel>{};
+    for (final service in services) {
+      serviceMap[service.id] = service;
+    }
+
+    return offers.where((offer) {
+      // Check 1: Offer's own validity (expiry, prices)
+      if (!offer.isValid) {
+        debugPrint('🚫 Filtering out invalid offer: ${offer.titleAr}');
+        return false;
+      }
+
+      // Check 2: Cross-reference with service data
+      if (offer.serviceId != null) {
+        final service = serviceMap[offer.serviceId];
+        if (service != null && !service.hasApprovedOffer) {
+          debugPrint('🚫 Filtering out offer "${offer.titleAr}" - service ${offer.serviceId} has no active discount');
+          return false;
+        }
+      }
+
+      // Check 3: If offer has no discount (originalPrice == discountedPrice or both 0)
+      if (offer.originalPrice > 0 && offer.discountedPrice >= offer.originalPrice) {
+        debugPrint('🚫 Filtering out offer "${offer.titleAr}" - no actual discount');
+        return false;
+      }
+
+      return true;
+    }).toList();
   }
 }
 

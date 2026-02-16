@@ -9,6 +9,7 @@ import '../../../logic/blocs/provider_service/provider_service_state.dart';
 import '../../../routes/app_router.dart';
 import '../../widgets/provider_service_card.dart';
 import '../../widgets/error_view.dart';
+import '../../widgets/skeleton_loading.dart';
 
 class ProviderServicesScreen extends StatefulWidget {
   const ProviderServicesScreen({super.key});
@@ -111,9 +112,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
         },
         builder: (context, state) {
           if (state is ProviderServiceLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
-            );
+            return SkeletonLoading.providerServicesGrid();
           }
 
           if (state is ProviderServiceError) {
@@ -274,7 +273,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
-                              childAspectRatio: 0.68,
+                              childAspectRatio: 0.78,
                               crossAxisSpacing: 12,
                               mainAxisSpacing: 12,
                             ),

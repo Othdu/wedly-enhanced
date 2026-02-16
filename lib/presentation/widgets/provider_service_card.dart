@@ -89,7 +89,6 @@ class ProviderServiceCard extends StatelessWidget {
         children: [
           // Service Image with Status Badges
           Expanded(
-            flex: 6,
             child: Stack(
               children: [
                 SkeletonImage(
@@ -198,121 +197,116 @@ class ProviderServiceCard extends StatelessWidget {
           ),
 
           // Service Info Section
-          Expanded(
-            flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Service Name - Centered, 2 lines max, flexible
-                  Flexible(
-                    child: Text(
-                      service.name,
-                      style: TextStyle(
-                        fontSize: nameFontSize,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                        height: 1.3,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Service Name
+                Text(
+                  service.name,
+                  style: TextStyle(
+                    fontSize: nameFontSize,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    height: 1.3,
                   ),
-                  const SizedBox(height: 6),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
 
-                  // Rating and Price Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Price on the right (shows morning/evening for venues, regular price for others)
+                // Rating and Price Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Price
+                    Flexible(
+                      child: Text(
+                        _priceDisplayText,
+                        style: TextStyle(
+                          fontSize: priceFontSize,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black54,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Rating
+                    if (service.rating != null && service.rating! > 0)
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              service.rating!.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: ratingFontSize,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.star,
+                              color: AppColors.gold,
+                              size: starIconSize,
+                            ),
+                            if (service.reviewCount != null)
+                              Flexible(
+                                child: Text(
+                                  ' (${service.reviewCount})',
+                                  style: TextStyle(
+                                    fontSize: reviewFontSize,
+                                    color: Colors.black54,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                        ),
+                      )
+                    else
                       Flexible(
                         child: Text(
-                          _priceDisplayText,
-                          style: TextStyle(
-                            fontSize: priceFontSize,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black54,
-                          ),
+                          'لا توجد تقييمات',
+                          style: TextStyle(fontSize: priceFontSize, color: Colors.black38),
                           overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Rating on the left (only show if rating exists)
-                      if (service.rating != null && service.rating! > 0)
-                        Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                service.rating!.toStringAsFixed(1),
-                                style: TextStyle(
-                                  fontSize: ratingFontSize,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.star,
-                                color: AppColors.gold,
-                                size: starIconSize,
-                              ),
-                              if (service.reviewCount != null)
-                                Flexible(
-                                  child: Text(
-                                    ' (${service.reviewCount})',
-                                    style: TextStyle(
-                                      fontSize: reviewFontSize,
-                                      color: Colors.black54,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        )
-                      else
-                        Flexible(
-                          child: Text(
-                            'لا توجد تقييمات',
-                            style: TextStyle(fontSize: priceFontSize, color: Colors.black38),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
-                  ),
+                  ],
+                ),
 
-                  const SizedBox(height: 6),
+                const SizedBox(height: 6),
 
-                  // Edit Button - Golden, Full Width
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: onEdit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.gold,
-                        foregroundColor: AppColors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
+                // Edit Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onEdit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: AppColors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
                       ),
-                      child: Text(
-                        'تعديل',
-                        style: TextStyle(
-                          fontSize: buttonFontSize,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    ),
+                    child: Text(
+                      'تعديل',
+                      style: TextStyle(
+                        fontSize: buttonFontSize,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

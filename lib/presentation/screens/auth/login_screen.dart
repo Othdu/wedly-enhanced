@@ -96,8 +96,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  behavior: HitTestBehavior.opaque,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Builder(
                     builder: (context) {
                       // Responsive font sizes
@@ -180,6 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               // Username Field
                               TextFormField(
                                 controller: _usernameController,
+                                textInputAction: TextInputAction.next,
                                 decoration: InputDecoration(
                                   hintText: 'اسم المستخدم او البريد الالكتروني',
                                   hintTextDirection: TextDirection.rtl,
@@ -229,6 +233,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               // Password Field
                               TextFormField(
                                 controller: _passwordController,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) {
+                                  FocusScope.of(context).unfocus();
+                                  if (!isLoading) _handleLogin(context);
+                                },
                                 decoration: InputDecoration(
                                   hintText: 'كلمة المرور',
                                   hintTextDirection: TextDirection.rtl,
@@ -416,7 +425,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                 ),
-              ),
+              ), // GestureDetector
+            ), // SafeArea
             ],
           );
         },

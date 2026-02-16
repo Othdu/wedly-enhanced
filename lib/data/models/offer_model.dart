@@ -39,10 +39,15 @@ class OfferModel extends Equatable {
     this.reviewCount = 200,
   });
 
-  /// Check if offer is still valid
+  /// Check if offer is still valid (not expired and has an actual discount)
   bool get isValid {
-    if (expiryDate == null) return true;
-    return DateTime.now().isBefore(expiryDate!);
+    // Expired offers are invalid
+    if (expiryDate != null && DateTime.now().isAfter(expiryDate!)) return false;
+    // 0% or no discount means the offer was removed/disabled
+    if (originalPrice > 0 && discountedPrice >= originalPrice) return false;
+    if (discountedPrice <= 0 && originalPrice <= 0) return false;
+    if (discount == '0%' || discount == '-0%' || discount == '0' || discount == '%0') return false;
+    return true;
   }
 
   /// Convert offer to a ServiceModel for booking screens that don't support offers yet

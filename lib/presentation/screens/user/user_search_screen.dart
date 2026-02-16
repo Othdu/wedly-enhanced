@@ -76,8 +76,11 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
         textDirection: TextDirection.rtl,
         child: Scaffold(
           backgroundColor: const Color(0xFFF5F5F5),
-          body: SafeArea(
-            child: Column(
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: SafeArea(
+              child: Column(
               children: [
                 // شريط البحث
                 Container(
@@ -88,6 +91,8 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                       return TextField(
                         controller: _searchController,
                         focusNode: _searchFocusNode,
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (_) => FocusScope.of(context).unfocus(),
                         // تمت إزالة textAlign: TextAlign.right لأن Directionality تتكفل بها
                         style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
@@ -365,7 +370,8 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 ),
               ],
             ),
-          ),
+          ), // SafeArea
+        ), // GestureDetector
         ),
       ),
     );

@@ -17,7 +17,7 @@ class OfferRepository {
   Future<List<OfferModel>> getOffers() async {
     if (apiClient == null) {
       debugPrint('⚠️ OfferRepository: No API client available');
-      return [];
+      throw Exception('لا يوجد اتصال بالخادم');
     }
 
     try {
@@ -33,8 +33,8 @@ class OfferRepository {
       debugPrint('📦 OfferRepository: Fetched ${offers.length} offers from API');
       return offers;
     } catch (e) {
-      debugPrint('⚠️ OfferRepository Error in getOffers: $e');
-      return [];
+      debugPrint('❌ OfferRepository Error in getOffers: $e');
+      rethrow; // Let error propagate to UI for proper error handling
     }
   }
 
@@ -42,7 +42,7 @@ class OfferRepository {
   Future<OfferModel?> getOfferById(String offerId) async {
     if (apiClient == null) {
       debugPrint('⚠️ OfferRepository: No API client available');
-      return null;
+      throw Exception('لا يوجد اتصال بالخادم');
     }
 
     try {
@@ -51,8 +51,8 @@ class OfferRepository {
       final offerData = responseData['offer'] ?? responseData;
       return OfferModel.fromJson(offerData);
     } catch (e) {
-      debugPrint('⚠️ OfferRepository Error in getOfferById: $e');
-      return null;
+      debugPrint('❌ OfferRepository Error in getOfferById: $e');
+      rethrow; // Let error propagate to UI for proper error handling
     }
   }
 
@@ -60,7 +60,7 @@ class OfferRepository {
   Future<List<OfferModel>> getOffersByProvider(String providerId) async {
     if (apiClient == null) {
       debugPrint('⚠️ OfferRepository: No API client available');
-      return [];
+      throw Exception('لا يوجد اتصال بالخادم');
     }
 
     try {
@@ -75,8 +75,8 @@ class OfferRepository {
           .where((offer) => offer.isValid)
           .toList();
     } catch (e) {
-      debugPrint('⚠️ OfferRepository Error in getOffersByProvider: $e');
-      return [];
+      debugPrint('❌ OfferRepository Error in getOffersByProvider: $e');
+      rethrow; // Let error propagate to UI for proper error handling
     }
   }
 
@@ -84,7 +84,7 @@ class OfferRepository {
   Future<List<OfferModel>> getOffersByServiceType(String serviceType) async {
     if (apiClient == null) {
       debugPrint('⚠️ OfferRepository: No API client available');
-      return [];
+      throw Exception('لا يوجد اتصال بالخادم');
     }
 
     try {
@@ -94,8 +94,8 @@ class OfferRepository {
           .where((offer) => offer.serviceType == serviceType && offer.isValid)
           .toList();
     } catch (e) {
-      debugPrint('⚠️ OfferRepository Error in getOffersByServiceType: $e');
-      return [];
+      debugPrint('❌ OfferRepository Error in getOffersByServiceType: $e');
+      rethrow; // Let error propagate to UI for proper error handling
     }
   }
 }

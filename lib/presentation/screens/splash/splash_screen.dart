@@ -405,8 +405,12 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget _buildBottomProgress() {
+    // Account for safe area (home indicator on iPhone X+)
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+    final bottomOffset = math.max(60.0, bottomPadding + 20);
+
     return Positioned(
-      bottom: 60,
+      bottom: bottomOffset,
       left: 0,
       right: 0,
       child: FadeTransition(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
@@ -9,10 +10,21 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 /// Service for handling social authentication (Google & Apple)
 /// This service works with native SDKs and sends tokens to backend
 class SocialAuthService {
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
+  // TODO: Replace with your actual iOS client ID from Google Cloud Console
+  // Go to: https://console.cloud.google.com/ > APIs & Credentials > Create OAuth Client ID (iOS)
+  // Bundle ID: com.wedly.wedding
+  static const String _iosClientId =
+      'YOUR_IOS_CLIENT_ID_HERE.apps.googleusercontent.com';
+
+  // Server client ID for backend verification (to get idToken)
+  static const String _serverClientId =
+      '258355634687-t6lurbfodd4jg3dsipdgtsj06a0glkq2.apps.googleusercontent.com';
+
+  late final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
-    // Server client ID for backend verification
-    serverClientId: '258355634687-t6lurbfodd4jg3dsipdgtsj06a0glkq2.apps.googleusercontent.com',
+    // iOS needs an explicit clientId; Android gets it from google-services.json
+    clientId: Platform.isIOS ? _iosClientId : null,
+    serverClientId: _serverClientId,
   );
 
   /// Sign in with Google using native Google Sign-In

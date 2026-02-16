@@ -21,6 +21,7 @@ class ApiConstants {
   static const String logout = '/api/auth/logout';
   static const String getCurrentUser = '/api/auth/me';
   static const String googleLogin = '/api/auth/google-login';
+  static const String appleLogin = '/api/auth/apple-login';
   static const String socialLogin = '/api/auth/google-login'; // Kept for backward compatibility
   static const String deleteAccount = '/api/auth/delete-account'; // DELETE - Request account deletion
 

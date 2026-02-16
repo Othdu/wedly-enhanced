@@ -323,9 +323,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
+                child: GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  behavior: HitTestBehavior.opaque,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 40),
@@ -398,6 +401,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               // Full Name Field
                               TextFormField(
                                 controller: _nameController,
+                                textInputAction: TextInputAction.next,
                                 decoration: InputDecoration(
                                   hintText: 'الأسم بالكامل',
                                   hintTextDirection: TextDirection.rtl,
@@ -447,6 +451,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               // Email Field
                               TextFormField(
                                 controller: _emailController,
+                                textInputAction: TextInputAction.next,
                                 decoration: InputDecoration(
                                   hintText: 'البريد الالكتروني',
                                   hintTextDirection: TextDirection.rtl,
@@ -500,6 +505,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               // Phone Field
                               TextFormField(
   controller: _phoneController,
+  textInputAction: TextInputAction.next,
   decoration: InputDecoration(
     hintText: 'رقم الهاتف',
     hintTextDirection: TextDirection.rtl,
@@ -554,6 +560,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               // City Field
                               TextFormField(
                                 controller: _cityController,
+                                textInputAction: TextInputAction.next,
                                 decoration: InputDecoration(
                                   hintText: 'المدينة',
                                   hintTextDirection: TextDirection.rtl,
@@ -603,6 +610,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               // Password Field
                               TextFormField(
                                 controller: _passwordController,
+                                textInputAction: TextInputAction.next,
                                 decoration: InputDecoration(
                                   hintText: 'كلمة المرور',
                                   hintTextDirection: TextDirection.rtl,
@@ -668,6 +676,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               // Confirm Password Field
                               TextFormField(
                                 controller: _confirmPasswordController,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) {
+                                  FocusScope.of(context).unfocus();
+                                },
                                 decoration: InputDecoration(
                                   hintText: 'تأكيد كلمة المرور',
                                   hintTextDirection: TextDirection.rtl,
@@ -850,7 +862,8 @@ Row(
                     ],
                   ),
                 ),
-              ),
+              ), // GestureDetector
+            ), // SafeArea
             ],
           );
         },

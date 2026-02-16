@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../core/di/injection_container.dart';
 import '../../../data/models/service_model.dart';
+import '../../../data/repositories/offer_repository.dart';
+import '../../../data/repositories/service_repository.dart';
 import '../../../logic/blocs/provider_service/provider_service_bloc.dart';
 import '../../../logic/blocs/provider_service/provider_service_event.dart';
 import '../../widgets/skeleton_image.dart';
@@ -48,16 +51,46 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
     _eveningPriceController.text = widget.service.eveningPrice?.toString() ?? '';
 
     // Pre-fill offer data
-    _hasOffer = widget.service.hasOffer;
+    // Only show offer as active if there's actually a discount > 0
+    _hasOffer = widget.service.hasOffer && (widget.service.discountPercentage ?? 0) > 0;
     _discountController.text =
-        widget.service.discountPercentage?.toString() ?? '';
+        (widget.service.discountPercentage != null && widget.service.discountPercentage! > 0)
+            ? widget.service.discountPercentage.toString()
+            : '';
     _offerExpiryDate = widget.service.offerExpiryDate;
+
+    // If offer is active but expiry date is missing, fetch it from offers API
+    if (_hasOffer && _offerExpiryDate == null) {
+      _loadOfferExpiryDate();
+    }
 
     // Initialize location from service data (default to Cairo if not set)
     _pickedLocation = LatLng(
       widget.service.latitude ?? 30.0444,
       widget.service.longitude ?? 31.2357,
     );
+  }
+
+  /// Fetch the offer expiry date from the offers API
+  Future<void> _loadOfferExpiryDate() async {
+    try {
+      final offerRepository = getIt<OfferRepository>();
+      final offers = await offerRepository.getOffers();
+      for (final offer in offers) {
+        if (offer.serviceId == widget.service.id && offer.expiryDate != null) {
+          if (mounted) {
+            setState(() {
+              _offerExpiryDate = offer.expiryDate;
+            });
+          }
+          debugPrint('📅 Loaded offer expiry date from offers API: ${offer.expiryDate}');
+          return;
+        }
+      }
+      debugPrint('📅 No matching offer found with expiry date for service ${widget.service.id}');
+    } catch (e) {
+      debugPrint('⚠️ Could not load offer expiry date: $e');
+    }
   }
 
   @override
@@ -927,7 +960,7 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
 
       if (!mounted) return;
 
-      // Create updated service model with new data
+      // Create updated service model with new data (offers handled separately via API)
       final updatedService = widget.service.copyWith(
         price: double.tryParse(_priceController.text),
         morningPrice: _morningPriceController.text.isNotEmpty
@@ -942,18 +975,40 @@ class _ProviderEditServiceScreenState extends State<ProviderEditServiceScreen> {
         latitude: widget.service.chairCount != null ? _pickedLocation.latitude : null,
         longitude: widget.service.chairCount != null ? _pickedLocation.longitude : null,
         hasOffer: _hasOffer,
-        discountPercentage: _hasOffer && _discountController.text.isNotEmpty
-            ? double.tryParse(_discountController.text)
-            : null,
-        offerExpiryDate: _hasOffer ? _offerExpiryDate : null,
-        offerApproved: _hasOffer ? false : widget.service.offerApproved,
         isPendingApproval: false, // Updates are instant, no approval needed
       );
 
+      // Handle offer via separate API calls
+      final serviceRepository = getIt<ServiceRepository>();
+      if (_hasOffer && _discountController.text.isNotEmpty && _offerExpiryDate != null) {
+        // Submit/update offer
+        try {
+          await serviceRepository.submitServiceOffer(
+            serviceId: widget.service.id,
+            discountPercentage: double.parse(_discountController.text),
+            offerExpiryDate: _offerExpiryDate!,
+          );
+          debugPrint('✅ Offer submitted successfully for service ${widget.service.id}');
+        } catch (e) {
+          debugPrint('❌ Error submitting offer: $e');
+        }
+      } else if (!_hasOffer && widget.service.hasOffer) {
+        // Offer was turned OFF - remove it via API (sets discount to 0 AND deletes offer record)
+        try {
+          await serviceRepository.removeServiceOffer(widget.service.id);
+          debugPrint('✅ Offer removed for service ${widget.service.id}');
+        } catch (e) {
+          debugPrint('❌ Error removing offer: $e');
+        }
+      }
+
       // Dispatch UpdateService event to BLoC
-      context.read<ProviderServiceBloc>().add(UpdateService(updatedService));
+      if (mounted) {
+        context.read<ProviderServiceBloc>().add(UpdateService(updatedService));
+      }
 
       // Show success dialog
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,

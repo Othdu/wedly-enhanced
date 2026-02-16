@@ -169,8 +169,11 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
             _buildProgressIndicator(),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+              child: GestureDetector(
+                onTap: () => FocusScope.of(context).unfocus(),
+                behavior: HitTestBehavior.opaque,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     // Order Summary Header
@@ -297,7 +300,8 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                   ],
                 ),
               ),
-            ),
+            ), // GestureDetector
+            ), // Expanded
 
             _buildPayButton(),
           ],
@@ -721,6 +725,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                 controller: controller,
                 keyboardType: keyboardType,
                 textAlign: TextAlign.right,
+                textInputAction: TextInputAction.next,
                 style: const TextStyle(fontSize: 14, color: Colors.black),
                 decoration: InputDecoration(
                   isDense: true,
@@ -1093,6 +1098,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           controller: _notesController,
           maxLines: 2,
           textDirection: ui.TextDirection.rtl,
+          textInputAction: TextInputAction.next,
           decoration: InputDecoration(
             hintText: 'أضف أي ملاحظات هنا...',
             hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
@@ -1129,6 +1135,8 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           controller: _specialRequestsController,
           maxLines: 2,
           textDirection: ui.TextDirection.rtl,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => FocusScope.of(context).unfocus(),
           decoration: InputDecoration(
             hintText: 'أضف أي طلبات خاصة هنا...',
             hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),

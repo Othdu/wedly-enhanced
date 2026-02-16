@@ -11,13 +11,23 @@ import '../../../logic/blocs/booking/booking_bloc.dart';
 import '../../../logic/blocs/booking/booking_event.dart';
 import '../../../logic/blocs/booking/booking_state.dart';
 
-class ProviderBookingDetailsScreen extends StatelessWidget {
+class ProviderBookingDetailsScreen extends StatefulWidget {
   final BookingModel booking;
 
   const ProviderBookingDetailsScreen({
     super.key,
     required this.booking,
   });
+
+  @override
+  State<ProviderBookingDetailsScreen> createState() => _ProviderBookingDetailsScreenState();
+}
+
+class _ProviderBookingDetailsScreenState extends State<ProviderBookingDetailsScreen> {
+  bool _isLoading = false;
+  bool _isApproving = false; // Track which action is in progress
+
+  BookingModel get booking => widget.booking;
 
   String _formatDate(DateTime date) {
     // Format date in Arabic
@@ -37,12 +47,10 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
     return formatter.format(number);
   }
 
-  void _showConfirmDialog(BuildContext context, bool isApproval) {
-    // Capture the bloc reference before showing dialog to avoid accessing deactivated widget
-    final bookingBloc = context.read<BookingBloc>();
-
+  void _showSuccessDialog(BuildContext context, bool isApproval) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) => Directionality(
         textDirection: ui.TextDirection.rtl,
         child: Dialog(
@@ -54,8 +62,14 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Icon(
+                  isApproval ? Icons.check_circle : Icons.cancel,
+                  color: isApproval ? Colors.green : Colors.red,
+                  size: 60,
+                ),
+                const SizedBox(height: 16),
                 Text(
-                  isApproval ? 'تم تأكيد الحجز بنجاح!' : 'هل أنت متأكد من رفض الحجز؟',
+                  isApproval ? 'تم تأكيد الحجز بنجاح!' : 'تم رفض الحجز',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -63,9 +77,7 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-              const SizedBox(height: 24),
-              if (isApproval)
-                // Success button - only show for approval
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -90,76 +102,23 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                )
-              else
-                // Reject confirmation buttons
-                Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Confirm rejection
-                          Navigator.of(dialogContext).pop();
-                          bookingBloc.add(
-                            UpdateBookingStatus(
-                              booking.id,
-                              BookingStatus.cancelled,
-                            ),
-                          );
-                          Navigator.of(context).pop(true); // Go back and signal refresh
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.gold,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'نعم',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.gold,
-                          side: const BorderSide(color: AppColors.gold, width: 2),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: const Text(
-                          'لا',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 
   void _handleApproval(BuildContext context) {
+    if (_isLoading) return; // Prevent double-tap
+
+    setState(() {
+      _isLoading = true;
+      _isApproving = true;
+    });
+
     // Endpoint: PUT /api/bookings/{bookingId}/approve
     // Body: { "status": "confirmed" }
     context.read<BookingBloc>().add(
@@ -168,10 +127,22 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
             BookingStatus.confirmed,
           ),
         );
-    _showConfirmDialog(context, true);
+    // Don't show dialog here - wait for BLoC response in listener
   }
 
   void _handleRejection(BuildContext context) {
+    if (_isLoading) return; // Prevent double-tap
+
+    // Show confirmation dialog first for rejection
+    _showRejectConfirmDialog(context);
+  }
+
+  void _confirmRejection(BuildContext context) {
+    setState(() {
+      _isLoading = true;
+      _isApproving = false;
+    });
+
     // Send rejection request to backend via BookingBloc
     // Endpoint: PUT /api/bookings/{bookingId}/reject
     // Body: { "status": "cancelled" }
@@ -181,7 +152,86 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
         BookingStatus.cancelled,
       ),
     );
-    _showConfirmDialog(context, false);
+    // Don't show dialog here - wait for BLoC response in listener
+  }
+
+  void _showRejectConfirmDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Directionality(
+        textDirection: ui.TextDirection.rtl,
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'هل أنت متأكد من رفض الحجز؟',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop(); // Close dialog
+                      _confirmRejection(context); // Now trigger the API call
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'نعم، رفض الحجز',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.gold,
+                      side: const BorderSide(color: AppColors.gold, width: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'لا',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
 
@@ -219,7 +269,14 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
         ),
         body: BlocListener<BookingBloc, BookingState>(
           listener: (context, state) {
-            if (state is BookingError) {
+            if (state is BookingStatusUpdated) {
+              // Reset loading state
+              setState(() => _isLoading = false);
+              // Show success dialog after API confirms
+              _showSuccessDialog(context, _isApproving);
+            } else if (state is BookingError) {
+              // Reset loading state
+              setState(() => _isLoading = false);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message),
@@ -293,23 +350,33 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () => _handleApproval(context),
+                          onPressed: _isLoading ? null : () => _handleApproval(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.gold,
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.6),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                             elevation: 2,
                           ),
-                          child: const Text(
-                            'تأكيد الحجز',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child: _isLoading && _isApproving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'تأكيد الحجز',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -318,22 +385,35 @@ class ProviderBookingDetailsScreen extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () => _handleRejection(context),
+                          onPressed: _isLoading ? null : () => _handleRejection(context),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red, width: 2),
+                            disabledForegroundColor: Colors.red.withValues(alpha: 0.6),
+                            side: BorderSide(
+                              color: _isLoading ? Colors.red.withValues(alpha: 0.6) : Colors.red,
+                              width: 2,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          child: const Text(
-                            'إلغاء الحجز',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child: _isLoading && !_isApproving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.red,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'إلغاء الحجز',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                       ),
                     ],

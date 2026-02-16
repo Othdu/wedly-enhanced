@@ -9,6 +9,7 @@ import '../../../logic/blocs/booking/booking_event.dart';
 import '../../../logic/blocs/booking/booking_state.dart';
 import '../../widgets/booking_card_new.dart';
 import '../../widgets/error_view.dart';
+import '../../widgets/skeleton_loading.dart';
 import 'provider_booking_details_screen.dart';
 import 'provider_confirmed_bookings_screen.dart';
 
@@ -190,11 +191,7 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen> {
                     },
                     builder: (context, state) {
                       if (state is BookingInitial || state is BookingLoading || state is BookingStatusUpdated) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.gold,
-                          ),
-                        );
+                        return SkeletonLoading.providerBookingsList();
                       }
 
                       if (state is BookingError) {

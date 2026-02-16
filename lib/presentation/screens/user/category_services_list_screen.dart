@@ -1264,6 +1264,8 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
         controller: controller,
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => FocusScope.of(context).unfocus(),
         style: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w600,

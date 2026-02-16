@@ -192,9 +192,16 @@ class ServiceRepository {
 
   /// Update an existing service
   Future<ServiceModel> updateService(ServiceModel service) async {
+    final data = service.toJson();
+    // Remove offer fields - managed separately via PATCH /api/offers/services/{serviceId}
+    data.remove('offer_expiry_date');
+    data.remove('discount_percentage');
+    data.remove('has_offer');
+    data.remove('offer_approved');
+
     final response = await _apiClient.put(
       ApiConstants.updateService(service.id),
-      data: service.toJson(),
+      data: data,
     );
     final responseData = response.data['data'] ?? response.data;
     return ServiceModel.fromJson(responseData['service'] ?? responseData);
@@ -208,7 +215,7 @@ class ServiceRepository {
 
   /// Toggle service active status
   Future<ServiceModel> toggleServiceStatus(String serviceId) async {
-    final response = await _apiClient.post(ApiConstants.toggleServiceStatus(serviceId));
+    final response = await _apiClient.patch(ApiConstants.toggleServiceStatus(serviceId));
     final responseData = response.data['data'] ?? response.data;
     return ServiceModel.fromJson(responseData['service'] ?? responseData);
   }
@@ -428,7 +435,7 @@ class ServiceRepository {
     required String serviceId,
     required String sectionId,
   }) async {
-    await _apiClient.delete(ApiConstants.updateDynamicSection(serviceId, sectionId));
+    await _apiClient.delete(ApiConstants.deleteDynamicSection(serviceId, sectionId));
     return true;
   }
 
@@ -519,6 +526,48 @@ class ServiceRepository {
     return response.data['data'] ?? response.data;
   }
 
+  /// Remove/disable an offer for a service
+  /// This both sets discount to 0 on the service AND deletes the offer record
+  /// from the offers table so it no longer appears in GET /api/offers
+  Future<void> removeServiceOffer(String serviceId) async {
+    // Step 1: Set discount to 0 and has_offer to false on the service
+    await _apiClient.patch(
+      ApiConstants.submitServiceOffer(serviceId),
+      data: {
+        'discount_percentage': 0,
+        'has_offer': false,
+      },
+    );
+
+    // Step 2: Find and DELETE the offer record from the offers table
+    // Without this, GET /api/offers still returns the stale offer
+    try {
+      final response = await _apiClient.get(ApiConstants.offers);
+      final responseData = response.data['data'] ?? response.data;
+      final offersList = responseData['offers'] ?? responseData;
+
+      if (offersList is List) {
+        for (final offer in offersList) {
+          final offerServiceId = offer['service_id']?.toString();
+          if (offerServiceId == serviceId) {
+            final offerId = offer['id']?.toString();
+            if (offerId != null && offerId.isNotEmpty) {
+              try {
+                await _apiClient.delete(ApiConstants.deleteOffer(offerId));
+                debugPrint('✅ Deleted offer $offerId for service $serviceId');
+              } catch (e) {
+                debugPrint('⚠️ Could not delete offer $offerId: $e');
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Could not fetch/delete offer records: $e');
+      // Don't rethrow - the main PATCH already succeeded
+    }
+  }
+
   /// Submit an offer for a service
   Future<ServiceModel?> submitServiceOffer({
     required String serviceId,
@@ -529,7 +578,7 @@ class ServiceRepository {
       ApiConstants.submitServiceOffer(serviceId),
       data: {
         'discount_percentage': discountPercentage,
-        'offer_expiry_date': offerExpiryDate.toIso8601String(),
+        'offer_expiry_date': offerExpiryDate.toUtc().toIso8601String(),
       },
     );
     final responseData = response.data['data'] ?? response.data;

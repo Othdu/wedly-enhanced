@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../data/models/service_model.dart';
 import '../../../data/repositories/category_repository.dart';
+import '../../../data/repositories/offer_repository.dart';
 import '../../../data/repositories/service_repository.dart';
 import '../../../logic/blocs/provider_service/provider_service_bloc.dart';
 import '../../../logic/blocs/provider_service/provider_service_event.dart';
@@ -50,10 +51,18 @@ class _ProviderEditVenueServiceScreenState
         widget.service.eveningPrice?.toString() ?? '';
 
     // Pre-fill offer data
-    _hasOffer = widget.service.hasOffer;
+    // Only show offer as active if there's actually a discount > 0
+    _hasOffer = widget.service.hasOffer && (widget.service.discountPercentage ?? 0) > 0;
     _discountController.text =
-        widget.service.discountPercentage?.toString() ?? '';
+        (widget.service.discountPercentage != null && widget.service.discountPercentage! > 0)
+            ? widget.service.discountPercentage.toString()
+            : '';
     _offerExpiryDate = widget.service.offerExpiryDate;
+
+    // If offer is active but expiry date is missing, fetch it from offers API
+    if (_hasOffer && _offerExpiryDate == null) {
+      _loadOfferExpiryDate();
+    }
 
     // Initialize location from service data (default to Cairo if not set)
     _pickedLocation = LatLng(
@@ -63,6 +72,28 @@ class _ProviderEditVenueServiceScreenState
 
     // Load categories for display
     _loadCategories();
+  }
+
+  /// Fetch the offer expiry date from the offers API
+  Future<void> _loadOfferExpiryDate() async {
+    try {
+      final offerRepository = getIt<OfferRepository>();
+      final offers = await offerRepository.getOffers();
+      for (final offer in offers) {
+        if (offer.serviceId == widget.service.id && offer.expiryDate != null) {
+          if (mounted) {
+            setState(() {
+              _offerExpiryDate = offer.expiryDate;
+            });
+          }
+          debugPrint('📅 Loaded offer expiry date from offers API: ${offer.expiryDate}');
+          return;
+        }
+      }
+      debugPrint('📅 No matching offer found with expiry date for service ${widget.service.id}');
+    } catch (e) {
+      debugPrint('⚠️ Could not load offer expiry date: $e');
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -824,39 +855,23 @@ class _ProviderEditVenueServiceScreenState
             : null,
         latitude: _pickedLocation.latitude,
         longitude: _pickedLocation.longitude,
+        hasOffer: _hasOffer,
         isPendingApproval: false, // Updates are instant, no approval needed
       );
 
-      // Submit offer via separate API if enabled
+      // Handle offer via separate PATCH API
+      final serviceRepository = getIt<ServiceRepository>();
       if (_hasOffer && _discountController.text.isNotEmpty && _offerExpiryDate != null) {
-        debugPrint('🎁 Attempting to submit offer for venue...');
-        debugPrint('🎁 Has offer: $_hasOffer');
-        debugPrint('🎁 Discount: ${_discountController.text}');
-        debugPrint('🎁 Expiry: $_offerExpiryDate');
-
+        // Submit/update offer
         try {
-          final serviceRepository = getIt<ServiceRepository>();
-          final result = await serviceRepository.submitServiceOffer(
+          await serviceRepository.submitServiceOffer(
             serviceId: widget.service.id,
             discountPercentage: double.parse(_discountController.text),
             offerExpiryDate: _offerExpiryDate!,
           );
           debugPrint('✅ Offer submitted successfully for venue ${widget.service.id}');
-          debugPrint('✅ Result: $result');
-
-          // Show success message for offer submission
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('تم تقديم العرض بنجاح! سيتم مراجعته من قبل الإدارة.'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
         } catch (e) {
           debugPrint('❌ Error submitting offer: $e');
-          // Show error but don't fail the whole operation
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -867,8 +882,14 @@ class _ProviderEditVenueServiceScreenState
             );
           }
         }
-      } else {
-        debugPrint('ℹ️ Offer not submitted - hasOffer: $_hasOffer, discount: ${_discountController.text}, expiry: $_offerExpiryDate');
+      } else if (!_hasOffer && widget.service.hasOffer) {
+        // Offer was turned OFF - remove it via API
+        try {
+          await serviceRepository.removeServiceOffer(widget.service.id);
+          debugPrint('✅ Offer removed for venue ${widget.service.id}');
+        } catch (e) {
+          debugPrint('❌ Error removing offer: $e');
+        }
       }
 
       // Dispatch UpdateService event to BLoC

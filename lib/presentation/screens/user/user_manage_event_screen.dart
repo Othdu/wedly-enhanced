@@ -284,17 +284,20 @@ class _UserManageEventScreenState extends State<UserManageEventScreen> {
             ),
           ),
         ),
-        body: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is! AuthAuthenticated) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is! AuthAuthenticated) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            final user = state.user;
-            final hasExistingEvent = user.weddingDate != null &&
-                                     user.weddingDate!.isAfter(DateTime(2021, 1, 1));
+              final user = state.user;
+              final hasExistingEvent = user.weddingDate != null &&
+                                       user.weddingDate!.isAfter(DateTime(2021, 1, 1));
 
-            return SingleChildScrollView(
+              return SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -426,6 +429,8 @@ class _UserManageEventScreenState extends State<UserManageEventScreen> {
                                 controller: _customEventNameController,
                                 textDirection: TextDirection.rtl,
                                 textAlign: TextAlign.right,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
                                 decoration: InputDecoration(
                                   hintText: 'أدخل اسم المناسبة',
                                   hintStyle: TextStyle(color: Colors.grey.shade400),
@@ -563,6 +568,7 @@ class _UserManageEventScreenState extends State<UserManageEventScreen> {
             );
           },
         ),
+      ), // GestureDetector
       ),
     );
   }

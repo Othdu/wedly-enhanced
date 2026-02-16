@@ -276,17 +276,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             const SizedBox(height: 20),
             // White card with content
             Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(32),
-                    topRight: Radius.circular(32),
+              child: GestureDetector(
+                onTap: () => FocusScope.of(context).unfocus(),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
                   ),
-                ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
-                  child: _buildCurrentStepContent(),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(32),
+                    child: _buildCurrentStepContent(),
+                  ),
                 ),
               ),
             ),
@@ -345,6 +349,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           // Email input
           TextFormField(
             controller: _emailController,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) {
+              FocusScope.of(context).unfocus();
+              if (!_isLoading) _sendOtp();
+            },
             decoration: InputDecoration(
               hintText: 'البريد الإلكتروني',
               hintTextDirection: TextDirection.rtl,
@@ -545,6 +554,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           TextFormField(
             controller: _newPasswordController,
             obscureText: _obscurePassword,
+            textInputAction: TextInputAction.next,
             decoration: InputDecoration(
               hintText: 'كلمة المرور الجديدة',
               hintTextDirection: TextDirection.rtl,
@@ -586,6 +596,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           TextFormField(
             controller: _confirmPasswordController,
             obscureText: _obscureConfirmPassword,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) {
+              FocusScope.of(context).unfocus();
+              if (!_isLoading) _resetPassword();
+            },
             decoration: InputDecoration(
               hintText: 'تأكيد كلمة المرور',
               hintTextDirection: TextDirection.rtl,

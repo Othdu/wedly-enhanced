@@ -159,7 +159,11 @@ class ServiceModel extends Equatable {
       offerApproved: json['offer_approved'] as bool? ?? json['offerApproved'] as bool? ?? false,
       offerExpiryDate: json['offer_expiry_date'] != null
           ? DateTime.parse(json['offer_expiry_date'] as String)
-          : null,
+          : json['expiry_date'] != null
+              ? DateTime.parse(json['expiry_date'] as String)
+              : json['offerExpiryDate'] != null
+                  ? DateTime.parse(json['offerExpiryDate'] as String)
+                  : null,
       providerId: json['provider_id'] as String? ?? json['providerId'] as String? ?? '',
       imageUrls: json['image_urls'] != null
           ? List<String>.from(json['image_urls'] as List)
@@ -209,7 +213,7 @@ class ServiceModel extends Equatable {
       'discount_percentage': discountPercentage,
       'has_offer': hasOffer,
       'offer_approved': offerApproved,
-      'offer_expiry_date': offerExpiryDate?.toIso8601String(),
+      'offer_expiry_date': offerExpiryDate?.toUtc().toIso8601String(),
       'provider_id': providerId,
       'image_urls': imageUrls,
       'morning_price': morningPrice,
@@ -236,8 +240,8 @@ class ServiceModel extends Equatable {
     return price;
   }
 
-  // Helper method to check if service has approved offer
-  bool get hasApprovedOffer => hasOffer && offerApproved;
+  // Helper method to check if service has approved offer with actual discount
+  bool get hasApprovedOffer => hasOffer && offerApproved && discountPercentage != null && discountPercentage! > 0;
 
   // Convert ServiceModel to VenueModel (for venue services)
   VenueModel toVenueModel() {

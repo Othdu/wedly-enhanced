@@ -316,15 +316,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
 
       // Send social login data to backend
-      // Apple uses identity_token instead of id_token
       final user = await authRepository.socialLogin(
         provider: socialData['provider'],
-        email: socialData['email'],
-        name: socialData['name'],
-        providerId: socialData['provider_id'],
+        email: socialData['email'] ?? '',
+        name: socialData['name'] ?? '',
+        providerId: socialData['provider_id'] ?? '',
         profileImageUrl: socialData['profile_image_url'],
         accessToken: socialData['access_token'],
         idToken: socialData['id_token'] ?? socialData['identity_token'],
+        authorizationCode: socialData['authorization_code'],
+        nonce: socialData['nonce'],
       );
 
       emit(AuthAuthenticated(user));

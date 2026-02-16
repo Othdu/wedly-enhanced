@@ -103,7 +103,7 @@ class BannerRepository {
           'image_url': imageUrl,
           if (link != null) 'link': link,
           'is_active': isActive,
-          if (expirationDate != null) 'expiration_date': expirationDate.toIso8601String(),
+          if (expirationDate != null) 'expiration_date': expirationDate.toUtc().toIso8601String(),
         },
       );
 
@@ -134,7 +134,7 @@ class BannerRepository {
           if (imageUrl != null) 'image_url': imageUrl,
           if (link != null) 'link': link,
           if (isActive != null) 'is_active': isActive,
-          if (expirationDate != null) 'expiration_date': expirationDate.toIso8601String(),
+          if (expirationDate != null) 'expiration_date': expirationDate.toUtc().toIso8601String(),
         },
       );
 

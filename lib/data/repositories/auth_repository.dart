@@ -310,7 +310,7 @@ class AuthRepository {
     final response = await _apiClient.post(
       ApiConstants.setWeddingDate,
       data: {
-        'wedding_date': weddingDate.toIso8601String(),
+        'wedding_date': weddingDate.toUtc().toIso8601String(),
       },
     );
 
@@ -361,7 +361,7 @@ class AuthRepository {
         ApiConstants.setEvent,
         data: {
           'event_name': eventName,
-          'event_date': eventDate.toIso8601String(),
+          'event_date': eventDate.toUtc().toIso8601String(),
         },
       );
 
@@ -411,7 +411,7 @@ class AuthRepository {
           final fallbackResponse = await _apiClient.post(
             ApiConstants.setWeddingDate,
             data: {
-              'wedding_date': eventDate.toIso8601String(),
+              'wedding_date': eventDate.toUtc().toIso8601String(),
             },
           );
 
@@ -463,7 +463,7 @@ class AuthRepository {
       final response = await _apiClient.post(
         ApiConstants.deleteEvent,
         data: {
-          'event_date': pastDate.toIso8601String(),
+          'event_date': pastDate.toUtc().toIso8601String(),
         },
       );
 
@@ -513,7 +513,7 @@ class AuthRepository {
           final fallbackResponse = await _apiClient.post(
             ApiConstants.setWeddingDate,
             data: {
-              'wedding_date': pastDate.toIso8601String(),
+              'wedding_date': pastDate.toUtc().toIso8601String(),
             },
           );
 
@@ -758,7 +758,7 @@ class AuthRepository {
     };
   }
 
-  /// Social login (Google)
+  /// Social login (Google & Apple)
   Future<UserModel> socialLogin({
     required String provider,
     required String email,
@@ -768,19 +768,40 @@ class AuthRepository {
     String? firebaseToken,
     String? accessToken,
     String? idToken,
+    String? authorizationCode,
+    String? nonce,
   }) async {
-    if (idToken == null || idToken.isEmpty) {
-      throw ValidationException(
-        message: 'Google ID token is required for authentication',
-      );
+    // Determine endpoint and payload based on provider
+    final String endpoint;
+    final Map<String, dynamic> data;
+
+    if (provider == 'apple') {
+      if (idToken == null || idToken.isEmpty) {
+        throw ValidationException(
+          message: 'Apple identity token is required for authentication',
+        );
+      }
+      endpoint = ApiConstants.appleLogin;
+      data = {
+        'identity_token': idToken,
+        'authorization_code': authorizationCode,
+        'name': name,
+        'email': email,
+        if (nonce != null) 'nonce': nonce,
+      };
+    } else {
+      if (idToken == null || idToken.isEmpty) {
+        throw ValidationException(
+          message: 'Google ID token is required for authentication',
+        );
+      }
+      endpoint = ApiConstants.googleLogin;
+      data = {
+        'id_token': idToken,
+      };
     }
 
-    final response = await _apiClient.post(
-      ApiConstants.googleLogin,
-      data: {
-        'id_token': idToken,
-      },
-    );
+    final response = await _apiClient.post(endpoint, data: data);
 
     final responseData = response.data['data'] ?? response.data;
 

@@ -229,9 +229,12 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           ),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -432,7 +435,8 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
             ),
           ),
         ),
-      ),
+      ), // Form
+    ), // GestureDetector
     ),
     );
   }
@@ -462,6 +466,8 @@ class _UserEditProfileScreenState extends State<UserEditProfileScreen> {
           keyboardType: keyboardType,
           textDirection: textDirection ?? TextDirection.rtl,
           textAlign: TextAlign.right,
+          textInputAction: TextInputAction.done,
+          onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
           validator: validator,
           decoration: InputDecoration(
             hintText: '.........',
