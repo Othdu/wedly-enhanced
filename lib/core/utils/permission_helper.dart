@@ -1,88 +1,86 @@
+import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 
 class PermissionHelper {
   /// Request camera permission
   static Future<bool> requestCameraPermission(BuildContext context) async {
+    // On iOS, image_picker handles permissions natively
+    if (Platform.isIOS) return true;
+
     final status = await Permission.camera.request();
 
-    if (status.isGranted) {
+    if (status.isGranted || status.isLimited) {
       return true;
-    } else if (status.isDenied) {
-      _showPermissionDialog(
-        context,
-        'Camera Permission Required',
-        'Please allow camera access to take photos.',
-      );
-      return false;
     } else if (status.isPermanentlyDenied) {
       _showSettingsDialog(
         context,
-        'Camera Permission',
-        'Camera permission is permanently denied. Please enable it from app settings.',
+        'إذن الكاميرا',
+        'تم رفض إذن الكاميرا بشكل دائم. يرجى تفعيله من إعدادات التطبيق.',
+      );
+      return false;
+    } else {
+      _showPermissionDialog(
+        context,
+        'إذن الكاميرا مطلوب',
+        'يرجى السماح بالوصول إلى الكاميرا لالتقاط الصور.',
       );
       return false;
     }
-
-    return false;
   }
 
-  /// Request storage/photos permission
+  /// Request photos/storage permission
   static Future<bool> requestStoragePermission(BuildContext context) async {
-    PermissionStatus status;
+    // On iOS, image_picker handles permissions natively
+    if (Platform.isIOS) return true;
 
-    // For Android 13+ (API 33+), use photos permission
-    if (await _isAndroid13OrHigher()) {
-      status = await Permission.photos.request();
-    } else {
-      // For older Android versions, use storage permission
+    // On Android, use photos for API 33+ or storage for older
+    PermissionStatus status = await Permission.photos.request();
+    if (status.isPermanentlyDenied) {
+      // Fallback: try storage permission for older Android
       status = await Permission.storage.request();
     }
 
-    if (status.isGranted) {
+    if (status.isGranted || status.isLimited) {
       return true;
-    } else if (status.isDenied) {
-      _showPermissionDialog(
-        context,
-        'Storage Permission Required',
-        'Please allow storage access to select photos from your gallery.',
-      );
-      return false;
     } else if (status.isPermanentlyDenied) {
       _showSettingsDialog(
         context,
-        'Storage Permission',
-        'Storage permission is permanently denied. Please enable it from app settings.',
+        'إذن الصور',
+        'تم رفض إذن الوصول إلى الصور بشكل دائم. يرجى تفعيله من إعدادات التطبيق.',
+      );
+      return false;
+    } else {
+      _showPermissionDialog(
+        context,
+        'إذن الصور مطلوب',
+        'يرجى السماح بالوصول إلى الصور لاختيار صورة من المعرض.',
       );
       return false;
     }
-
-    return false;
   }
 
   /// Request location permission
   static Future<bool> requestLocationPermission(BuildContext context) async {
     final status = await Permission.location.request();
 
-    if (status.isGranted) {
+    if (status.isGranted || status.isLimited) {
       return true;
-    } else if (status.isDenied) {
-      _showPermissionDialog(
-        context,
-        'Location Permission Required',
-        'Please allow location access to find nearby wedding service providers.',
-      );
-      return false;
     } else if (status.isPermanentlyDenied) {
       _showSettingsDialog(
         context,
-        'Location Permission',
-        'Location permission is permanently denied. Please enable it from app settings.',
+        'إذن الموقع',
+        'تم رفض إذن الموقع بشكل دائم. يرجى تفعيله من إعدادات التطبيق.',
+      );
+      return false;
+    } else {
+      _showPermissionDialog(
+        context,
+        'إذن الموقع مطلوب',
+        'يرجى السماح بالوصول إلى الموقع للعثور على مقدمي خدمات الأفراح القريبين.',
       );
       return false;
     }
-
-    return false;
   }
 
   /// Show permission denied dialog
@@ -94,12 +92,12 @@ class PermissionHelper {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
+        title: Text(title, textDirection: TextDirection.rtl, textAlign: TextAlign.right),
+        content: Text(message, textDirection: TextDirection.rtl, textAlign: TextAlign.right),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: const Text('حسناً'),
           ),
         ],
       ),
@@ -115,30 +113,23 @@ class PermissionHelper {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
+        title: Text(title, textDirection: TextDirection.rtl, textAlign: TextAlign.right),
+        content: Text(message, textDirection: TextDirection.rtl, textAlign: TextAlign.right),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('إلغاء'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               openAppSettings();
             },
-            child: const Text('Open Settings'),
+            child: const Text('فتح الإعدادات'),
           ),
         ],
       ),
     );
-  }
-
-  /// Check if Android 13 or higher
-  static Future<bool> _isAndroid13OrHigher() async {
-    // This is a simple check - in production you might want to use platform channels
-    // For now, we'll try photos permission first, and fall back to storage if needed
-    return true;
   }
 
   /// Show image source selection (Camera or Gallery)
@@ -146,18 +137,18 @@ class PermissionHelper {
     return showDialog<ImageSource>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Image Source'),
+        title: const Text('اختر مصدر الصورة', textDirection: TextDirection.rtl, textAlign: TextAlign.right),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
+              title: const Text('الكاميرا', textDirection: TextDirection.rtl),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
+              title: const Text('المعرض', textDirection: TextDirection.rtl),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
           ],

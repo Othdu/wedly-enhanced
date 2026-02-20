@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:wedly/core/constants/app_colors.dart';
 import 'package:wedly/core/di/injection_container.dart';
+import 'package:wedly/core/utils/permission_helper.dart' as permission;
 import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/routes/app_router.dart';
 
@@ -62,61 +62,10 @@ class _ProviderDocumentsScreenState extends State<ProviderDocumentsScreen> {
     });
 
     try {
-      // Check and request permission first
-      PermissionStatus status = await Permission.photos.status;
-
-      if (status.isDenied) {
-        // Request permission
-        status = await Permission.photos.request();
-      }
-
-      if (status.isPermanentlyDenied) {
-        if (!mounted) return;
-        // Show dialog to open settings
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(
-              'إذن مطلوب',
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-            ),
-            content: Text(
-              'يرجى منح إذن الوصول إلى الصور من إعدادات التطبيق',
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('إلغاء', textDirection: TextDirection.rtl),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  openAppSettings();
-                },
-                child: Text('فتح الإعدادات', textDirection: TextDirection.rtl),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      if (status.isDenied) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'يرجى منح إذن الوصول إلى الصور',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+      // Request photos permission using the helper
+      if (!mounted) return;
+      final hasPermission = await permission.PermissionHelper.requestStoragePermission(context);
+      if (!hasPermission || !mounted) return;
 
       // Pick image from gallery
       final XFile? image = await _picker.pickImage(
