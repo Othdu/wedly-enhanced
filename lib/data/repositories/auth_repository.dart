@@ -783,11 +783,7 @@ class AuthRepository {
       }
       endpoint = ApiConstants.appleLogin;
       data = {
-        'identity_token': idToken,
-        'authorization_code': authorizationCode,
-        'name': name,
-        'email': email,
-        if (nonce != null) 'nonce': nonce,
+        'identityToken': idToken,
       };
     } else {
       if (idToken == null || idToken.isEmpty) {
