@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:flutter/foundation.dart';
 import 'package:wedly/core/utils/app_logger.dart';
 import 'api_constants.dart';
 import 'api_exceptions.dart';
@@ -77,18 +78,20 @@ class ApiClient {
 
   /// Add interceptors for logging and token handling
   void _addInterceptors() {
-    // Add pretty logger for debugging (disable in production)
-    _dio.interceptors.add(
-      PrettyDioLogger(
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: true,
-        responseBody: true,
-        error: true,
-        compact: true,
-        maxWidth: 90,
-      ),
-    );
+    // Only log in debug mode
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        PrettyDioLogger(
+          requestHeader: true,
+          requestBody: true,
+          responseHeader: true,
+          responseBody: true,
+          error: true,
+          compact: true,
+          maxWidth: 90,
+        ),
+      );
+    }
 
     // Add token interceptor
     _dio.interceptors.add(

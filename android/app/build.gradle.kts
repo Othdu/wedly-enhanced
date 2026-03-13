@@ -28,6 +28,7 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
+        freeCompilerArgs += listOf("-Xskip-metadata-version-check")
     }
 
     defaultConfig {
@@ -78,7 +79,6 @@ android {
 dependencies {
     implementation("androidx.startup:startup-runtime:1.1.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.activity:activity-ktx:1.9.3")
 }
 
 flutter {

@@ -1741,8 +1741,9 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
           MaterialPageRoute(
             builder: (context) => PaymobWebViewScreen(
               iframeUrl: paymentData['iframe_url'],
+              resultHost: 'api.wedlyinfo.com',
               onPaymentComplete: (success, message) async {
-                Navigator.of(context).pop(); // Close WebView
+                // Note: WebView pops itself in _finish(), no need to pop here
 
                 if (success) {
                   // Payment successful - backend webhook will create bookings

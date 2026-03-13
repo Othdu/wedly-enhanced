@@ -3,6 +3,15 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // Force consistent Kotlin stdlib version to match the compiler
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains.kotlin:kotlin-stdlib:2.1.21")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.21")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.21")
+        }
+    }
 }
 
 val newBuildDir: Directory =
