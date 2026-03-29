@@ -70,9 +70,10 @@ class _OnboardingScreenNewState extends State<OnboardingScreenNew> {
     return Scaffold(
       backgroundColor: AppColors.gold,
       body: SafeArea(
+        bottom: false, // important for full bottom feel
         child: Column(
           children: [
-            // Top half - Golden background with "Wedly"
+            // TOP SECTION
             Expanded(
               flex: 5,
               child: Center(
@@ -87,7 +88,8 @@ class _OnboardingScreenNewState extends State<OnboardingScreenNew> {
                 ),
               ),
             ),
-            // Bottom half - White card with content
+
+            // BOTTOM SECTION
             Expanded(
               flex: 5,
               child: Container(
@@ -101,9 +103,11 @@ class _OnboardingScreenNewState extends State<OnboardingScreenNew> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const SizedBox(height: 24),
-                      // PageView for content - takes available space
+
+                      // PAGE CONTENT
                       Expanded(
                         child: PageView.builder(
                           controller: _pageController,
@@ -111,7 +115,8 @@ class _OnboardingScreenNewState extends State<OnboardingScreenNew> {
                           itemCount: _pages.length,
                           itemBuilder: (context, index) {
                             return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -143,71 +148,73 @@ class _OnboardingScreenNewState extends State<OnboardingScreenNew> {
                           },
                         ),
                       ),
-                      // Page indicators
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          _pages.length,
-                          (index) => Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: _currentPage == index ? 32 : 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: _currentPage == index
-                                  ? AppColors.black
-                                  : AppColors.grey.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Next/Start button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _nextPage,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.black,
-                            foregroundColor: AppColors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            _currentPage == _pages.length - 1
-                                ? AppStrings.startNow
-                                : AppStrings.next,
-                            textDirection: TextDirection.rtl,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Skip button
-                      SizedBox(
-                        height: 40,
-                        child: _currentPage < _pages.length - 1
-                            ? TextButton(
-                                onPressed: _skip,
-                                child: Text(
-                                  AppStrings.skip,
-                                  textDirection: TextDirection.rtl,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+
+                      // BOTTOM FIXED AREA
+                      Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              _pages.length,
+                              (index) => Container(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 4),
+                                width: _currentPage == index ? 32 : 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _currentPage == index
+                                      ? AppColors.black
+                                      : AppColors.grey.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                              )
-                            : const SizedBox.shrink(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: _nextPage,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.black,
+                                foregroundColor: AppColors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                _currentPage == _pages.length - 1
+                                    ? AppStrings.startNow
+                                    : AppStrings.next,
+                                textDirection: TextDirection.rtl,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          if (_currentPage < _pages.length - 1)
+                            TextButton(
+                              onPressed: _skip,
+                              child: Text(
+                                AppStrings.skip,
+                                textDirection: TextDirection.rtl,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                          const SizedBox(height: 16),
+                        ],
                       ),
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),

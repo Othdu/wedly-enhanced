@@ -200,3 +200,6 @@ class AuthDeleteEventRequested extends AuthEvent {
   const AuthDeleteEventRequested();
 }
 
+class AuthDeleteAccountRequested extends AuthEvent {
+  const AuthDeleteAccountRequested();
+}

@@ -97,12 +97,11 @@ class AppRouter {
   }
 
   static void goToUserHome(BuildContext context) {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const UserNavigationWrapper()),
-      (route) => false,
-    );
-  }
-
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const UserNavigationWrapper(isGuest: false)),
+    (route) => false,
+  );
+}
   static void goToProviderHome(BuildContext context) {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const ProviderNavigationWrapper()),
@@ -156,7 +155,11 @@ class AppRouter {
       case roleSelector:
         return MaterialPageRoute(builder: (_) => const RoleSelectorScreen());
       case userHome:
-        return MaterialPageRoute(builder: (_) => const UserNavigationWrapper());
+  final args = settings.arguments as Map<String, dynamic>?;
+  final isGuest = args?['isGuest'] == true;
+  return MaterialPageRoute(
+    builder: (_) => UserNavigationWrapper(isGuest: isGuest),
+  );
       case userCart:
         return MaterialPageRoute(builder: (_) => const UserCartScreen());
       case providerHome:

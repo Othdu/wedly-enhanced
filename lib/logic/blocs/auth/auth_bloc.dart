@@ -28,13 +28,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthGetWeddingDateRequested>(_onAuthGetWeddingDateRequested);
     on<AuthSetEventRequested>(_onAuthSetEventRequested);
     on<AuthDeleteEventRequested>(_onAuthDeleteEventRequested);
+    on<AuthDeleteAccountRequested>(_onAuthDeleteAccountRequested); // 👈 NEW
 
-    // Listen to session expiry events from repository
     authRepository.sessionExpiredStream.listen((_) {
       add(const AuthSessionExpired());
     });
 
-    // Check initial auth status
     add(const AuthStatusChecked());
   }
 
@@ -101,7 +100,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AppLogger.debug('Starting profile update...', tag: 'AuthBloc');
     emit(const AuthLoading());
     try {
-      // Call repository to update profile via API
       final updatedUser = await authRepository.updateProfile(
         name: event.name,
         phone: event.phone,
@@ -110,18 +108,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
 
       AppLogger.success('Profile update successful', tag: 'AuthBloc');
-      // Emit success state with updated user
       emit(AuthProfileUpdateSuccess(
         user: updatedUser,
         message: 'تم تحديث البيانات بنجاح',
       ));
-      // Emit the updated authenticated state
       emit(AuthAuthenticated(updatedUser));
     } catch (e) {
       AppLogger.error('Profile update failed', tag: 'AuthBloc', error: e);
-      // If update fails, emit error but keep current state
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'profile_update')));
-      // Re-emit current authenticated state after error
       emit(currentState);
     }
   }
@@ -165,13 +159,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
 
       AppLogger.success('OTP verified successfully', tag: 'AuthBloc');
-      AppLogger.debug('User: ${user.name}, ${user.email}, ${user.role}', tag: 'AuthBloc');
-
-      // Emit success state for UI navigation
       emit(AuthOtpVerificationSuccess(user));
-
-      // CRITICAL: Also emit AuthAuthenticated so all screens get updated user data
-      // This ensures profile and other screens show correct data immediately
       emit(AuthAuthenticated(user));
     } catch (e) {
       AppLogger.error('OTP verification failed', tag: 'AuthBloc', error: e);
@@ -184,12 +172,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     try {
-      final result = await authRepository.resendOtp(
-        email: event.email,
-      );
-      emit(AuthResendOtpSuccess(
-        result['message'] ?? 'تم إعادة إرسال الكود',
-      ));
+      final result = await authRepository.resendOtp(email: event.email);
+      emit(AuthResendOtpSuccess(result['message'] ?? 'تم إعادة إرسال الكود'));
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'resend_otp')));
     }
@@ -201,9 +185,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     try {
-      final result = await authRepository.forgotPassword(
-        email: event.email,
-      );
+      final result = await authRepository.forgotPassword(email: event.email);
       emit(AuthForgotPasswordSuccess(
         email: result['email'],
         message: result['message'] ?? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
@@ -223,23 +205,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         otp: event.otp,
         password: event.password,
-      );  
-      emit(AuthResetPasswordSuccess(
-        result['message'] ?? 'تم تغيير كلمة المرور بنجاح',
-      ));
+      );
+      emit(AuthResetPasswordSuccess(result['message'] ?? 'تم تغيير كلمة المرور بنجاح'));
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'reset_password')));
     }
   }
 
-  /// Handle session expiry (triggered by ApiClient via AuthRepository callback)
   Future<void> _onAuthSessionExpired(
     AuthSessionExpired event,
     Emitter<AuthState> emit,
   ) async {
     AppLogger.warning('Session expired, logging out', tag: 'AuthBloc');
-    // Directly emit unauthenticated state
-    // No API call needed - already handled by ApiClient
     emit(const AuthUnauthenticated());
   }
 
@@ -256,14 +233,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         currentPassword: event.currentPassword,
         newPassword: event.newPassword,
       );
-      emit(AuthChangePasswordSuccess(
-        result['message'] ?? 'تم تغيير كلمة المرور بنجاح',
-      ));
-      // Re-emit authenticated state after success
+      emit(AuthChangePasswordSuccess(result['message'] ?? 'تم تغيير كلمة المرور بنجاح'));
       emit(currentState);
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'change_password')));
-      // Re-emit current authenticated state after error
       emit(currentState);
     }
   }
@@ -277,23 +250,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     emit(const AuthLoading());
     try {
-      // Upload image and get URL
       final imageUrl = await authRepository.uploadProfileImage(event.imagePath);
-
-      // Update user profile with new image URL
-      final updatedUser = await authRepository.updateProfile(
-        profileImageUrl: imageUrl,
-      );
+      final updatedUser = await authRepository.updateProfile(profileImageUrl: imageUrl);
 
       emit(AuthProfileImageUpdateSuccess(
         user: updatedUser,
         message: 'تم تحديث الصورة بنجاح',
       ));
-      // Emit updated authenticated state
       emit(AuthAuthenticated(updatedUser));
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'profile_image_update')));
-      // Re-emit current authenticated state after error
       emit(currentState);
     }
   }
@@ -315,7 +281,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         throw Exception('مزود غير مدعوم');
       }
 
-      // Send social login data to backend
       final user = await authRepository.socialLogin(
         provider: socialData['provider'],
         email: socialData['email'] ?? '',
@@ -344,18 +309,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
     try {
       final result = await authRepository.setWeddingDate(event.weddingDate);
-
-      // Update user with new wedding date
       final updatedUser = currentState.user.copyWith(weddingDate: event.weddingDate);
 
-      emit(AuthSetWeddingDateSuccess(
-        result['message'] ?? 'تم حفظ تاريخ الزفاف بنجاح',
-      ));
-      // Emit updated authenticated state with new wedding date
+      emit(AuthSetWeddingDateSuccess(result['message'] ?? 'تم حفظ تاريخ الزفاف بنجاح'));
       emit(AuthAuthenticated(updatedUser));
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'set_wedding_date')));
-      // Re-emit current authenticated state after error
       emit(currentState);
     }
   }
@@ -381,11 +340,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         daysRemaining: result['days_remaining'] as int?,
         message: result['message'] ?? 'تم جلب تاريخ الزفاف بنجاح',
       ));
-      // Re-emit current authenticated state
       emit(currentState);
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'get_wedding_date')));
-      // Re-emit current authenticated state after error
       emit(currentState);
     }
   }
@@ -404,7 +361,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         eventDate: event.eventDate,
       );
 
-      // Update user with new event date and name
       final updatedUser = currentState.user.copyWith(
         weddingDate: event.eventDate,
         eventName: event.eventName,
@@ -414,11 +370,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         user: updatedUser,
         message: result['message'] ?? 'تم حفظ مناسبتك بنجاح',
       ));
-      // Emit updated authenticated state with new event date
       emit(AuthAuthenticated(updatedUser));
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'set_event')));
-      // Re-emit current authenticated state after error
       emit(currentState);
     }
   }
@@ -433,8 +387,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
     try {
       final result = await authRepository.deleteEvent();
-
-      // Update user with past date to hide countdown
       final pastDate = DateTime(2020, 12, 12);
       final updatedUser = currentState.user.copyWith(weddingDate: pastDate);
 
@@ -442,13 +394,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         user: updatedUser,
         message: result['message'] ?? 'تم حذف المناسبة بنجاح',
       ));
-      // Emit updated authenticated state
       emit(AuthAuthenticated(updatedUser));
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'delete_event')));
-      // Re-emit current authenticated state after error
+      emit(currentState);
+    }
+  }
+
+  // 👇 NEW
+  Future<void> _onAuthDeleteAccountRequested(
+    AuthDeleteAccountRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    emit(const AuthLoading());
+    try {
+      await authRepository.deleteAccount();
+      AppLogger.success('Account deleted successfully', tag: 'AuthBloc');
+      emit(const AuthUnauthenticated());
+    } catch (e) {
+      AppLogger.error('Account deletion failed', tag: 'AuthBloc', error: e);
+      emit(AuthError(ErrorHandler.getContextualMessage(e, 'delete_account')));
       emit(currentState);
     }
   }
 }
-

@@ -18,11 +18,8 @@ class UserProfileScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF5F5F5),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          // Navigate to login screen when user logs out
           if (state is AuthUnauthenticated) {
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil('/login', (route) => false);
+            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
           }
         },
         child: BlocBuilder<AuthBloc, AuthState>(
@@ -32,7 +29,7 @@ class UserProfileScreen extends StatelessWidget {
               return SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Header Section with Profile Picture and Name
+                    // Header
                     Container(
                       width: double.infinity,
                       padding: EdgeInsets.only(
@@ -42,7 +39,6 @@ class UserProfileScreen extends StatelessWidget {
                       decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
                       child: Column(
                         children: [
-                          // Profile Picture
                           ProfilePictureWidget(
                             profileImageUrl: user.profileImageUrl,
                             size: 120,
@@ -50,17 +46,12 @@ class UserProfileScreen extends StatelessWidget {
                             showEditIcon: false,
                           ),
                           const SizedBox(height: 16),
-                          // Welcome Text
                           Text(
                             AppStrings.welcome2,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
+                            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                             textDirection: TextDirection.rtl,
                           ),
                           const SizedBox(height: 4),
-                          // User Name
                           Text(
                             user.name,
                             style: const TextStyle(
@@ -83,31 +74,19 @@ class UserProfileScreen extends StatelessWidget {
                           context,
                           icon: Icons.person_outline,
                           title: AppStrings.editProfile,
-                          onTap: () {
-                            Navigator.of(
-                              context,
-                            ).pushNamed('/user-edit-profile');
-                          },
+                          onTap: () => Navigator.of(context).pushNamed('/user-edit-profile'),
                         ),
                         _buildMenuItem(
                           context,
                           icon: Icons.celebration,
                           title: 'مناسبتك',
-                          onTap: () {
-                            Navigator.of(
-                              context,
-                            ).pushNamed('/user-manage-event');
-                          },
+                          onTap: () => Navigator.of(context).pushNamed('/user-manage-event'),
                         ),
                         _buildMenuItem(
                           context,
                           icon: Icons.lock_outline,
                           title: AppStrings.changePassword,
-                          onTap: () {
-                            Navigator.of(
-                              context,
-                            ).pushNamed('/user-change-password');
-                          },
+                          onTap: () => Navigator.of(context).pushNamed('/user-change-password'),
                         ),
                       ],
                     ),
@@ -125,14 +104,11 @@ class UserProfileScreen extends StatelessWidget {
                             if (notificationState is NotificationLoaded) {
                               unreadCount = notificationState.unreadCount;
                             }
-
                             return _buildMenuItem(
                               context,
                               icon: Icons.notifications_outlined,
                               title: AppStrings.notifications,
-                              onTap: () {
-                                Navigator.pushNamed(context, AppRouter.notificationsList);
-                              },
+                              onTap: () => Navigator.pushNamed(context, AppRouter.notificationsList),
                               badge: unreadCount > 0 ? unreadCount : null,
                             );
                           },
@@ -141,31 +117,27 @@ class UserProfileScreen extends StatelessWidget {
                           context,
                           icon: Icons.article_outlined,
                           title: AppStrings.termsAndConditions,
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRouter.termsAndConditions,
-                            );
-                          },
+                          onTap: () => Navigator.pushNamed(context, AppRouter.termsAndConditions),
                         ),
                         _buildMenuItem(
                           context,
                           icon: Icons.help_outline,
                           title: AppStrings.helpAndSupport,
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRouter.helpAndSupport,
-                            );
-                          },
+                          onTap: () => Navigator.pushNamed(context, AppRouter.helpAndSupport),
                         ),
                         _buildMenuItem(
                           context,
                           icon: Icons.logout,
                           title: AppStrings.logout,
-                          onTap: () {
-                            _showLogoutDialog(context);
-                          },
+                          onTap: () => _showLogoutDialog(context),
+                          isDestructive: true,
+                        ),
+                        // 👇 NEW
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.delete_forever_outlined,
+                          title: 'حذف الحساب',
+                          onTap: () => _showDeleteAccountDialog(context),
                           isDestructive: true,
                         ),
                       ],
@@ -194,12 +166,7 @@ class UserProfileScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(
-              right: 8,
-              left: 8,
-              top: 12,
-              bottom: 12,
-            ),
+            padding: const EdgeInsets.only(right: 8, left: 8, top: 12, bottom: 12),
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
@@ -247,13 +214,10 @@ class UserProfileScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-          ),
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
         ),
         child: Row(
           children: [
-            // Icon on the left (for RTL, this appears on left side)
             Stack(
               clipBehavior: Clip.none,
               children: [
@@ -268,14 +232,8 @@ class UserProfileScreen extends StatelessWidget {
                     right: -4,
                     child: Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 18,
-                        minHeight: 18,
-                      ),
+                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
                       child: Center(
                         child: Text(
                           badge > 9 ? '9+' : '$badge',
@@ -291,7 +249,6 @@ class UserProfileScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 12),
-            // Title
             Text(
               title,
               style: TextStyle(
@@ -302,7 +259,6 @@ class UserProfileScreen extends StatelessWidget {
               textDirection: TextDirection.rtl,
             ),
             const Spacer(),
-            // Arrow Icon on the right
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
@@ -341,9 +297,7 @@ class UserProfileScreen extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: const BorderSide(color: Color(0xFFD4AF37)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: const Text(
                         'إلغاء',
@@ -361,24 +315,94 @@ class UserProfileScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.of(dialogContext).pop();
-                        context.read<AuthBloc>().add(
-                          const AuthLogoutRequested(),
-                        );
+                        context.read<AuthBloc>().add(const AuthLogoutRequested());
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFD4AF37),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: const Text(
                         'تسجيل الخروج',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 👇 NEW
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.delete_forever, color: Colors.red.shade600, size: 60),
+              const SizedBox(height: 16),
+              const Text(
+                'حذف الحساب نهائياً',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textDirection: TextDirection.rtl,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'سيتم حذف حسابك وجميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.',
+                textAlign: TextAlign.center,
+                textDirection: TextDirection.rtl,
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: Color(0xFFD4AF37)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text(
+                        'إلغاء',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: Color(0xFFD4AF37),
                         ),
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        context.read<AuthBloc>().add(const AuthDeleteAccountRequested());
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text(
+                        'حذف الحساب',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         textDirection: TextDirection.rtl,
                       ),
                     ),

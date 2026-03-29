@@ -34,6 +34,7 @@ class UserHomeScreen extends StatefulWidget {
 class _UserHomeScreenState extends State<UserHomeScreen>
     with WidgetsBindingObserver {
   Timer? _refreshTimer;
+  bool _isGuest = false;
 
   @override
   void initState() {
@@ -41,29 +42,27 @@ class _UserHomeScreenState extends State<UserHomeScreen>
     WidgetsBinding.instance.addObserver(this);
 
     final authState = context.read<AuthBloc>().state;
-    String? userId;
+    _isGuest = authState is! AuthAuthenticated;
 
+    String? userId;
     if (authState is AuthAuthenticated) {
       userId = authState.user.id;
     }
 
+    // Always load home data (guests can browse)
     context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
+    context.read<BannerBloc>().add(const BannersRequested());
 
-    // Load cart items
+    // Only load user-specific data if logged in
     if (userId != null) {
       context.read<CartBloc>().add(CartItemsRequested(userId: userId));
-    }
-
-    // Load notifications
-    if (userId != null) {
       context.read<NotificationBloc>().add(NotificationsRequested(userId: userId));
     }
 
-    // Load banners
-    context.read<BannerBloc>().add(const BannersRequested());
-
-    // Start periodic background refresh
-    _startPeriodicRefresh();
+    // Only start periodic refresh for logged-in users
+    if (!_isGuest) {
+      _startPeriodicRefresh();
+    }
   }
 
   @override
@@ -75,8 +74,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Refresh when app comes back to foreground - use silent refresh
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && !_isGuest) {
       _loadDataInBackground();
     }
   }
@@ -89,8 +87,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
   }
 
   void _loadDataInBackground() {
-    // Silent refresh - only update data, don't show loading indicator
-    if (mounted) {
+    if (mounted && !_isGuest) {
       final authState = context.read<AuthBloc>().state;
       String? userId;
       if (authState is AuthAuthenticated) {
@@ -117,22 +114,21 @@ class _UserHomeScreenState extends State<UserHomeScreen>
           if (homeState is HomeLoaded) {
             return RefreshIndicator(
               onRefresh: () async {
+                if (_isGuest) return;
                 final authState = context.read<AuthBloc>().state;
                 String? userId;
                 if (authState is AuthAuthenticated) {
                   userId = authState.user.id;
                 }
-                context.read<HomeBloc>().add(
-                  HomeServicesRequested(userId: userId),
-                );
+                context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
               },
               child: CustomScrollView(
                 slivers: [
-                  // Custom App Bar with user info
                   _buildAppBar(context),
 
-                  // Countdown (only shows if user has booked venue and date is in future)
-                  if (homeState.countdown != null &&
+                  // Countdown (logged-in users only)
+                  if (!_isGuest &&
+                      homeState.countdown != null &&
                       homeState.countdown!.timeRemaining.inSeconds > 0)
                     SliverToBoxAdapter(
                       child: Padding(
@@ -140,11 +136,6 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                         child: Builder(
                           builder: (context) {
                             final totalDays = homeState.countdown!.timeRemaining.inDays;
-
-                            // Smart display based on time remaining:
-                            // >= 7 days: Weeks, Days, Hours
-                            // 1-6 days: Days, Hours, Minutes
-                            // < 1 day: Hours, Minutes, Seconds
                             if (totalDays >= 7) {
                               return CountdownTimerWidget(
                                 countdown: homeState.countdown!,
@@ -178,22 +169,75 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                       ),
                     ),
 
-                  // Banners Section - HARDCODED STRUCTURE
+                  // Guest banner
+                  if (_isGuest)
+                    SliverToBoxAdapter(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pushNamedAndRemoveUntil(
+                          AppRouter.login,
+                          (route) => false,
+                        ),
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            textDirection: TextDirection.rtl,
+                            children: [
+                              const Icon(
+                                Icons.lock_outline,
+                                color: Color(0xFFD4AF37),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Text(
+                                  'سجّل دخولك للحجز والاستفادة من جميع الميزات',
+                                  textDirection: TextDirection.rtl,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF8B6914),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD4AF37),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'دخول',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Banners
                   SliverToBoxAdapter(
                     child: BlocBuilder<BannerBloc, BannerState>(
                       builder: (context, bannerState) {
-                        debugPrint('🖼️ BannerBlocBuilder: State = ${bannerState.runtimeType}');
-                        if (bannerState is BannerLoaded) {
-                          debugPrint('🖼️ BannerBlocBuilder: Loaded ${bannerState.banners.length} banners');
-                        }
-                        if (bannerState is BannerError) {
-                          debugPrint('🖼️ BannerBlocBuilder: Error = ${bannerState.message}');
-                        }
                         if (bannerState is BannerLoaded && bannerState.banners.isNotEmpty) {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Title: عروضنا
                               const Padding(
                                 padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
                                 child: Text(
@@ -206,7 +250,6 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                                   textDirection: TextDirection.rtl,
                                 ),
                               ),
-                              // Banners Carousel
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 8),
                                 child: BannersCarouselWidget(
@@ -224,12 +267,11 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                     ),
                   ),
 
-                  // Categories Section - HARDCODED STRUCTURE (always visible)
+                  // Categories
                   SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title: الخدمات
                         const Padding(
                           padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
                           child: Text(
@@ -242,7 +284,6 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                             textDirection: TextDirection.rtl,
                           ),
                         ),
-                        // Categories Grid or Empty State
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: homeState.categoriesWithDetails.isEmpty
@@ -252,19 +293,12 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(
-                                          Icons.category_outlined,
-                                          size: 48,
-                                          color: Colors.grey[400],
-                                        ),
+                                        Icon(Icons.category_outlined, size: 48, color: Colors.grey[400]),
                                         const SizedBox(height: 16),
                                         Text(
                                           'لا توجد فئات متاحة حالياً',
                                           textDirection: TextDirection.rtl,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.grey[600],
-                                          ),
+                                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                                         ),
                                       ],
                                     ),
@@ -284,7 +318,6 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                     ),
                   ),
 
-                  // Bottom padding
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],
               ),
@@ -299,25 +332,17 @@ class _UserHomeScreenState extends State<UserHomeScreen>
     );
   }
 
-  // ----------------------------------------------------------------------
-  // FIXED APP BAR
-  // ----------------------------------------------------------------------
   Widget _buildAppBar(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
-        debugPrint('🏠 UserHomeScreen: Building app bar');
-        debugPrint('🔐 AuthState type: ${authState.runtimeType}');
-
-        String userName = 'محمد';
-        String? userImageUrl;
-
-        if (authState is AuthAuthenticated) {
-          userName = authState.user.name.split(' ').first;
-          userImageUrl = authState.user.profileImageUrl;
-          debugPrint('👤 Authenticated user: $userName (full: ${authState.user.name})');
-        } else {
-          debugPrint('⚠️ Not authenticated - using default name');
-        }
+        // 👇 Fix 1: guest name, Fix 2: hide cart/notifications for guests
+        final isAuthenticated = authState is AuthAuthenticated;
+        final String userName = isAuthenticated
+            ? authState.user.name.split(' ').first
+            : 'زائر';
+        final String? userImageUrl = isAuthenticated
+            ? authState.user.profileImageUrl
+            : null;
 
         return SliverToBoxAdapter(
           child: Container(
@@ -334,29 +359,22 @@ class _UserHomeScreenState extends State<UserHomeScreen>
             ),
             child: Row(
               children: [
-                // Profile on the FAR LEFT (reversed)
+                // Profile avatar
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: Colors.white,
-                  backgroundImage: userImageUrl != null
-                      ? NetworkImage(userImageUrl)
-                      : null,
+                  backgroundImage: userImageUrl != null ? NetworkImage(userImageUrl) : null,
                   child: userImageUrl == null
-                      ? const Icon(
-                          Icons.person,
-                          size: 36,
-                          color: Color(0xFFD4AF37),
-                        )
+                      ? const Icon(Icons.person, size: 36, color: Color(0xFFD4AF37))
                       : null,
                 ),
 
                 const SizedBox(width: 16),
 
-                // Text in the CENTER
+                // Greeting text
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start, // moved to left
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
@@ -369,9 +387,11 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                         textDirection: TextDirection.rtl,
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'جاهز تبدأ رحلة تحضيرات زفافك مع Wedly؟',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      Text(
+                        isAuthenticated
+                            ? 'جاهز تبدأ رحلة تحضيرات زفافك مع Wedly؟'
+                            : 'تصفح خدماتنا وابدأ رحلتك مع Wedly',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
                         textDirection: TextDirection.rtl,
                       ),
                     ],
@@ -380,140 +400,116 @@ class _UserHomeScreenState extends State<UserHomeScreen>
 
                 const SizedBox(width: 12),
 
-                // Cart button with badge
-                BlocBuilder<CartBloc, CartState>(
-                  builder: (context, cartState) {
-                    int itemCount = 0;
-                    if (cartState is CartLoaded) {
-                      itemCount = cartState.items.length;
-                    }
+                // Cart — logged in only
+                if (isAuthenticated)
+                  BlocBuilder<CartBloc, CartState>(
+                    builder: (context, cartState) {
+                      int itemCount = 0;
+                      if (cartState is CartLoaded) itemCount = cartState.items.length;
 
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const UserCartScreen(),
-                          ),
-                        );
-                      },
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const UserCartScreen()),
+                          );
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 24),
                             ),
-                            child: const Icon(
-                              Icons.shopping_cart_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          if (itemCount > 0)
-                            Positioned(
-                              top: -4,
-                              right: -4,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 20,
-                                  minHeight: 20,
-                                ),
-                                child: Center(
-                                  child: Builder(
-                                    builder: (context) {
-                                      final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
-                                      return Text(
-                                        itemCount > 9 ? '9+' : '$itemCount',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: (11 * scaleFactor).clamp(10.0, 13.0),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      );
-                                    },
+                            if (itemCount > 0)
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                                  child: Center(
+                                    child: Builder(
+                                      builder: (context) {
+                                        final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                                        return Text(
+                                          itemCount > 9 ? '9+' : '$itemCount',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: (11 * scaleFactor).clamp(10.0, 13.0),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
 
-                const SizedBox(width: 8),
+                if (isAuthenticated) const SizedBox(width: 8),
 
-                // Notification button with badge on FAR RIGHT (reversed)
-                BlocBuilder<NotificationBloc, NotificationState>(
-                  builder: (context, notificationState) {
-                    int unreadCount = 0;
-                    if (notificationState is NotificationLoaded) {
-                      unreadCount = notificationState.unreadCount;
-                    }
+                // Notifications — logged in only
+                if (isAuthenticated)
+                  BlocBuilder<NotificationBloc, NotificationState>(
+                    builder: (context, notificationState) {
+                      int unreadCount = 0;
+                      if (notificationState is NotificationLoaded) {
+                        unreadCount = notificationState.unreadCount;
+                      }
 
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pushNamed(context, AppRouter.notificationsList);
-                      },
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
+                      return GestureDetector(
+                        onTap: () => Navigator.pushNamed(context, AppRouter.notificationsList),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
                             ),
-                            child: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          if (unreadCount > 0)
-                            Positioned(
-                              top: -4,
-                              right: -4,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 20,
-                                  minHeight: 20,
-                                ),
-                                child: Center(
-                                  child: Builder(
-                                    builder: (context) {
-                                      final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
-                                      return Text(
-                                        unreadCount > 9 ? '9+' : '$unreadCount',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: (11 * scaleFactor).clamp(10.0, 13.0),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      );
-                                    },
+                            if (unreadCount > 0)
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                                  child: Center(
+                                    child: Builder(
+                                      builder: (context) {
+                                        final scaleFactor = (MediaQuery.of(context).size.width / 375).clamp(0.9, 1.3);
+                                        return Text(
+                                          unreadCount > 9 ? '9+' : '$unreadCount',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: (11 * scaleFactor).clamp(10.0, 13.0),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
               ],
             ),
           ),
@@ -522,7 +518,6 @@ class _UserHomeScreenState extends State<UserHomeScreen>
     );
   }
 
-  /// Build error view with retry button
   Widget _buildErrorView(BuildContext context, String message) {
     return Container(
       decoration: BoxDecoration(
@@ -542,7 +537,6 @@ class _UserHomeScreenState extends State<UserHomeScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Error icon
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -556,33 +550,21 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                       ),
                     ],
                   ),
-                  child: Icon(
-                    Icons.wifi_off_rounded,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  child: Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey[400]),
                 ),
                 const SizedBox(height: 32),
-                // Error message
                 Text(
                   message,
                   textAlign: TextAlign.center,
                   textDirection: TextDirection.rtl,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                    height: 1.6,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700], height: 1.6),
                 ),
                 const SizedBox(height: 32),
-                // Retry button
                 ElevatedButton.icon(
                   onPressed: () {
                     final authState = context.read<AuthBloc>().state;
                     String? userId;
-                    if (authState is AuthAuthenticated) {
-                      userId = authState.user.id;
-                    }
+                    if (authState is AuthAuthenticated) userId = authState.user.id;
                     context.read<HomeBloc>().add(HomeServicesRequested(userId: userId));
                     context.read<BannerBloc>().add(const BannersRequested());
                   },
@@ -595,9 +577,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                     backgroundColor: const Color(0xFFD4AF37),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 4,
                   ),
                 ),
@@ -609,14 +589,16 @@ class _UserHomeScreenState extends State<UserHomeScreen>
     );
   }
 
-  /// Handle category tap navigation
   void _handleCategoryTap(BuildContext context, CategoryModel category) {
-    // Check if it's the venues category (قاعات الأفراح)
-    // Venues have a dedicated screen with VenueModel
+    // Guard for guests
+    if (_isGuest) {
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
+      return;
+    }
+
     if (category.nameAr == 'قاعات الأفراح' || category.name == 'Venues') {
       Navigator.pushNamed(context, AppRouter.venuesList);
     } else {
-      // All other categories use the generic CategoryServicesListScreen
       Navigator.pushNamed(
         context,
         AppRouter.categoryServices,
