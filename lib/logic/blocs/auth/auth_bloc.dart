@@ -28,7 +28,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthGetWeddingDateRequested>(_onAuthGetWeddingDateRequested);
     on<AuthSetEventRequested>(_onAuthSetEventRequested);
     on<AuthDeleteEventRequested>(_onAuthDeleteEventRequested);
-    on<AuthDeleteAccountRequested>(_onAuthDeleteAccountRequested); // 👈 NEW
+    on<AuthDeleteAccountRequested>(_onAuthDeleteAccountRequested);
 
     authRepository.sessionExpiredStream.listen((_) {
       add(const AuthSessionExpired());
@@ -62,6 +62,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(AuthAuthenticated(user));
     } catch (e) {
+      // ✅ FIX: Pass 'login' context so ErrorHandler returns "wrong credentials"
+      // instead of "session expired" for a 401 during login
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'login')));
     }
   }
@@ -401,7 +403,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  // 👇 NEW
   Future<void> _onAuthDeleteAccountRequested(
     AuthDeleteAccountRequested event,
     Emitter<AuthState> emit,
@@ -413,9 +414,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await authRepository.deleteAccount();
       AppLogger.success('Account deleted successfully', tag: 'AuthBloc');
+      // ✅ FIX: Emit dedicated success state FIRST so UI can show a message,
+      // then emit AuthUnauthenticated to trigger navigation to login
+      emit(const AuthDeleteAccountSuccess());
       emit(const AuthUnauthenticated());
     } catch (e) {
       AppLogger.error('Account deletion failed', tag: 'AuthBloc', error: e);
+      // ✅ FIX: Restore previous state so the screen doesn't go blank on error
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'delete_account')));
       emit(currentState);
     }

@@ -21,6 +21,33 @@ class UserProfileScreen extends StatelessWidget {
           if (state is AuthUnauthenticated) {
             Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
           }
+
+          // ✅ FIX: Show success message when account is deleted
+          if (state is AuthDeleteAccountSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.message,
+                  textDirection: TextDirection.rtl,
+                ),
+                backgroundColor: Colors.green.shade600,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+
+          // ✅ FIX: Show error message instead of silently doing nothing
+          if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.message,
+                  textDirection: TextDirection.rtl,
+                ),
+                backgroundColor: Colors.red.shade600,
+              ),
+            );
+          }
         },
         child: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
@@ -132,7 +159,6 @@ class UserProfileScreen extends StatelessWidget {
                           onTap: () => _showLogoutDialog(context),
                           isDestructive: true,
                         ),
-                        // 👇 NEW
                         _buildMenuItem(
                           context,
                           icon: Icons.delete_forever_outlined,
@@ -339,79 +365,107 @@ class UserProfileScreen extends StatelessWidget {
     );
   }
 
-  // 👇 NEW
   void _showDeleteAccountDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.delete_forever, color: Colors.red.shade600, size: 60),
-              const SizedBox(height: 16),
-              const Text(
-                'حذف الحساب نهائياً',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                textDirection: TextDirection.rtl,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'سيتم حذف حسابك وجميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.',
-                textAlign: TextAlign.center,
-                textDirection: TextDirection.rtl,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
-              ),
-              const SizedBox(height: 24),
-              Row(
+      // ✅ FIX: barrierDismissible false so user can't tap outside while loading
+      barrierDismissible: false,
+      builder: (dialogContext) => BlocConsumer<AuthBloc, AuthState>(
+        // ✅ FIX: Close dialog automatically on success or error
+        listener: (context, state) {
+          if (state is AuthDeleteAccountSuccess ||
+              state is AuthUnauthenticated ||
+              state is AuthError ||
+              state is AuthAuthenticated) {
+            // Only pop if dialog is still showing
+            if (Navigator.of(dialogContext).canPop()) {
+              Navigator.of(dialogContext).pop();
+            }
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Color(0xFFD4AF37)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text(
-                        'إلغاء',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFD4AF37),
-                        ),
-                        textDirection: TextDirection.rtl,
-                      ),
-                    ),
+                  Icon(Icons.delete_forever, color: Colors.red.shade600, size: 60),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'حذف الحساب نهائياً',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textDirection: TextDirection.rtl,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop();
-                        context.read<AuthBloc>().add(const AuthDeleteAccountRequested());
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'سيتم حذف حسابك وجميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.',
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          // ✅ Disabled while loading so user can't cancel mid-request
+                          onPressed: isLoading ? null : () => Navigator.of(dialogContext).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: Color(0xFFD4AF37)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text(
+                            'إلغاء',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFD4AF37),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: const Text(
-                        'حذف الحساب',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        textDirection: TextDirection.rtl,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isLoading
+                              ? null
+                              : () => context
+                                  .read<AuthBloc>()
+                                  .add(const AuthDeleteAccountRequested()),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          // ✅ FIX: Show spinner while request is in flight
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'حذف الحساب',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

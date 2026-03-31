@@ -163,3 +163,16 @@ class AuthEventUpdateSuccess extends AuthState {
   List<Object?> get props => [user, message];
 }
 
+// ✅ NEW: Dedicated state for delete account success
+// This gives profile screens a clean signal to show a success message
+// before navigating away, instead of silently jumping to AuthUnauthenticated
+class AuthDeleteAccountSuccess extends AuthState {
+  final String message;
+
+  const AuthDeleteAccountSuccess({
+    this.message = 'تم حذف حسابك بنجاح.',
+  });
+
+  @override
+  List<Object?> get props => [message];
+}

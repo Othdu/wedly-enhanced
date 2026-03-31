@@ -37,7 +37,12 @@ class ProviderProfileScreen extends StatelessWidget {
                   'هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟',
                   textAlign: TextAlign.center,
                   textDirection: ui.TextDirection.rtl,
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.black87, height: 1.4),
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 const Text(
@@ -78,7 +83,10 @@ class ProviderProfileScreen extends StatelessWidget {
                       side: BorderSide(color: Colors.grey.shade300, width: 1.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('إلغاء', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'إلغاء',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
               ],
@@ -89,79 +97,131 @@ class ProviderProfileScreen extends StatelessWidget {
     );
   }
 
-  // 👇 NEW
   void _showDeleteAccountDialog(BuildContext context) {
     showDialog(
       context: context,
+      // ✅ FIX: Prevent tapping outside to dismiss while request is in flight
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.delete_forever_rounded, color: Colors.red.shade600, size: 32),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'حذف الحساب نهائياً',
-                  textAlign: TextAlign.center,
-                  textDirection: ui.TextDirection.rtl,
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.black87),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'سيتم حذف حسابك وجميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.',
-                  textAlign: TextAlign.center,
-                  textDirection: ui.TextDirection.rtl,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.4),
-                ),
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop();
-                      context.read<AuthBloc>().add(const AuthDeleteAccountRequested());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
+        return BlocConsumer<AuthBloc, AuthState>(
+          // ✅ FIX: Close dialog automatically on success or error
+          listener: (context, state) {
+            if (state is AuthDeleteAccountSuccess ||
+                state is AuthUnauthenticated ||
+                state is AuthError ||
+                state is AuthAuthenticated) {
+              if (Navigator.of(dialogContext).canPop()) {
+                Navigator.of(dialogContext).pop();
+              }
+            }
+          },
+          builder: (context, state) {
+            final isLoading = state is AuthLoading;
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.delete_forever_rounded,
+                        color: Colors.red.shade600,
+                        size: 32,
+                      ),
                     ),
-                    child: const Text(
-                      'حذف الحساب',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'حذف الحساب نهائياً',
+                      textAlign: TextAlign.center,
+                      textDirection: ui.TextDirection.rtl,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey.shade700,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(height: 10),
+                    Text(
+                      'سيتم حذف حسابك وجميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.',
+                      textAlign: TextAlign.center,
+                      textDirection: ui.TextDirection.rtl,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                        height: 1.4,
+                      ),
                     ),
-                    child: const Text('إلغاء', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => context
+                                .read<AuthBloc>()
+                                .add(const AuthDeleteAccountRequested()),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        // ✅ FIX: Show spinner while request is in flight
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'حذف الحساب',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        // ✅ Disabled while loading
+                        onPressed:
+                            isLoading ? null : () => Navigator.of(dialogContext).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.grey.shade700,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'إلغاء',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -176,6 +236,33 @@ class ProviderProfileScreen extends StatelessWidget {
           if (state is AuthUnauthenticated) {
             Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
           }
+
+          // ✅ FIX: Show success snackbar when account deleted
+          if (state is AuthDeleteAccountSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.message,
+                  textDirection: ui.TextDirection.rtl,
+                ),
+                backgroundColor: Colors.green.shade600,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+
+          // ✅ FIX: Show error snackbar instead of silently doing nothing
+          if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.message,
+                  textDirection: ui.TextDirection.rtl,
+                ),
+                backgroundColor: Colors.red.shade600,
+              ),
+            );
+          }
         },
         child: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
@@ -189,7 +276,11 @@ class ProviderProfileScreen extends StatelessWidget {
                     const Text(
                       'لم يتم تسجيل الدخول',
                       textDirection: ui.TextDirection.rtl,
-                      style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -217,7 +308,11 @@ class ProviderProfileScreen extends StatelessWidget {
                   child: const Text(
                     'حسابي',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
 
@@ -249,7 +344,11 @@ class ProviderProfileScreen extends StatelessWidget {
                         Text(
                           user.name,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Container(
@@ -260,7 +359,11 @@ class ProviderProfileScreen extends StatelessWidget {
                           ),
                           child: const Text(
                             'مقدم خدمة',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.gold),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.gold,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -283,11 +386,23 @@ class ProviderProfileScreen extends StatelessWidget {
                             child: Column(
                               children: [
                                 const SizedBox(height: 8),
-                                _buildInfoRow(user.email, Icons.email_outlined, 'البريد الإلكتروني'),
+                                _buildInfoRow(
+                                  user.email,
+                                  Icons.email_outlined,
+                                  'البريد الإلكتروني',
+                                ),
                                 _buildDivider(),
-                                _buildInfoRow(user.phone ?? 'غير محدد', Icons.phone_outlined, 'رقم الهاتف'),
+                                _buildInfoRow(
+                                  user.phone ?? 'غير محدد',
+                                  Icons.phone_outlined,
+                                  'رقم الهاتف',
+                                ),
                                 _buildDivider(),
-                                _buildInfoRow(user.city ?? 'غير محدد', Icons.location_on_outlined, 'المدينة'),
+                                _buildInfoRow(
+                                  user.city ?? 'غير محدد',
+                                  Icons.location_on_outlined,
+                                  'المدينة',
+                                ),
                                 const SizedBox(height: 8),
                               ],
                             ),
@@ -307,20 +422,26 @@ class ProviderProfileScreen extends StatelessWidget {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const ProviderEditProfileScreen(),
+                                      builder: (context) =>
+                                          const ProviderEditProfileScreen(),
                                     ),
                                   );
                                 },
                                 icon: const Icon(Icons.edit_outlined, size: 20),
                                 label: const Text(
                                   'تعديل البيانات',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.gold,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                   elevation: 2,
                                   shadowColor: AppColors.gold.withValues(alpha: 0.4),
                                 ),
@@ -332,29 +453,44 @@ class ProviderProfileScreen extends StatelessWidget {
                                 icon: const Icon(Icons.logout_rounded, size: 20),
                                 label: const Text(
                                   'تسجيل الخروج',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.gold,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   side: const BorderSide(color: AppColors.gold, width: 2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              // 👇 NEW - Delete Account
+                              // Delete Account
                               OutlinedButton.icon(
                                 onPressed: () => _showDeleteAccountDialog(context),
-                                icon: Icon(Icons.delete_forever_outlined, size: 20, color: Colors.red.shade600),
+                                icon: Icon(
+                                  Icons.delete_forever_outlined,
+                                  size: 20,
+                                  color: Colors.red.shade600,
+                                ),
                                 label: Text(
                                   'حذف الحساب',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red.shade600),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red.shade600,
+                                  ),
                                 ),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.red.shade600,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   side: BorderSide(color: Colors.red.shade400, width: 2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 32),
@@ -387,14 +523,23 @@ class ProviderProfileScreen extends StatelessWidget {
                 Text(
                   value,
                   textAlign: TextAlign.left,
-                  textDirection: isPhoneNumber ? ui.TextDirection.ltr : ui.TextDirection.rtl,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                  textDirection:
+                      isPhoneNumber ? ui.TextDirection.ltr : ui.TextDirection.rtl,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   label,
                   textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),

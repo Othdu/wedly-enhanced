@@ -4,13 +4,10 @@ import 'package:wedly/data/services/api_exceptions.dart';
 /// Provides user-friendly error messages for different exception types
 class ErrorHandler {
   /// Get user-friendly message from any exception
-  /// Returns a bilingual message (Arabic first, then English)
   static String getUserFriendlyMessage(dynamic error) {
     if (error is ApiException) {
       return error.message;
     }
-
-    // Fallback for non-API exceptions
     return 'حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.\n'
         'An unexpected error occurred. Please try again.';
   }
@@ -46,7 +43,6 @@ class ErrorHandler {
     }
 
     if (error is ValidationException) {
-      // Try to extract validation errors
       if (error.errors != null) {
         final errors = error.errors!;
         final firstError = errors.values.first;
@@ -59,6 +55,12 @@ class ErrorHandler {
     }
 
     if (error is UnauthorizedException) {
+      // ✅ FIX: During login, 401 means wrong credentials — NOT session expired
+      if (context == 'login') {
+        return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.\n'
+            'Incorrect email or password.';
+      }
+      // For all other contexts (API calls while authenticated), it IS session expiry
       return 'جلستك انتهت. الرجاء تسجيل الدخول مرة أخرى.\n'
           'Session expired. Please login again.';
     }
