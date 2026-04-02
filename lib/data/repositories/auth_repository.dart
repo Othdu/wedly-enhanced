@@ -55,26 +55,25 @@ class AuthRepository {
   }) async {
     final response = await _apiClient.post(
       ApiConstants.login,
-      data: {
-        'email': email,
-        'password': password,
-      },
+      data: {'email': email, 'password': password},
     );
 
     final responseData = response.data['data'] ?? response.data;
     AppLogger.auth('Login response received');
 
     final isPending = responseData['pending'] == true ||
-                      responseData['status'] == 'pending' ||
-                      responseData['approval_status'] == 'pending';
+        responseData['status'] == 'pending' ||
+        responseData['approval_status'] == 'pending';
     if (isPending) {
       final message = responseData['message'] as String? ??
           'حسابك قيد المراجعة. يرجى الانتظار حتى يتم الموافقة على حسابك.';
       throw ProviderPendingApprovalException(message: message);
     }
 
-    final accessToken = (responseData['access_token'] ?? responseData['accessToken']) as String?;
-    final refreshToken = (responseData['refresh_token'] ?? responseData['refreshToken']) as String?;
+    final accessToken =
+        (responseData['access_token'] ?? responseData['accessToken']) as String?;
+    final refreshToken =
+        (responseData['refresh_token'] ?? responseData['refreshToken']) as String?;
 
     if (accessToken == null || refreshToken == null) {
       throw Exception('فشل في الحصول على رموز المصادقة من الخادم');
@@ -87,7 +86,11 @@ class AuthRepository {
       refreshToken: refreshToken,
     );
 
-    final user = UserModel.fromJson(responseData['user']);
+    final userData = responseData['user'] ?? responseData;
+    if (userData == null || userData is! Map<String, dynamic>) {
+      throw Exception('استجابة غير صالحة من الخادم');
+    }
+    final user = UserModel.fromJson(userData);
     await _tokenManager.saveUserRole(user.role.name);
 
     _currentUser = user;
@@ -146,7 +149,6 @@ class AuthRepository {
     }
   }
 
-  // 👇 NEW
   Future<void> deleteAccount() async {
     AppLogger.auth('Deleting account...');
     try {
@@ -156,7 +158,6 @@ class AuthRepository {
       AppLogger.error('Delete account API failed', tag: 'AuthRepo', error: e);
       rethrow;
     } finally {
-      // Always clear local data even if API fails
       await _performLocalLogout();
       try {
         final socialAuthService = SocialAuthService();
@@ -166,9 +167,7 @@ class AuthRepository {
   }
 
   Future<UserModel?> getCurrentUser() async {
-    if (_currentUser != null) {
-      return _currentUser;
-    }
+    if (_currentUser != null) return _currentUser;
 
     final cachedUser = await _loadUserFromCache();
     if (cachedUser != null) {
@@ -250,12 +249,12 @@ class AuthRepository {
 
     final responseData = response.data['data'] ?? response.data;
     final imageUrl = responseData['profile_image_url'] ??
-                     responseData['image_url'] ??
-                     responseData['imageUrl'] ??
-                     responseData['url'];
+        responseData['image_url'] ??
+        responseData['imageUrl'] ??
+        responseData['url'];
 
     if (imageUrl == null) {
-      throw Exception('Image URL not found in response: ${response.data}');
+      throw Exception('لم يتم العثور على رابط الصورة في استجابة الخادم');
     }
 
     return imageUrl as String;
@@ -299,9 +298,7 @@ class AuthRepository {
 
     final response = await _apiClient.post(
       ApiConstants.setWeddingDate,
-      data: {
-        'wedding_date': weddingDate.toUtc().toIso8601String(),
-      },
+      data: {'wedding_date': weddingDate.toUtc().toIso8601String()},
     );
 
     final responseData = response.data['data'] ?? response.data;
@@ -393,7 +390,8 @@ class AuthRepository {
             await _saveUserToCache(_currentUser!);
           }
 
-          final responseData = fallbackResponse.data['data'] ?? fallbackResponse.data;
+          final responseData =
+              fallbackResponse.data['data'] ?? fallbackResponse.data;
           return {
             'success': responseData['success'] ?? true,
             'message': 'تم حفظ مناسبتك بنجاح',
@@ -428,7 +426,8 @@ class AuthRepository {
       await prefs.remove('user_event_name');
 
       if (_currentUser != null) {
-        _currentUser = _currentUser!.copyWith(weddingDate: pastDate, eventName: null);
+        _currentUser =
+            _currentUser!.copyWith(weddingDate: pastDate, eventName: null);
         await _saveUserToCache(_currentUser!);
       }
 
@@ -449,7 +448,8 @@ class AuthRepository {
       }
 
       if (is404) {
-        debugPrint('🔄 Event endpoint not found (404), activating fallback for delete...');
+        debugPrint(
+            '🔄 Event endpoint not found (404), activating fallback for delete...');
         try {
           final fallbackResponse = await _apiClient.post(
             ApiConstants.setWeddingDate,
@@ -460,11 +460,13 @@ class AuthRepository {
           await prefs.remove('user_event_name');
 
           if (_currentUser != null) {
-            _currentUser = _currentUser!.copyWith(weddingDate: pastDate, eventName: null);
+            _currentUser =
+                _currentUser!.copyWith(weddingDate: pastDate, eventName: null);
             await _saveUserToCache(_currentUser!);
           }
 
-          final responseData = fallbackResponse.data['data'] ?? fallbackResponse.data;
+          final responseData =
+              fallbackResponse.data['data'] ?? fallbackResponse.data;
           return {
             'success': responseData['success'] ?? true,
             'message': 'تم حذف المناسبة بنجاح',
@@ -522,7 +524,8 @@ class AuthRepository {
     final requestData = {'email': email, 'otp': otp.toString()};
     AppLogger.auth('Sending verifyOtp request');
 
-    final response = await _apiClient.post(ApiConstants.verifyOtp, data: requestData);
+    final response =
+        await _apiClient.post(ApiConstants.verifyOtp, data: requestData);
     AppLogger.success('OTP Verification successful', tag: 'AuthRepo');
 
     final responseData = response.data['data'] ?? response.data;
@@ -530,18 +533,23 @@ class AuthRepository {
     if (responseData['verified'] == true) {
       AppLogger.auth('Account verified! Now logging in automatically...');
       if (password != null && email.isNotEmpty) {
-        final loginUser = await login(email: email, password: password, role: role);
+        final loginUser =
+            await login(email: email, password: password, role: role);
         AppLogger.success('Auto-login successful', tag: 'AuthRepo');
         return loginUser;
       } else {
-        throw Exception('لا يمكن تسجيل الدخول تلقائياً. الرجاء تسجيل الدخول يدوياً.');
+        throw Exception(
+            'لا يمكن تسجيل الدخول تلقائياً. الرجاء تسجيل الدخول يدوياً.');
       }
     }
 
-    final accessToken = responseData['access_token'] ?? responseData['accessToken'];
-    final refreshToken = responseData['refresh_token'] ?? responseData['refreshToken'];
+    final accessToken =
+        responseData['access_token'] ?? responseData['accessToken'];
+    final refreshToken =
+        responseData['refresh_token'] ?? responseData['refreshToken'];
     if (accessToken != null && refreshToken != null) {
-      await _tokenManager.saveTokens(accessToken: accessToken, refreshToken: refreshToken);
+      await _tokenManager.saveTokens(
+          accessToken: accessToken, refreshToken: refreshToken);
     }
 
     final user = UserModel.fromJson(responseData['user'] ?? responseData);
@@ -553,7 +561,8 @@ class AuthRepository {
   }
 
   Future<Map<String, dynamic>> resendOtp({required String email}) async {
-    final response = await _apiClient.post(ApiConstants.resendOtp, data: {'email': email});
+    final response =
+        await _apiClient.post(ApiConstants.resendOtp, data: {'email': email});
     final responseData = response.data['data'] ?? response.data;
     return {
       'success': responseData['success'] ?? true,
@@ -561,39 +570,55 @@ class AuthRepository {
     };
   }
 
+  // 👇 idFrontPath and idBackPath are now optional
   Future<Map<String, dynamic>> registerProvider({
-    required String email,
-    required String password,
-    required String name,
-    String? phone,
-    String? city,
-    required String idFrontPath,
-    required String idBackPath,
-    String? commercialRegisterPath,
-    String? taxCardPath,
-  }) async {
-    final formData = FormData();
+  required String email,
+  required String password,
+  required String name,
+  String? phone,
+  String? city,
+  String? idFrontPath,
+  String? idBackPath,
+  String? commercialRegisterPath,
+  String? taxCardPath,
+}) async {
+  final hasFiles = idFrontPath != null ||
+      idBackPath != null ||
+      commercialRegisterPath != null ||
+      taxCardPath != null;
 
+  AppLogger.auth('Registering provider (hasFiles: $hasFiles)');
+
+  final Response response;
+
+  if (hasFiles) {
+    final formData = FormData();
     formData.fields.add(MapEntry('email', email));
     formData.fields.add(MapEntry('password', password));
     formData.fields.add(MapEntry('name', name));
-
-    if (phone != null && phone.isNotEmpty) formData.fields.add(MapEntry('phone', phone));
-    if (city != null && city.isNotEmpty) formData.fields.add(MapEntry('city', city));
-
-    formData.files.add(MapEntry(
-      'id_front',
-      await MultipartFile.fromFile(idFrontPath, filename: 'id_front.jpg'),
-    ));
-    formData.files.add(MapEntry(
-      'id_back',
-      await MultipartFile.fromFile(idBackPath, filename: 'id_back.jpg'),
-    ));
-
+    if (phone != null && phone.isNotEmpty) {
+      formData.fields.add(MapEntry('phone', phone));
+    }
+    if (city != null && city.isNotEmpty) {
+      formData.fields.add(MapEntry('city', city));
+    }
+    if (idFrontPath != null) {
+      formData.files.add(MapEntry(
+        'id_front',
+        await MultipartFile.fromFile(idFrontPath, filename: 'id_front.jpg'),
+      ));
+    }
+    if (idBackPath != null) {
+      formData.files.add(MapEntry(
+        'id_back',
+        await MultipartFile.fromFile(idBackPath, filename: 'id_back.jpg'),
+      ));
+    }
     if (commercialRegisterPath != null) {
       formData.files.add(MapEntry(
         'commercial_register',
-        await MultipartFile.fromFile(commercialRegisterPath, filename: 'commercial_register.jpg'),
+        await MultipartFile.fromFile(commercialRegisterPath,
+            filename: 'commercial_register.jpg'),
       ));
     }
     if (taxCardPath != null) {
@@ -603,19 +628,34 @@ class AuthRepository {
       ));
     }
 
-    AppLogger.auth('Registering provider with documents');
-    final response = await _apiClient.post(ApiConstants.registerProvider, data: formData);
-
-    AppLogger.success('Provider registration response received', tag: 'AuthRepo');
-    final responseData = response.data['data'] ?? response.data;
-    return {
-      'success': responseData['success'] ?? true,
-      'message': responseData['message'] ?? 'تم إرسال طلبك للمراجعة بنجاح',
-    };
+    response = await _apiClient.post(
+      ApiConstants.registerProvider,
+      data: formData,
+    );
+  } else {
+    // No files — send plain JSON so the server receives the expected object
+    response = await _apiClient.post(
+      ApiConstants.registerProvider,
+      data: {
+        'email': email,
+        'password': password,
+        'name': name,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (city != null && city.isNotEmpty) 'city': city,
+      },
+    );
   }
 
+  AppLogger.success('Provider registration response received', tag: 'AuthRepo');
+  final responseData = response.data['data'] ?? response.data;
+  return {
+    'success': responseData['success'] ?? true,
+    'message': responseData['message'] ?? 'تم إنشاء حسابك بنجاح',
+  };
+}
   Future<Map<String, dynamic>> forgotPassword({required String email}) async {
-    final response = await _apiClient.post(ApiConstants.forgotPassword, data: {'email': email});
+    final response = await _apiClient.post(ApiConstants.forgotPassword,
+        data: {'email': email});
     final responseData = response.data['data'] ?? response.data;
     return {
       'success': responseData['success'] ?? true,
@@ -657,13 +697,15 @@ class AuthRepository {
 
     if (provider == 'apple') {
       if (idToken == null || idToken.isEmpty) {
-        throw ValidationException(message: 'Apple identity token is required for authentication');
+        throw ValidationException(
+            message: 'رمز التحقق من Apple مطلوب لتسجيل الدخول');
       }
       endpoint = ApiConstants.appleLogin;
       data = {'identityToken': idToken};
     } else {
       if (idToken == null || idToken.isEmpty) {
-        throw ValidationException(message: 'Google ID token is required for authentication');
+        throw ValidationException(
+            message: 'رمز التحقق من Google مطلوب لتسجيل الدخول');
       }
       endpoint = ApiConstants.googleLogin;
       data = {'id_token': idToken};
@@ -686,7 +728,11 @@ class AuthRepository {
       refreshToken: refreshToken,
     );
 
-    final user = UserModel.fromJson(responseData['user']);
+    final userData = responseData['user'] ?? responseData;
+    if (userData == null || userData is! Map<String, dynamic>) {
+      throw Exception('استجابة غير صالحة من الخادم');
+    }
+    final user = UserModel.fromJson(userData);
     await _tokenManager.saveUserRole(user.role.name);
 
     _currentUser = user;

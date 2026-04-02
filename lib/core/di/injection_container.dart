@@ -147,7 +147,7 @@ Future<void> setupDependencyInjection() async {
   getIt.registerFactory<ReviewBloc>(
     () => ReviewBloc(
       reviewRepository: getIt<ReviewRepository>(),
-      authBloc: getIt<AuthBloc>(),
+      authRepository: getIt<AuthRepository>(),
     ),
   );
 

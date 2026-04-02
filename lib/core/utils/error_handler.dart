@@ -1,74 +1,67 @@
 import 'package:wedly/data/services/api_exceptions.dart';
 
 /// Error Handler Utility
-/// Provides user-friendly error messages for different exception types
+/// Provides clean, user-friendly Arabic error messages.
 class ErrorHandler {
-  /// Get user-friendly message from any exception
+  /// Get a user-friendly message from any exception
   static String getUserFriendlyMessage(dynamic error) {
-    if (error is ApiException) {
-      return error.message;
-    }
-    return 'حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.\n'
-        'An unexpected error occurred. Please try again.';
-  }
-
-  /// Get error message for specific exception types with context
-  static String getContextualMessage(dynamic error, String context) {
-    if (error is TlsHandshakeException || error is SslCertificateException) {
-      return 'فشل الاتصال الآمن. قد تكون هناك مشكلة مؤقتة في الخادم.\n'
-          'الرجاء المحاولة لاحقاً.\n\n'
-          'Secure connection failed. There may be a temporary server issue.\n'
-          'Please try again later.';
-    }
-
     if (error is NoInternetException) {
-      return 'لا يوجد اتصال بالإنترنت.\n'
-          'الرجاء التحقق من الشبكة والمحاولة مرة أخرى.\n\n'
-          'No internet connection.\n'
-          'Please check your network and try again.';
+      return 'لا يوجد اتصال بالإنترنت، تحقق من الشبكة وحاول مجدداً.';
     }
-
     if (error is TimeoutException) {
-      return 'انتهت مهلة الاتصال بالخادم.\n'
-          'الرجاء المحاولة مرة أخرى.\n\n'
-          'Connection timeout.\n'
-          'Please try again.';
+      return 'انتهت مهلة الاتصال، الخادم يستغرق وقتاً أطول من المعتاد.';
     }
-
     if (error is ServerException) {
-      return 'الخادم غير متاح حالياً.\n'
-          'الرجاء المحاولة بعد قليل.\n\n'
-          'Server is currently unavailable.\n'
-          'Please try again in a moment.';
+      return 'الخادم غير متاح حالياً، حاول مرة أخرى بعد قليل.';
     }
-
+    if (error is TlsHandshakeException || error is SslCertificateException) {
+      return 'فشل الاتصال الآمن، هناك مشكلة مؤقتة في الخادم.';
+    }
+    if (error is ConnectionException) {
+      return 'تعذّر الاتصال بالخادم، تحقق من اتصالك وحاول مجدداً.';
+    }
+    if (error is UnauthorizedException) {
+      return 'انتهت جلستك، سجّل الدخول مرة أخرى للمتابعة.';
+    }
+    if (error is SessionExpiredException) {
+      return 'انتهت جلستك، سجّل الدخول مرة أخرى للمتابعة.';
+    }
+    if (error is ForbiddenException) {
+      return 'ليس لديك صلاحية للوصول إلى هذا المحتوى.';
+    }
+    if (error is NotFoundException) {
+      return 'المحتوى المطلوب غير موجود أو تم حذفه.';
+    }
     if (error is ValidationException) {
-      if (error.errors != null) {
-        final errors = error.errors!;
-        final firstError = errors.values.first;
+      if (error.errors != null && error.errors!.isNotEmpty) {
+        final firstError = error.errors!.values.first;
         if (firstError is List && firstError.isNotEmpty) {
           return firstError.first.toString();
         }
       }
-      return 'البيانات المدخلة غير صحيحة. الرجاء التحقق والمحاولة مرة أخرى.\n'
-          'Invalid input. Please check your data and try again.';
+      return 'البيانات المدخلة غير صحيحة، راجعها وحاول مجدداً.';
     }
+    if (error is ClientException) {
+      return 'حدث خطأ في الطلب، حاول مرة أخرى.';
+    }
+    if (error is ApiException) {
+      return error.message;
+    }
+    return 'حدث خطأ غير متوقع، حاول مرة أخرى.';
+  }
 
+  /// Get error message with context (e.g. during login vs other screens)
+  static String getContextualMessage(dynamic error, String context) {
     if (error is UnauthorizedException) {
-      // ✅ FIX: During login, 401 means wrong credentials — NOT session expired
       if (context == 'login') {
-        return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.\n'
-            'Incorrect email or password.';
+        return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
       }
-      // For all other contexts (API calls while authenticated), it IS session expiry
-      return 'جلستك انتهت. الرجاء تسجيل الدخول مرة أخرى.\n'
-          'Session expired. Please login again.';
+      return 'انتهت جلستك، سجّل الدخول مرة أخرى للمتابعة.';
     }
-
     return getUserFriendlyMessage(error);
   }
 
-  /// Check if error is a network-related error
+  /// Check if error is network-related
   static bool isNetworkError(dynamic error) {
     return error is NoInternetException ||
         error is ConnectionException ||
@@ -77,7 +70,7 @@ class ErrorHandler {
         error is SslCertificateException;
   }
 
-  /// Check if error is a security-related error
+  /// Check if error is security-related
   static bool isSecurityError(dynamic error) {
     return error is TlsHandshakeException ||
         error is SslCertificateException ||
@@ -90,12 +83,10 @@ class ErrorHandler {
     return error is SessionExpiredException || error is UnauthorizedException;
   }
 
-  /// Get error icon based on error type
+  /// Get icon for error type
   static String getErrorIcon(dynamic error) {
     if (error is NoInternetException) return '📡';
-    if (error is TlsHandshakeException || error is SslCertificateException) {
-      return '🔒';
-    }
+    if (error is TlsHandshakeException || error is SslCertificateException) return '🔒';
     if (error is TimeoutException) return '⏱️';
     if (error is ServerException) return '🔧';
     if (error is ValidationException) return '⚠️';

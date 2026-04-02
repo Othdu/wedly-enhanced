@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/core/utils/error_handler.dart';
 import '../../../data/repositories/booking_repository.dart';
 import 'booking_event.dart';
 import 'booking_state.dart';
@@ -31,7 +32,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingsLoaded(bookings));
       }
     } catch (e) {
-      emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}', error: e));
+      emit(BookingError('فشل تحميل الحجوزات: ${ErrorHandler.getUserFriendlyMessage(e)}', error: e));
     }
   }
 
@@ -52,7 +53,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       }
     } catch (e) {
       debugPrint('DEBUG: Error fetching bookings: $e');
-      emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}'));
+      emit(BookingError('فشل تحميل الحجوزات: ${ErrorHandler.getUserFriendlyMessage(e)}'));
     }
   }
 
@@ -73,7 +74,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingsLoaded(bookings));
       }
     } catch (e) {
-      emit(BookingError('فشل تحميل الحجوزات: ${e.toString()}', error: e));
+      emit(BookingError('فشل تحميل الحجوزات: ${ErrorHandler.getUserFriendlyMessage(e)}', error: e));
     }
   }
 
@@ -91,7 +92,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingDetailsLoaded(booking));
       }
     } catch (e) {
-      emit(BookingError('فشل تحميل تفاصيل الحجز: ${e.toString()}', error: e));
+      emit(BookingError('فشل تحميل تفاصيل الحجز: ${ErrorHandler.getUserFriendlyMessage(e)}', error: e));
     }
   }
 
@@ -122,7 +123,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
       emit(BookingStatusUpdated(updatedBooking, message));
     } catch (e) {
-      emit(BookingError('فشل تحديث حالة الحجز: ${e.toString()}', error: e));
+      emit(BookingError('فشل تحديث حالة الحجز: ${ErrorHandler.getUserFriendlyMessage(e)}', error: e));
     }
   }
 
@@ -139,7 +140,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         emit(BookingsLoaded(bookings));
       }
     } catch (e) {
-      emit(BookingError('فشل تحديث الحجوزات: ${e.toString()}', error: e));
+      emit(BookingError('فشل تحديث الحجوزات: ${ErrorHandler.getUserFriendlyMessage(e)}', error: e));
     }
   }
 

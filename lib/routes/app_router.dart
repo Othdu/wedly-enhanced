@@ -114,9 +114,6 @@ class AppRouter {
   }
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
-    debugPrint('🧭 AppRouter: Navigating to: ${settings.name}');
-    debugPrint('📦 AppRouter: Arguments: ${settings.arguments}');
-
     switch (settings.name) {
       case login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
@@ -289,10 +286,7 @@ class AppRouter {
       case dynamicServiceBooking:
         final args = settings.arguments as Map<String, dynamic>?;
         final service = args?['service'];
-        debugPrint('🔍 Booking route - args: $args');
-        debugPrint('🔍 Booking route - service: $service');
         if (service == null) {
-          debugPrint('❌ SERVICE IS NULL! Redirecting to login...');
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
         return MaterialPageRoute(

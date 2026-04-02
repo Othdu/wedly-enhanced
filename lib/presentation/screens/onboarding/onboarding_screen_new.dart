@@ -23,7 +23,7 @@ class _OnboardingScreenNewState extends State<OnboardingScreenNew> {
     OnboardingPage(
       title: 'اختار بسهولة وخلّي ذوقك يحدد المكان!',
       description:
-          'تصفّح القاعات بطريقة ذكية ومسلسلة، قارن بين الخيارات واختَر القاعة اللي تعكس اسلوبك الخاص.',
+          'تصفّح القاعات بطريقة ذكية وسلسة، قارن بين الخيارات واختَر القاعة اللي تعكس أسلوبك الخاص.',
     ),
     OnboardingPage(
       title: 'احجز قاعتك في لحظات بكل ثقة!',

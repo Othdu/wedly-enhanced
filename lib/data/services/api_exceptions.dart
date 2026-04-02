@@ -14,15 +14,14 @@ class ApiException implements Exception {
   });
 
   @override
-  String toString() => 'ApiException: $message (Status: $statusCode)';
+  String toString() => message;
 }
 
 /// Exception thrown when there's no internet connection
 class NoInternetException extends ApiException {
   NoInternetException()
       : super(
-          message: 'لا يوجد اتصال بالإنترنت. الرجاء التحقق من الشبكة.\n'
-              'No internet connection. Please check your network.',
+          message: 'لا يوجد اتصال بالإنترنت. الرجاء التحقق من الشبكة.',
           statusCode: 0,
         );
 }
@@ -31,8 +30,7 @@ class NoInternetException extends ApiException {
 class TimeoutException extends ApiException {
   TimeoutException()
       : super(
-          message: 'انتهت مهلة الطلب. الرجاء المحاولة مرة أخرى.\n'
-              'Request timeout. Please try again.',
+          message: 'انتهت مهلة الطلب. الرجاء المحاولة مرة أخرى.',
           statusCode: 408,
         );
 }
@@ -42,8 +40,7 @@ class ServerException extends ApiException {
   ServerException({String? message, int? statusCode})
       : super(
           message: message ??
-              'خطأ في الخادم. الرجاء المحاولة لاحقاً.\n'
-                  'Server error occurred. Please try again later.',
+              'خطأ في الخادم. الرجاء المحاولة لاحقاً.',
           statusCode: statusCode ?? 500,
         );
 }
@@ -53,8 +50,7 @@ class ClientException extends ApiException {
   ClientException({String? message, int? statusCode, super.data})
       : super(
           message: message ??
-              'خطأ في الطلب.\n'
-                  'Client error occurred.',
+              'خطأ في الطلب. حاول مرة أخرى.',
           statusCode: statusCode ?? 400,
         );
 }
@@ -64,8 +60,7 @@ class UnauthorizedException extends ApiException {
   UnauthorizedException({String? message})
       : super(
           message: message ??
-              'غير مصرح. الرجاء تسجيل الدخول مرة أخرى.\n'
-                  'Unauthorized. Please login again.',
+              'غير مصرح. الرجاء تسجيل الدخول مرة أخرى.',
           statusCode: 401,
         );
 }
@@ -75,8 +70,7 @@ class ForbiddenException extends ApiException {
   ForbiddenException({String? message})
       : super(
           message: message ??
-              'الوصول محظور.\n'
-                  'Access forbidden.',
+              'الوصول محظور.',
           statusCode: 403,
         );
 }
@@ -86,8 +80,7 @@ class NotFoundException extends ApiException {
   NotFoundException({String? message})
       : super(
           message: message ??
-              'العنصر غير موجود.\n'
-                  'Resource not found.',
+              'العنصر غير موجود.',
           statusCode: 404,
         );
 }
@@ -99,8 +92,7 @@ class ValidationException extends ApiException {
   ValidationException({String? message, this.errors})
       : super(
           message: message ??
-              'خطأ في التحقق من البيانات.\n'
-                  'Validation error.',
+              'خطأ في التحقق من البيانات.',
           statusCode: 422,
           data: errors,
         );
@@ -111,8 +103,7 @@ class UnknownException extends ApiException {
   UnknownException({String? message})
       : super(
           message: message ??
-              'حدث خطأ غير متوقع.\n'
-                  'An unexpected error occurred.',
+              'حدث خطأ غير متوقع.',
         );
 }
 
@@ -132,8 +123,7 @@ class SslCertificateException extends ApiException {
   SslCertificateException({String? message})
       : super(
           message: message ??
-              'خطأ في الاتصال الآمن. الرجاء التواصل مع الدعم الفني.\n'
-                  'SSL certificate error. Please contact support.',
+              'خطأ في الاتصال الآمن. الرجاء التواصل مع الدعم الفني.',
           statusCode: 0,
         );
 }
@@ -144,20 +134,13 @@ class TlsHandshakeException extends ApiException {
   TlsHandshakeException({String? message})
       : super(
           message: message ??
-              '⚠️ عذراً، نواجه مشكلة مؤقتة في الاتصال الآمن\n\n'
+              'عذراً، نواجه مشكلة مؤقتة في الاتصال الآمن.\n\n'
                   'يبدو أن خادم التطبيق يواجه مشكلة في إعدادات الأمان. '
                   'نحن نعمل على حل المشكلة في أقرب وقت ممكن.\n\n'
                   'يرجى:\n'
                   '• المحاولة مرة أخرى بعد قليل\n'
                   '• التحقق من اتصالك بالإنترنت\n'
-                  '• التواصل مع الدعم الفني إذا استمرت المشكلة\n\n'
-                  '⚠️ Sorry, we\'re experiencing a temporary secure connection issue\n\n'
-                  'The application server seems to have a security configuration problem. '
-                  'We\'re working to resolve this as soon as possible.\n\n'
-                  'Please:\n'
-                  '• Try again in a few moments\n'
-                  '• Check your internet connection\n'
-                  '• Contact support if the issue persists',
+                  '• التواصل مع الدعم الفني إذا استمرت المشكلة',
           statusCode: 0,
         );
 }
@@ -168,8 +151,7 @@ class ConnectionException extends ApiException {
   ConnectionException({String? message})
       : super(
           message: message ??
-              'فشل الاتصال بالخادم. الرجاء التحقق من اتصالك بالإنترنت.\n'
-                  'Connection to server failed. Please check your internet connection.',
+              'فشل الاتصال بالخادم. الرجاء التحقق من اتصالك بالإنترنت.',
           statusCode: 0,
         );
 }
@@ -179,8 +161,7 @@ class ProviderPendingApprovalException extends ApiException {
   ProviderPendingApprovalException({String? message})
       : super(
           message: message ??
-              'حسابك قيد المراجعة. يرجى الانتظار حتى يتم الموافقة على حسابك.\n'
-                  'Your account is pending approval. Please wait for your account to be approved.',
+              'حسابك قيد المراجعة. يرجى الانتظار حتى يتم الموافقة على حسابك.',
           statusCode: 403,
         );
 }

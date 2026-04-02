@@ -240,45 +240,59 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 ),
 
                 // قسم الاقتراحات
-                BlocBuilder<SearchBloc, SearchState>(
-                  builder: (context, state) {
-                    if (!_showSuggestions || state is! SearchLoaded) {
-                      return const SizedBox.shrink();
-                    }
+                Flexible(
+                  flex: 0,
+                  child: BlocBuilder<SearchBloc, SearchState>(
+                    builder: (context, state) {
+                      if (!_showSuggestions || state is! SearchLoaded) {
+                        return const SizedBox.shrink();
+                      }
 
-                    // إظهار الاقتراحات عند الكتابة
-                    if (_searchController.text.isNotEmpty &&
-                        state.suggestions.isNotEmpty) {
-                      return _buildSuggestionsPanel(
-                        context,
-                        state.suggestions,
-                        'اقتراحات البحث',
-                        Icons.search,
+                      Widget? panel;
+
+                      // إظهار الاقتراحات عند الكتابة
+                      if (_searchController.text.isNotEmpty &&
+                          state.suggestions.isNotEmpty) {
+                        panel = _buildSuggestionsPanel(
+                          context,
+                          state.suggestions,
+                          'اقتراحات البحث',
+                          Icons.search,
+                        );
+                      }
+
+                      // إظهار عمليات البحث الأخيرة عندما يكون الحقل فارغاً
+                      if (panel == null &&
+                          _searchController.text.isEmpty &&
+                          state.recentSearches.isNotEmpty) {
+                        panel = _buildRecentSearchesPanel(
+                          context,
+                          state.recentSearches,
+                        );
+                      }
+
+                      // إظهار الاقتراحات الشائعة
+                      if (panel == null &&
+                          _searchController.text.isEmpty &&
+                          state.popularSearches.isNotEmpty) {
+                        panel = _buildSuggestionsPanel(
+                          context,
+                          state.popularSearches,
+                          'اقتراحات شائعة',
+                          Icons.trending_up,
+                        );
+                      }
+
+                      if (panel == null) return const SizedBox.shrink();
+
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.35,
+                        ),
+                        child: SingleChildScrollView(child: panel),
                       );
-                    }
-
-                    // إظهار عمليات البحث الأخيرة عندما يكون الحقل فارغاً
-                    if (_searchController.text.isEmpty &&
-                        state.recentSearches.isNotEmpty) {
-                      return _buildRecentSearchesPanel(
-                        context,
-                        state.recentSearches,
-                      );
-                    }
-
-                    // إظهار الاقتراحات الشائعة
-                    if (_searchController.text.isEmpty &&
-                        state.popularSearches.isNotEmpty) {
-                      return _buildSuggestionsPanel(
-                        context,
-                        state.popularSearches,
-                        'اقتراحات شائعة',
-                        Icons.trending_up,
-                      );
-                    }
-
-                    return const SizedBox.shrink();
-                  },
+                    },
+                  ),
                 ),
 
                 // قسم النتائج

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/core/utils/error_handler.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/logic/blocs/service/service_event.dart';
@@ -24,10 +25,10 @@ class ServiceBloc extends Bloc<ServiceEvent, ServiceState> {
       if (service != null) {
         emit(ServiceLoaded(service));
       } else {
-        emit(const ServiceError('Service not found'));
+        emit(const ServiceError('الخدمة غير موجودة'));
       }
     } catch (e) {
-      emit(ServiceError(e.toString()));
+      emit(ServiceError(ErrorHandler.getUserFriendlyMessage(e)));
     }
   }
 
@@ -74,7 +75,7 @@ class ServiceBloc extends Bloc<ServiceEvent, ServiceState> {
         availableCities: cities,
       ));
     } catch (e) {
-      emit(ServiceError(e.toString()));
+      emit(ServiceError(ErrorHandler.getUserFriendlyMessage(e)));
     }
   }
 
@@ -133,7 +134,7 @@ class ServiceBloc extends Bloc<ServiceEvent, ServiceState> {
       final cities = await serviceRepository.getCities();
       emit(CitiesLoaded(cities));
     } catch (e) {
-      emit(ServiceError(e.toString()));
+      emit(ServiceError(ErrorHandler.getUserFriendlyMessage(e)));
     }
   }
 }

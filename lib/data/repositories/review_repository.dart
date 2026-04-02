@@ -17,7 +17,9 @@ class ReviewRepository {
     final responseData = response.data['data'] ?? response.data;
     final reviewsList = responseData['reviews'] ?? responseData;
 
-    return (reviewsList as List)
+    final rawList = reviewsList is List ? reviewsList : <dynamic>[];
+    return rawList
+        .whereType<Map<String, dynamic>>()
         .map((json) => ReviewModel.fromJson(json))
         .toList();
   }
@@ -30,7 +32,9 @@ class ReviewRepository {
     final responseData = response.data['data'] ?? response.data;
     final reviewsList = responseData['reviews'] ?? responseData;
 
-    return (reviewsList as List)
+    final rawList = reviewsList is List ? reviewsList : <dynamic>[];
+    return rawList
+        .whereType<Map<String, dynamic>>()
         .map((json) => ReviewModel.fromJson(json))
         .toList();
   }
@@ -110,7 +114,9 @@ class ReviewRepository {
     final responseData = response.data['data'] ?? response.data;
     final reviewsList = responseData['reviews'] ?? responseData;
 
-    return (reviewsList as List)
+    final rawList = reviewsList is List ? reviewsList : <dynamic>[];
+    return rawList
+        .whereType<Map<String, dynamic>>()
         .map((json) => ReviewModel.fromJson(json))
         .toList();
   }

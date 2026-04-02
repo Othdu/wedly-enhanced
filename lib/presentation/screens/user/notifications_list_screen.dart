@@ -262,21 +262,7 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
   }
 
   void _handleNotificationTap(NotificationModel notification) {
-    // TODO: Navigate to related screen based on notification type and relatedId
-    // For example:
-    // - If type is booking, navigate to booking details
-    // - If type is offer, navigate to offer details
-    // - If type is reminder, show reminder details
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'التنقل إلى تفاصيل ${notification.getTypeLabelAr()} قريباً',
-          textDirection: TextDirection.rtl,
-        ),
-        backgroundColor: const Color(0xFFD4AF37),
-      ),
-    );
+    // Notification detail view handled by marking as read
   }
 
   Widget _buildEmptyState() {

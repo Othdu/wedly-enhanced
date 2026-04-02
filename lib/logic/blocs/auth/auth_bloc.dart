@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wedly/core/utils/app_logger.dart';
 import 'package:wedly/core/utils/error_handler.dart';
@@ -8,6 +9,7 @@ import 'package:wedly/logic/blocs/auth/auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
+  StreamSubscription<void>? _sessionExpiredSubscription;
 
   AuthBloc({required this.authRepository}) : super(const AuthInitial()) {
     on<AuthStatusChecked>(_onAuthStatusChecked);
@@ -30,11 +32,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthDeleteEventRequested>(_onAuthDeleteEventRequested);
     on<AuthDeleteAccountRequested>(_onAuthDeleteAccountRequested);
 
-    authRepository.sessionExpiredStream.listen((_) {
+    _sessionExpiredSubscription = authRepository.sessionExpiredStream.listen((_) {
       add(const AuthSessionExpired());
     });
 
     add(const AuthStatusChecked());
+  }
+
+  @override
+  Future<void> close() {
+    _sessionExpiredSubscription?.cancel();
+    return super.close();
   }
 
   Future<void> _onAuthStatusChecked(
@@ -85,10 +93,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthRoleChanged event,
     Emitter<AuthState> emit,
   ) async {
-    await authRepository.setUserRole(event.role);
-    final user = await authRepository.getCurrentUser();
-    if (user != null) {
-      emit(AuthAuthenticated(user));
+    try {
+      await authRepository.setUserRole(event.role);
+      final user = await authRepository.getCurrentUser();
+      if (user != null) {
+        emit(AuthAuthenticated(user));
+      }
+    } catch (e) {
+      emit(AuthError(ErrorHandler.getUserFriendlyMessage(e)));
     }
   }
 
@@ -219,6 +231,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     AppLogger.warning('Session expired, logging out', tag: 'AuthBloc');
+    try {
+      await authRepository.logout();
+    } catch (_) {}
     emit(const AuthUnauthenticated());
   }
 
@@ -334,7 +349,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       DateTime? weddingDate;
       if (result['wedding_date'] != null) {
-        weddingDate = DateTime.parse(result['wedding_date'] as String);
+        weddingDate = DateTime.tryParse(result['wedding_date'].toString());
       }
 
       emit(AuthGetWeddingDateSuccess(

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/core/utils/error_handler.dart';
 import 'package:wedly/data/models/countdown_model.dart';
 import 'package:wedly/data/models/home_layout_model.dart';
 import 'package:wedly/data/models/service_model.dart';
@@ -33,33 +34,35 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   ) async {
     emit(const HomeLoading());
     try {
-      // Run ALL requests in parallel for speed, but handle errors individually
-      // NOTE: Skipping layout - this endpoint doesn't exist on backend
+      // Public endpoints — work for both guests and logged-in users
       final results = await Future.wait([
-        // 0: Categories (critical)
+        // 0: Categories (public endpoint, no auth needed)
         serviceRepository.getCategoriesWithDetails().catchError((e) {
           debugPrint('⚠️ Failed to load categories: $e');
           return <CategoryModel>[];
         }),
-        // 1: Services (optional)
+        // 1: Services (public endpoint, no auth needed)
         serviceRepository.getServices().catchError((e) {
           debugPrint('⚠️ Failed to load services: $e');
           return <ServiceModel>[];
         }),
-        // 2: Category names (optional)
+        // 2: Category names (public endpoint, no auth needed)
         serviceRepository.getCategories().catchError((e) {
           debugPrint('⚠️ Failed to load category names: $e');
           return <String>[];
         }),
-        // 3: Offers (optional)
+        // 3: Offers (public endpoint, no auth needed)
         offerRepository.getOffers().catchError((e) {
           debugPrint('⚠️ Failed to load offers: $e');
           return <OfferModel>[];
         }),
-        // 4: Countdown - try API first, fallback to calculating from bookings
+        // 4: Countdown — only for logged-in users, guests always get null
         event.userId != null
-            ? _getCountdownWithFallback(event.userId!)
-            : Future.value(null),
+            ? _getCountdownWithFallback(event.userId!).catchError((e) {
+                debugPrint('⚠️ Failed to load countdown: $e');
+                return null;
+              })
+            : Future<CountdownModel?>.value(null),
       ]);
 
       final categoriesWithDetails = (results[0] as List).cast<CategoryModel>();
@@ -67,25 +70,16 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final categories = (results[2] as List).cast<String>();
       final rawOffers = (results[3] as List).cast<OfferModel>();
       final countdown = results[4] as CountdownModel?;
-      const HomeLayoutModel? layout = null; // Endpoint doesn't exist
+      const HomeLayoutModel? layout = null;
 
-      // Categories are critical - if empty, show error
-      if (categoriesWithDetails.isEmpty) {
-        emit(const HomeError(
-          'عذراً، لم نتمكن من تحميل الخدمات.\nيرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.',
-        ));
-        return;
-      }
-
-      // Filter out stale offers: cross-reference with services to remove
-      // offers whose service has discount_percentage=0 or has_offer=false
       final offers = _filterActiveOffers(rawOffers, services);
 
       debugPrint('📊 HomeBloc Data Loaded:');
       debugPrint('   CategoriesWithDetails: ${categoriesWithDetails.length}');
       debugPrint('   Services: ${services.length}');
       debugPrint('   Offers: ${rawOffers.length} raw → ${offers.length} active');
-      debugPrint('   Countdown: ${countdown != null ? "Loaded (${countdown.weddingDate})" : "None"}');
+      debugPrint('   Countdown: ${countdown != null ? "Loaded" : "None (guest or no booking)"}');
+      debugPrint('   Guest mode: ${event.userId == null}');
 
       emit(HomeLoaded(
         services: services,
@@ -97,10 +91,27 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       ));
     } catch (e) {
       debugPrint('⚠️ HomeBloc Error: $e');
+      // Only show error for non-auth errors
+      // If it's an auth/401 error in guest mode, still show empty home
+      final eStr = e.toString().toLowerCase();
+      final isAuthError = eStr.contains('401') ||
+          eStr.contains('unauthorized') ||
+          eStr.contains('unauthenticated');
 
-      emit(const HomeError(
-        'عذراً، لم نتمكن من تحميل البيانات.\nيرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.',
-      ));
+      if (isAuthError && event.userId == null) {
+        // Guest hit an auth-protected endpoint — show empty home instead of error
+        debugPrint('⚠️ Auth error in guest mode — showing empty home instead of error');
+        emit(const HomeLoaded(
+          services: [],
+          categories: [],
+          categoriesWithDetails: [],
+          offers: [],
+        ));
+      } else {
+        emit(const HomeError(
+          'عذراً، لم نتمكن من تحميل البيانات.\nيرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.',
+        ));
+      }
     }
   }
 
@@ -118,23 +129,25 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         ));
       }
     } catch (e) {
-      emit(HomeError(e.toString()));
+      emit(HomeError(ErrorHandler.getUserFriendlyMessage(e)));
     }
   }
 
-  /// Silent refresh - updates data without showing loading indicator
   Future<void> _onSilentRefreshHome(
     SilentRefreshHome event,
     Emitter<HomeState> emit,
   ) async {
-    // Don't emit loading state - silent refresh in background
     try {
       debugPrint('🔄 HomeBloc: Silent refresh started');
 
+      // Don't silent refresh for guests — no point
+      if (event.userId == null) {
+        debugPrint('🔄 HomeBloc: Skipping silent refresh for guest');
+        return;
+      }
+
       final currentState = state is HomeLoaded ? state as HomeLoaded : null;
 
-      // Run ALL requests in parallel, fallback to current data on error
-      // NOTE: Skipping layout - this endpoint doesn't exist on backend
       final results = await Future.wait([
         serviceRepository.getCategoriesWithDetails().catchError((e) {
           return currentState?.categoriesWithDetails ?? <CategoryModel>[];
@@ -148,13 +161,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         offerRepository.getOffers().catchError((e) {
           return currentState?.offers ?? <OfferModel>[];
         }),
-        // Fetch countdown with fallback if userId provided
-        event.userId != null
-            ? _getCountdownWithFallback(event.userId!).catchError((e) {
-                debugPrint('⚠️ Silent refresh: Failed to load countdown: $e');
-                return currentState?.countdown;
-              })
-            : Future.value(currentState?.countdown),
+        _getCountdownWithFallback(event.userId!).catchError((e) {
+          debugPrint('⚠️ Silent refresh: Failed to load countdown: $e');
+          return currentState?.countdown;
+        }),
       ]);
 
       final categoriesWithDetails = (results[0] as List).cast<CategoryModel>();
@@ -162,12 +172,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final categories = (results[2] as List).cast<String>();
       final rawOffers = (results[3] as List).cast<OfferModel>();
       final countdown = results[4] as CountdownModel?;
-      final layout = currentState?.layout; // Keep existing layout
+      final layout = currentState?.layout;
 
-      // Filter out stale offers
       final offers = _filterActiveOffers(rawOffers, services);
 
-      debugPrint('🔄 HomeBloc: Silent refresh completed - ${categoriesWithDetails.length} categories, ${offers.length} active offers');
+      debugPrint('🔄 HomeBloc: Silent refresh completed - ${categoriesWithDetails.length} categories');
 
       emit(HomeLoaded(
         services: services,
@@ -178,23 +187,16 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         countdown: countdown,
       ));
     } catch (e) {
-      // Silently fail - don't show error to user during background refresh
       debugPrint('🔄 HomeBloc: Silent refresh error (ignored): $e');
-      // Keep current state - don't emit error
+      // Keep current state on silent refresh failure
     }
   }
 
-  /// Get countdown with fallback to calculating from bookings
-  /// First tries API, then calculates from confirmed venue bookings
-  /// If API returns a past date, falls back to bookings for auto-correction
   Future<CountdownModel?> _getCountdownWithFallback(String userId) async {
     try {
-      // Try to get countdown from API first
       final apiCountdown = await serviceRepository.getUserCountdown(userId);
       if (apiCountdown != null) {
         debugPrint('📅 Countdown from API: ${apiCountdown.weddingDate}');
-
-        // Check if the date is in the future
         final now = DateTime.now();
         if (apiCountdown.weddingDate.isAfter(now)) {
           debugPrint('📅 API date is valid (in future), using it!');
@@ -209,19 +211,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       debugPrint('📅 API countdown failed: $e, calculating from bookings...');
     }
 
-    // Fallback: Calculate countdown from confirmed venue bookings
     try {
       final bookings = await bookingRepository.getUserBookings(userId);
       debugPrint('📅 Found ${bookings.length} total bookings');
 
-      // Filter for confirmed venue bookings
-      // Venues are identified by having a timeSlot (morning/evening) - this is the most reliable indicator
       final venueBookings = bookings.where((booking) {
         final isConfirmed = booking.status == BookingStatus.confirmed;
-        final isVenue = booking.timeSlot.isNotEmpty; // Only venues have morning/evening timeSlots
-
+        final isVenue = booking.timeSlot.isNotEmpty;
         if (isVenue) {
-          debugPrint('📅 Found venue booking: ${booking.serviceName} - ${booking.bookingDate} - Status: ${booking.status.name} - timeSlot: ${booking.timeSlot}');
+          debugPrint('📅 Found venue booking: ${booking.serviceName} - ${booking.bookingDate} - Status: ${booking.status.name}');
         }
         return isConfirmed && isVenue;
       }).toList();
@@ -231,9 +229,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         return null;
       }
 
-      // Get the LATEST venue booking date as wedding date (users typically reschedule/book final venue later)
       venueBookings.sort((a, b) => a.bookingDate.compareTo(b.bookingDate));
-      final weddingDate = venueBookings.last.bookingDate; // Changed from .first to .last
+      final weddingDate = venueBookings.last.bookingDate;
 
       debugPrint('📅 Wedding date calculated from LATEST booking: $weddingDate');
 
@@ -249,36 +246,29 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
   }
 
-  /// Filter out stale offers by cross-referencing with actual service data.
-  /// The offers API may still return offers for services that had their
-  /// discount removed (discount_percentage set to 0).
   List<OfferModel> _filterActiveOffers(
     List<OfferModel> offers,
     List<ServiceModel> services,
   ) {
-    // Build a lookup of services by ID
     final serviceMap = <String, ServiceModel>{};
     for (final service in services) {
       serviceMap[service.id] = service;
     }
 
     return offers.where((offer) {
-      // Check 1: Offer's own validity (expiry, prices)
       if (!offer.isValid) {
         debugPrint('🚫 Filtering out invalid offer: ${offer.titleAr}');
         return false;
       }
 
-      // Check 2: Cross-reference with service data
       if (offer.serviceId != null) {
         final service = serviceMap[offer.serviceId];
         if (service != null && !service.hasApprovedOffer) {
-          debugPrint('🚫 Filtering out offer "${offer.titleAr}" - service ${offer.serviceId} has no active discount');
+          debugPrint('🚫 Filtering out offer "${offer.titleAr}" - service has no active discount');
           return false;
         }
       }
 
-      // Check 3: If offer has no discount (originalPrice == discountedPrice or both 0)
       if (offer.originalPrice > 0 && offer.discountedPrice >= offer.originalPrice) {
         debugPrint('🚫 Filtering out offer "${offer.titleAr}" - no actual discount');
         return false;
@@ -288,4 +278,3 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }).toList();
   }
 }
-

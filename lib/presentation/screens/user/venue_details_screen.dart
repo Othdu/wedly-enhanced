@@ -927,6 +927,9 @@ class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
                   backgroundImage: review.userImageUrl != null
                       ? NetworkImage(review.userImageUrl!)
                       : null,
+                  onBackgroundImageError: review.userImageUrl != null
+                      ? (_, __) {}
+                      : null,
                   child: review.userImageUrl == null
                       ? Text(
                           review.userName.isNotEmpty ? review.userName[0] : '?',

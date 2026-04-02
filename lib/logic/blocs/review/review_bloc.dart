@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/core/utils/error_handler.dart';
+import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/data/repositories/review_repository.dart';
 import 'package:wedly/data/services/api_exceptions.dart';
-import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
-import 'package:wedly/logic/blocs/auth/auth_state.dart';
 import 'package:wedly/logic/blocs/review/review_event.dart';
 import 'package:wedly/logic/blocs/review/review_state.dart';
 
@@ -10,11 +10,11 @@ import 'package:wedly/logic/blocs/review/review_state.dart';
 /// Handles fetching, submitting, updating, and deleting reviews
 class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
   final ReviewRepository reviewRepository;
-  final AuthBloc authBloc;
+  final AuthRepository authRepository;
 
   ReviewBloc({
     required this.reviewRepository,
-    required this.authBloc,
+    required this.authRepository,
   }) : super(const ReviewInitial()) {
     // Register event handlers
     on<VenueReviewsRequested>(_onVenueReviewsRequested);
@@ -50,7 +50,7 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
       ));
     } catch (e) {
       emit(ReviewError(
-        message: 'فشل في تحميل التقييمات: ${e.toString()}',
+        message: 'فشل في تحميل التقييمات: ${ErrorHandler.getUserFriendlyMessage(e)}',
       ));
     }
   }
@@ -79,7 +79,7 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
       ));
     } catch (e) {
       emit(ReviewError(
-        message: 'فشل في تحميل التقييمات: ${e.toString()}',
+        message: 'فشل في تحميل التقييمات: ${ErrorHandler.getUserFriendlyMessage(e)}',
       ));
     }
   }
@@ -95,14 +95,11 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
     try {
       emit(const ReviewSubmitting());
 
-      // Get user info from AuthBloc
-      final authState = authBloc.state;
-      if (authState is! AuthAuthenticated) {
+      final user = await authRepository.getCurrentUser();
+      if (user == null) {
         emit(const ReviewError(message: 'يجب تسجيل الدخول لإضافة تقييم'));
         return;
       }
-
-      final user = authState.user;
       final review = await reviewRepository.submitReview(
         targetId: event.targetId,
         targetType: event.targetType,
@@ -130,7 +127,7 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
       ));
     } catch (e) {
       emit(ReviewError(
-        message: 'فشل في إضافة التقييم: ${e.toString()}',
+        message: 'فشل في إضافة التقييم: ${ErrorHandler.getUserFriendlyMessage(e)}',
       ));
       // Restore previous state after error
       await Future.delayed(const Duration(seconds: 2));
@@ -176,7 +173,7 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
       }
     } catch (e) {
       emit(ReviewError(
-        message: 'فشل في تحديث التقييم: ${e.toString()}',
+        message: 'فشل في تحديث التقييم: ${ErrorHandler.getUserFriendlyMessage(e)}',
       ));
       // Restore previous state after error
       await Future.delayed(const Duration(seconds: 2));
@@ -222,7 +219,7 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
       }
     } catch (e) {
       emit(ReviewError(
-        message: 'فشل في حذف التقييم: ${e.toString()}',
+        message: 'فشل في حذف التقييم: ${ErrorHandler.getUserFriendlyMessage(e)}',
       ));
       // Restore previous state after error
       await Future.delayed(const Duration(seconds: 2));
@@ -240,14 +237,13 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
     try {
       emit(const ReviewsLoading());
 
-      // Get user ID from AuthBloc
-      final authState = authBloc.state;
-      if (authState is! AuthAuthenticated) {
+      final user = await authRepository.getCurrentUser();
+      if (user == null) {
         emit(const ReviewError(message: 'يجب تسجيل الدخول لعرض التقييمات'));
         return;
       }
 
-      final reviews = await reviewRepository.getUserReviews(authState.user.id);
+      final reviews = await reviewRepository.getUserReviews(user.id);
 
       if (reviews.isEmpty) {
         emit(const ReviewsEmpty(
@@ -265,7 +261,7 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
       ));
     } catch (e) {
       emit(ReviewError(
-        message: 'فشل في تحميل تقييماتك: ${e.toString()}',
+        message: 'فشل في تحميل تقييماتك: ${ErrorHandler.getUserFriendlyMessage(e)}',
       ));
     }
   }
@@ -299,7 +295,7 @@ class ReviewBloc extends Bloc<ReviewEvent, ReviewState> {
       ));
     } catch (e) {
       emit(ReviewError(
-        message: 'فشل في تحديث التقييمات: ${e.toString()}',
+        message: 'فشل في تحديث التقييمات: ${ErrorHandler.getUserFriendlyMessage(e)}',
       ));
     }
   }

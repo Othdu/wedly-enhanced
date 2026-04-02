@@ -24,14 +24,14 @@ class ServiceRepository {
     final response = await _apiClient.get(ApiConstants.services);
 
     if (response.data == null || response.data is! Map) {
-      throw Exception('Invalid API response structure for services');
+      throw Exception('استجابة غير صالحة من الخادم');
     }
 
     final responseData = response.data['data'] ?? response.data;
     dynamic servicesData = responseData['services'] ?? responseData;
 
     if (servicesData is! List) {
-      throw Exception('API response is not a list for services');
+      throw Exception('استجابة غير صالحة: البيانات ليست قائمة');
     }
 
     return servicesData.map((json) {
@@ -73,14 +73,14 @@ class ServiceRepository {
     );
 
     if (response.data == null || response.data is! Map) {
-      throw Exception('Invalid API response structure for category $category');
+      throw Exception('استجابة غير صالحة من الخادم للفئة $category');
     }
 
     final responseData = response.data['data'] ?? response.data;
     dynamic servicesData = responseData['services'] ?? responseData;
 
     if (servicesData is! List) {
-      throw Exception('API response is not a list for category $category');
+      throw Exception('استجابة غير صالحة: البيانات ليست قائمة للفئة $category');
     }
 
     final services = servicesData.map((json) {
@@ -119,7 +119,7 @@ class ServiceRepository {
     if (categories is List) {
       return categories.map((c) => c['name']?.toString() ?? c.toString()).toList();
     }
-    throw Exception('Invalid categories response');
+    throw Exception('استجابة غير صالحة للفئات');
   }
 
   /// Get all cities (using hardcoded list - no API endpoint exists)
@@ -256,7 +256,7 @@ class ServiceRepository {
         return CountdownModel(
           userId: userId,
           weddingDate: weddingDate,
-          title: 'Event Countdown',
+          title: 'العد التنازلي للمناسبة',
           titleAr: titleAr,
         );
       }

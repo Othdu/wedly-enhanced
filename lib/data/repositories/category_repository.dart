@@ -31,7 +31,7 @@ class CategoryRepository {
     }
 
     if (categoriesJson is! List) {
-      throw Exception('Invalid response format: expected a list of categories');
+      throw Exception('استجابة غير صالحة: البيانات ليست قائمة فئات');
     }
 
     return categoriesJson

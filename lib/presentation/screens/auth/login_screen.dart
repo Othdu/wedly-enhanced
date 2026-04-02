@@ -30,7 +30,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      debugPrint('🔍 LOGIN UI: User clicked login');
       context.read<AuthBloc>().add(
             AuthLoginRequested(
               email: _usernameController.text.trim(),
@@ -41,7 +40,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleSocialLogin(BuildContext context, String provider) {
-    debugPrint('🔍 LOGIN UI: User clicked $provider login');
     context.read<AuthBloc>().add(
           AuthSocialLoginRequested(provider: provider),
         );
@@ -55,12 +53,9 @@ class _LoginScreenState extends State<LoginScreen> {
         listener: (context, state) {
           if (state is AuthAuthenticated) {
             final user = state.user;
-            debugPrint('🔍 LOGIN: User authenticated with role: ${user.role}');
             if (user.role == UserRole.user) {
-              debugPrint('✅ LOGIN: Navigating to User home');
               AppRouter.goToUserHome(context);
             } else {
-              debugPrint('✅ LOGIN: Navigating to Provider home');
               AppRouter.goToProviderHome(context);
             }
           } else if (state is AuthError) {
@@ -293,7 +288,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     const SizedBox(height: 32),
                                     // Login Button
-                                    SizedBox(
+                                    Semantics(
+                                      button: true,
+                                      label: 'تسجيل الدخول',
+                                      child: SizedBox(
                                       height: 56,
                                       child: ElevatedButton(
                                         onPressed: isLoading ? null : () => _handleLogin(context),
@@ -324,10 +322,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                               ),
                                       ),
                                     ),
+                                    ),
                                     const SizedBox(height: 24),
-                                    // Social Login
                                     Text(
-                                      'سجّل الدخول بأستخدام',
+                                      'سجّل الدخول باستخدام',
                                       textAlign: TextAlign.center,
                                       textDirection: TextDirection.rtl,
                                       style: TextStyle(
@@ -387,7 +385,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                     // 👇 Guest Browse Button
                                     const SizedBox(height: 16),
                                     Center(
-                                      child: GestureDetector(
+                                      child: Semantics(
+                                        button: true,
+                                        label: 'تصفح التطبيق كضيف',
+                                        child: GestureDetector(
                                         onTap: () => Navigator.of(context).pushNamed(
                                           AppRouter.userHome,
                                           arguments: {'isGuest': true},
@@ -402,9 +403,35 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       ),
                                     ),
+                                    ),
                                     const SizedBox(height: 8),
                                   ],
                                 ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            GestureDetector(
+                              onTap: () => Navigator.of(context).pushNamed(AppRouter.termsAndConditions),
+                              child: Text.rich(
+                                TextSpan(
+                                  text: 'بتسجيل الدخول، أنت توافق على ',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  children: const [
+                                    TextSpan(
+                                      text: 'الشروط والأحكام وسياسة الخصوصية',
+                                      style: TextStyle(
+                                        color: AppColors.gold,
+                                        fontWeight: FontWeight.w600,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                                textDirection: TextDirection.rtl,
                               ),
                             ),
                             const SizedBox(height: 40),
@@ -434,7 +461,11 @@ class _SocialLoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    final label = imagePath.contains('apple') ? 'تسجيل الدخول بحساب Apple' : 'تسجيل الدخول بحساب Google';
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(12),
       child: Opacity(
@@ -453,6 +484,7 @@ class _SocialLoginButton extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

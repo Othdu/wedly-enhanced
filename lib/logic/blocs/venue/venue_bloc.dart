@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/core/utils/error_handler.dart';
 import 'package:wedly/data/repositories/venue_repository.dart';
 import 'package:wedly/logic/blocs/venue/venue_event.dart';
 import 'package:wedly/logic/blocs/venue/venue_state.dart';
@@ -24,7 +25,7 @@ class VenueBloc extends Bloc<VenueEvent, VenueState> {
       final venues = await venueRepository.getVenues();
       emit(VenuesLoaded(venues));
     } catch (e) {
-      emit(VenueError('فشل في تحميل القاعات: ${e.toString()}'));
+      emit(VenueError('فشل في تحميل القاعات: ${ErrorHandler.getUserFriendlyMessage(e)}'));
     }
   }
 
@@ -44,7 +45,7 @@ class VenueBloc extends Bloc<VenueEvent, VenueState> {
         emit(const VenueError('القاعة غير موجودة'));
       }
     } catch (e) {
-      emit(VenueError('فشل في تحميل تفاصيل القاعة: ${e.toString()}'));
+      emit(VenueError('فشل في تحميل تفاصيل القاعة: ${ErrorHandler.getUserFriendlyMessage(e)}'));
     }
   }
 }

@@ -2064,7 +2064,7 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
       final user = authState is AuthAuthenticated ? authState.user : null;
 
       if (user == null) {
-        throw Exception('User not authenticated');
+        throw Exception('يجب تسجيل الدخول أولاً');
       }
 
       // Get booking repository

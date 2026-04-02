@@ -38,12 +38,12 @@ class ImageUploadService {
                        response.data['url'];
 
       if (imageUrl == null || imageUrl.isEmpty) {
-        throw Exception('Server did not return image URL');
+        throw Exception('لم يتم العثور على رابط الصورة في استجابة الخادم');
       }
 
       return imageUrl;
     } catch (e) {
-      throw Exception('Failed to upload profile image: ${e.toString()}');
+      throw Exception('فشل رفع صورة الملف الشخصي: ${e.toString()}');
     }
   }
 

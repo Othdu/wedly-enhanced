@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wedly/core/utils/error_handler.dart';
 import 'package:wedly/data/models/cart_item_model.dart';
 import 'package:wedly/data/repositories/cart_repository.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
@@ -77,7 +78,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         totalPrice: totalPrice,
       ));
     } catch (e) {
-      emit(CartError(message: 'فشل تحميل السلة: ${e.toString()}'));
+      emit(CartError(message: 'فشل تحميل السلة: ${ErrorHandler.getUserFriendlyMessage(e)}'));
     }
   }
 
@@ -143,7 +144,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         totalPrice: totalPrice,
       ));
     } catch (e) {
-      emit(CartError(message: 'فشل إضافة العنصر: ${e.toString()}'));
+      emit(CartError(message: 'فشل إضافة العنصر: ${ErrorHandler.getUserFriendlyMessage(e)}'));
     }
   }
 
@@ -219,9 +220,8 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       // Emit error but keep the cart items visible by re-emitting the original loaded state first
       emit(CartError(message: errorMessage));
 
-      // After a short delay, restore the cart view
       Future.delayed(const Duration(milliseconds: 100), () {
-        if (originalState is CartLoaded) {
+        if (!isClosed && originalState is CartLoaded) {
           emit(originalState);
         }
       });
@@ -261,7 +261,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         ));
       }
     } catch (e) {
-      emit(CartError(message: 'فشل تحديث العنصر: ${e.toString()}'));
+      emit(CartError(message: 'فشل تحديث العنصر: ${ErrorHandler.getUserFriendlyMessage(e)}'));
     }
   }
 
@@ -281,7 +281,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         totalPrice: 0,
       ));
     } catch (e) {
-      emit(CartError(message: 'فشل تفريغ السلة: ${e.toString()}'));
+      emit(CartError(message: 'فشل تفريغ السلة: ${ErrorHandler.getUserFriendlyMessage(e)}'));
     }
   }
 
@@ -302,7 +302,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         totalPrice: totalPrice,
       ));
     } catch (e) {
-      emit(CartError(message: 'فشل تحميل البيانات التجريبية: ${e.toString()}'));
+      emit(CartError(message: 'فشل تحميل البيانات: ${ErrorHandler.getUserFriendlyMessage(e)}'));
     }
   }
 

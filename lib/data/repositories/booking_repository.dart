@@ -29,8 +29,9 @@ class BookingRepository {
         totalPages = pagination['total_pages'] ?? 1;
       }
 
-      // Parse and add bookings from this page
-      final pageBookings = (bookingsList as List)
+      final rawList = bookingsList is List ? bookingsList : <dynamic>[];
+      final pageBookings = rawList
+          .whereType<Map<String, dynamic>>()
           .map((json) => BookingModel.fromJson(json))
           .toList();
       allBookings.addAll(pageBookings);
@@ -64,8 +65,9 @@ class BookingRepository {
         totalPages = pagination['total_pages'] ?? 1;
       }
 
-      // Parse and add bookings from this page
-      final pageBookings = (bookingsList as List)
+      final rawList = bookingsList is List ? bookingsList : <dynamic>[];
+      final pageBookings = rawList
+          .whereType<Map<String, dynamic>>()
           .map((json) => BookingModel.fromJson(json))
           .toList();
       allBookings.addAll(pageBookings);

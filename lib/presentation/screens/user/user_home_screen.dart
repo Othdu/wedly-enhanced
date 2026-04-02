@@ -359,11 +359,13 @@ class _UserHomeScreenState extends State<UserHomeScreen>
             ),
             child: Row(
               children: [
-                // Profile avatar
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: Colors.white,
                   backgroundImage: userImageUrl != null ? NetworkImage(userImageUrl) : null,
+                  onBackgroundImageError: userImageUrl != null
+                      ? (_, __) {}
+                      : null,
                   child: userImageUrl == null
                       ? const Icon(Icons.person, size: 36, color: Color(0xFFD4AF37))
                       : null,

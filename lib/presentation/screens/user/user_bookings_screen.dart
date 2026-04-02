@@ -185,7 +185,7 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> with WidgetsBin
           // Find the review for this specific service/venue
           final existingReview = userReviews.firstWhere(
             (review) => review.venueId == booking.serviceId,
-            orElse: () => throw Exception('Review not found'),
+            orElse: () => throw Exception('التقييم غير موجود'),
           );
 
           // Close loading dialog

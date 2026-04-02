@@ -278,7 +278,7 @@ class _ReviewBottomSheetState extends State<ReviewBottomSheet> {
 
                       final userReview = reviews.firstWhere(
                         (review) => review.userId == authState.user.id,
-                        orElse: () => throw Exception('Review not found'),
+                        orElse: () => throw Exception('التقييم غير موجود'),
                       );
 
                       // Close the current bottom sheet

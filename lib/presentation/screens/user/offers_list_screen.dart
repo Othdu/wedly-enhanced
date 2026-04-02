@@ -312,38 +312,6 @@ class _OffersListScreenState extends State<OffersListScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 4,
-                      child: SizedBox(
-                        height: 45,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'مشاركة العرض قريباً',
-                                  textDirection: TextDirection.rtl,
-                                ),
-                              ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.grey.shade300),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.grey[800],
-                          ),
-                          child: const Text(
-                            'مشاركة',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                            textDirection: TextDirection.rtl,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ],
@@ -409,17 +377,7 @@ class _OffersListScreenState extends State<OffersListScreen> {
       case 'catering':
       case 'food':
       default:
-        // Show coming soon message for unsupported service types
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'صفحة الحجز لخدمة ${offer.titleAr} قريباً',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: const Color(0xFFD4AF37),
-          ),
-        );
-        return;
+        routeName = AppRouter.dynamicServiceBooking;
     }
 
     // Convert offer to service model for booking screens

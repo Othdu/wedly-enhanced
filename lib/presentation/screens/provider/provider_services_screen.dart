@@ -282,13 +282,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                           final service = services[index];
                           return ProviderServiceCard(
                             service: service,
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('قريباً: تفاصيل الخدمة'),
-                                ),
-                              );
-                            },
+                            onTap: () {},
                             onToggleStatus: () {
                               // Toggle service active status
                               context.read<ProviderServiceBloc>().add(

@@ -25,13 +25,9 @@ class ProviderAddServiceScreen extends StatefulWidget {
 class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-
-  // Venue-specific controllers
   final _chairsController = TextEditingController();
   final _morningPriceController = TextEditingController();
   final _eveningPriceController = TextEditingController();
-
-  // General price controller (for non-venue categories - optional)
   final _generalPriceController = TextEditingController();
 
   final List<File> _selectedImages = [];
@@ -40,24 +36,23 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 
   String? _selectedCategory;
 
-  // Category loading state
   List<CategoryModel> _categories = [];
   bool _isCategoriesLoading = true;
   String? _categoriesError;
 
-  // Dynamic sections data structure
-  // Each section has: {id, title, type (single/multiple), options: [{text, price}]}
   List<Map<String, dynamic>> _dynamicSections = [];
 
-  // OpenStreetMap variables
-  LatLng _pickedLocation = LatLng(30.0444, 31.2357); // Cairo, Egypt (default)
+  LatLng _pickedLocation = LatLng(30.0444, 31.2357);
   final MapController _mapController = MapController();
+
+  // ID verification state
+  bool _idVerified = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
     _loadCategories();
-    // Dynamic sections will be initialized when category is selected
   }
 
   Future<void> _loadCategories() async {
@@ -69,7 +64,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     try {
       final categoryRepository = getIt<CategoryRepository>();
       final categories = await categoryRepository.getCategories();
-
       setState(() {
         _categories = categories;
         _isCategoriesLoading = false;
@@ -77,48 +71,28 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     } catch (e) {
       setState(() {
         _isCategoriesLoading = false;
-        _categoriesError = 'فشل التحميل. برجاء التحقق من الإنترنت والمحاولة مرة أخرى';
+        _categoriesError =
+            'فشل التحميل. برجاء التحقق من الإنترنت والمحاولة مرة أخرى';
       });
     }
   }
 
   void _initializeDefaultSections() {
     if (_selectedCategory == null) return;
-
-    debugPrint('🔄 Initializing sections for category: $_selectedCategory');
-
     setState(() {
       _dynamicSections.clear();
-
-      // Check if this is a venue category
-      final isVenue = _isVenueCategory(_selectedCategory!);
-
-      if (isVenue) {
-        // Venues don't have dynamic sections, just fixed fields
-        debugPrint('✅ Venue category selected - using fixed fields only');
-      } else {
-        // All other categories get the generic dynamic sections template
+      if (!_isVenueCategory(_selectedCategory!)) {
         _initializeGenericSections();
-        debugPrint(
-          '✅ Generic sections initialized for $_selectedCategory: ${_dynamicSections.length} sections',
-        );
       }
     });
   }
 
-  /// Check if the category is a venue (supports multiple naming conventions)
   bool _isVenueCategory(String category) {
-    final venueNames = [
-      'قاعات أفراح',
-      'القاعات',
-      'قاعات',
-      'venue',
-      'venues',
-    ];
-    return venueNames.any((name) => category.toLowerCase().contains(name.toLowerCase()));
+    final venueNames = ['قاعات أفراح', 'القاعات', 'قاعات', 'venue', 'venues'];
+    return venueNames
+        .any((name) => category.toLowerCase().contains(name.toLowerCase()));
   }
 
-  /// Generic sections template for all non-venue categories
   void _initializeGenericSections() {
     _dynamicSections = [
       {
@@ -131,24 +105,18 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     ];
   }
 
-  /// Calculate price from dynamic sections (minimum price from all options)
-  /// Returns 0 if no options with valid prices exist
   double _calculatePriceFromSections() {
     double? minPrice;
-
     for (final section in _dynamicSections) {
       final options = section['options'] as List;
       for (final option in options) {
         final priceStr = option['price']?.toString() ?? '0';
         final price = double.tryParse(priceStr) ?? 0;
         if (price > 0) {
-          if (minPrice == null || price < minPrice) {
-            minPrice = price;
-          }
+          if (minPrice == null || price < minPrice) minPrice = price;
         }
       }
     }
-
     return minPrice ?? 0;
   }
 
@@ -164,19 +132,20 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     setState(() => _isPickingImage = true);
 
     try {
-      // Show dialog to choose between camera and gallery
-      final source = await permission.PermissionHelper.showImageSourceDialog(context);
+      final source =
+          await permission.PermissionHelper.showImageSourceDialog(context);
       if (source == null || !mounted) {
         setState(() => _isPickingImage = false);
         return;
       }
 
-      // Request appropriate permission
       bool hasPermission = false;
       if (source == permission.ImageSource.camera) {
-        hasPermission = await permission.PermissionHelper.requestCameraPermission(context);
+        hasPermission =
+            await permission.PermissionHelper.requestCameraPermission(context);
       } else {
-        hasPermission = await permission.PermissionHelper.requestStoragePermission(context);
+        hasPermission =
+            await permission.PermissionHelper.requestStoragePermission(context);
       }
 
       if (!hasPermission || !mounted) {
@@ -184,7 +153,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         return;
       }
 
-      // Pick image from selected source
       final imageSource = source == permission.ImageSource.camera
           ? ImageSource.camera
           : ImageSource.gallery;
@@ -194,14 +162,26 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         setState(() => _selectedImages.add(File(image.path)));
       }
     } finally {
-      if (mounted) {
-        setState(() => _isPickingImage = false);
-      }
+      if (mounted) setState(() => _isPickingImage = false);
     }
   }
 
   void _removeImage(int index) {
     setState(() => _selectedImages.removeAt(index));
+  }
+
+  // ID verification bottom sheet
+  Future<bool> _showIdVerificationSheet() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => const _IdVerificationSheet(),
+    );
+    return result == true;
   }
 
   @override
@@ -227,7 +207,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           backgroundColor: Colors.transparent,
           flexibleSpace: Container(
             decoration: const BoxDecoration(
-              color: Color(0xFFD4AF37), 
+              color: Color(0xFFD4AF37),
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(24),
                 bottomRight: Radius.circular(24),
@@ -254,7 +234,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            // رفع الصورة - Upload Image Section
             Row(
               children: [
                 const Text(
@@ -272,25 +251,16 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             const SizedBox(height: 12),
             _buildImagePicker(0),
             const SizedBox(height: 24),
-
-            // اسم الخدمة - Service Name
             _buildSectionLabel('اسم الخدمة'),
             const SizedBox(height: 8),
             _buildTextField(_nameController),
             const SizedBox(height: 20),
-
-            // الفئة - Category Dropdown
             _buildSectionLabel('الفئة'),
             const SizedBox(height: 8),
             _buildCategoryDropdown(),
             const SizedBox(height: 20),
-
-            // Dynamic Category-Specific Fields
             ..._buildCategorySpecificFields(),
-
             const SizedBox(height: 32),
-
-            // Submit Button
             _buildSubmitButton(),
             const SizedBox(height: 32),
           ],
@@ -300,56 +270,26 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   }
 
   List<Widget> _buildCategorySpecificFields() {
-    if (_selectedCategory == null) {
-      debugPrint('⚠️ No category selected, returning empty list');
-      return [];
-    }
-
-    debugPrint('🔍 Building category-specific fields for: $_selectedCategory');
-    debugPrint('🔍 Dynamic sections count: ${_dynamicSections.length}');
-
-    if (_isVenueCategory(_selectedCategory!)) {
-      final fields = _buildVenueFields();
-      debugPrint('✅ Built ${fields.length} venue fields');
-      return fields;
-    } else {
-      // All non-venue categories use dynamic sections
-      final fields = _buildDynamicSectionFields();
-      debugPrint('✅ Built ${fields.length} dynamic fields');
-      return fields;
-    }
+    if (_selectedCategory == null) return [];
+    if (_isVenueCategory(_selectedCategory!)) return _buildVenueFields();
+    return _buildDynamicSectionFields();
   }
 
-  // VENUE FIELDS (Special case - fixed time slots, fixed chairs)
   List<Widget> _buildVenueFields() {
     return [
-      // المواعيد - Fixed Time Slots with editable prices
       _buildSectionLabel('المواعيد'),
       const SizedBox(height: 12),
-      _buildFixedTimeSlot(
-        'صباحي',
-        'من 12 ظهرًا حتى 7 مساءً',
-        _morningPriceController,
-      ),
+      _buildFixedTimeSlot('صباحي', 'من 12 ظهرًا حتى 7 مساءً',
+          _morningPriceController),
       const SizedBox(height: 12),
       _buildFixedTimeSlot(
-        'مسائي',
-        'من 8 مساءً حتى 2 فجرًا',
-        _eveningPriceController,
-      ),
+          'مسائي', 'من 8 مساءً حتى 2 فجرًا', _eveningPriceController),
       const SizedBox(height: 24),
-
-      // عدد الكراسي - Fixed Chair Count
       _buildSectionLabel('عدد الكراسي'),
       const SizedBox(height: 8),
-      _buildNumberField(
-        _chairsController,
-        hintText: 'مثال: 400',
-        isOptional: false,
-      ),
+      _buildNumberField(_chairsController,
+          hintText: 'مثال: 400', isOptional: false),
       const SizedBox(height: 24),
-
-      // الموقع - Location (only for venues)
       _buildSectionLabel('الموقع'),
       const SizedBox(height: 12),
       _buildMapWidget(),
@@ -357,10 +297,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     ];
   }
 
-  // DYNAMIC SECTION FIELDS (Photography, Cars, Dresses, Decoration)
   List<Widget> _buildDynamicSectionFields() {
     return [
-      // Optional General Price Field
       _buildSectionLabel('السعر العام (اختياري)'),
       const SizedBox(height: 8),
       _buildOptionalPriceField(),
@@ -375,12 +313,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         textAlign: TextAlign.right,
       ),
       const SizedBox(height: 24),
-
-      // Add Section Button at top
       _buildAddSectionButton(),
       const SizedBox(height: 16),
-
-      // All dynamic sections
       ..._dynamicSections.map((section) => _buildDynamicSection(section)),
     ];
   }
@@ -393,21 +327,13 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       style: const TextStyle(fontSize: 15),
       decoration: InputDecoration(
         hintText: 'أدخل السعر (اختياري)',
-        hintStyle: TextStyle(
-          color: Colors.grey.shade400,
-          fontSize: 14,
-        ),
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
         suffixText: 'جنيه',
-        suffixStyle: TextStyle(
-          color: Colors.grey.shade600,
-          fontSize: 14,
-        ),
+        suffixStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
@@ -422,7 +348,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         ),
       ),
       validator: (value) {
-        // Optional field - only validate if a value is entered
         if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
           return 'الرجاء إدخال رقم صحيح';
         }
@@ -476,7 +401,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Section Header with delete button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -497,7 +421,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               ),
             ],
           ),
-
           if (section['description'].toString().isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
@@ -506,10 +429,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               textAlign: TextAlign.right,
             ),
           ],
-
           const SizedBox(height: 12),
-
-          // Selection Type Toggle
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -521,18 +441,12 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               _buildSelectionTypeToggle(section),
             ],
           ),
-
           const SizedBox(height: 16),
-
-          // Options list
           ...List.generate(
             (section['options'] as List).length,
             (index) => _buildOptionItem(section, index),
           ),
-
           const SizedBox(height: 8),
-
-          // Add Option Button
           TextButton.icon(
             onPressed: () => _showAddOptionDialog(section['id']),
             icon: const Icon(Icons.add, color: Color(0xFFD4AF37)),
@@ -551,11 +465,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
-          onTap: () {
-            setState(() {
-              section['selectionType'] = 'single';
-            });
-          },
+          onTap: () => setState(() => section['selectionType'] = 'single'),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -582,11 +492,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           ),
         ),
         GestureDetector(
-          onTap: () {
-            setState(() {
-              section['selectionType'] = 'multiple';
-            });
-          },
+          onTap: () => setState(() => section['selectionType'] = 'multiple'),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -633,12 +539,15 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                icon: const Icon(Icons.delete_outline,
+                    color: Colors.red, size: 20),
                 onPressed: () => _confirmDeleteOption(section['id'], index),
               ),
               IconButton(
-                icon: const Icon(Icons.edit_outlined, color: Color(0xFFD4AF37), size: 20),
-                onPressed: () => _showEditOptionDialog(section['id'], index, option),
+                icon: const Icon(Icons.edit_outlined,
+                    color: Color(0xFFD4AF37), size: 20),
+                onPressed: () =>
+                    _showEditOptionDialog(section['id'], index, option),
               ),
             ],
           ),
@@ -693,41 +602,34 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'السعر',
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                hintStyle:
+                    TextStyle(color: Colors.grey.shade400, fontSize: 13),
                 suffixText: 'جنيه',
-                suffixStyle: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 13,
-                ),
+                suffixStyle:
+                    TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 filled: true,
                 fillColor: Colors.grey.shade50,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                  borderSide:
+                      BorderSide(color: Colors.grey.shade300, width: 1),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                  borderSide:
+                      BorderSide(color: Colors.grey.shade300, width: 1),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(
-                    color: Color(0xFFD4AF37),
-                    width: 1.5,
-                  ),
+                      color: Color(0xFFD4AF37), width: 1.5),
                 ),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'مطلوب';
-                }
-                if (double.tryParse(value) == null) {
-                  return 'رقم غير صحيح';
-                }
+                if (value == null || value.isEmpty) return 'مطلوب';
+                if (double.tryParse(value) == null) return 'رقم غير صحيح';
                 return null;
               },
             ),
@@ -748,7 +650,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                 const SizedBox(height: 4),
                 Text(
                   timeRange,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  style:
+                      TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -758,7 +661,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     );
   }
 
-  // DIALOGS
   void _showAddSectionDialog() {
     final titleController = TextEditingController();
     final descController = TextEditingController();
@@ -810,8 +712,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD4AF37),
-            ),
+                backgroundColor: const Color(0xFFD4AF37)),
             child: const Text('إضافة'),
           ),
         ],
@@ -861,9 +762,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               if (textController.text.isNotEmpty &&
                   priceController.text.isNotEmpty) {
                 setState(() {
-                  final section = _dynamicSections.firstWhere(
-                    (s) => s['id'] == sectionId,
-                  );
+                  final section = _dynamicSections
+                      .firstWhere((s) => s['id'] == sectionId);
                   (section['options'] as List).add({
                     'text': textController.text,
                     'price': priceController.text,
@@ -873,8 +773,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD4AF37),
-            ),
+                backgroundColor: const Color(0xFFD4AF37)),
             child: const Text('إضافة'),
           ),
         ],
@@ -882,7 +781,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     );
   }
 
-  void _showEditOptionDialog(String sectionId, int optionIndex, Map<String, dynamic> option) {
+  void _showEditOptionDialog(
+      String sectionId, int optionIndex, Map<String, dynamic> option) {
     final textController = TextEditingController(text: option['text']);
     final priceController = TextEditingController(text: option['price']);
 
@@ -924,9 +824,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               if (textController.text.isNotEmpty &&
                   priceController.text.isNotEmpty) {
                 setState(() {
-                  final section = _dynamicSections.firstWhere(
-                    (s) => s['id'] == sectionId,
-                  );
+                  final section = _dynamicSections
+                      .firstWhere((s) => s['id'] == sectionId);
                   (section['options'] as List)[optionIndex] = {
                     'text': textController.text,
                     'price': priceController.text,
@@ -936,8 +835,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD4AF37),
-            ),
+                backgroundColor: const Color(0xFFD4AF37)),
             child: const Text('حفظ'),
           ),
         ],
@@ -966,7 +864,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
               });
               Navigator.pop(context);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style:
+                ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('حذف'),
           ),
         ],
@@ -979,7 +878,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('هل أنت متأكد؟', textAlign: TextAlign.right),
-        content: const Text('سيتم حذف هذا الخيار', textAlign: TextAlign.right),
+        content:
+            const Text('سيتم حذف هذا الخيار', textAlign: TextAlign.right),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -988,14 +888,14 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
           ElevatedButton(
             onPressed: () {
               setState(() {
-                final section = _dynamicSections.firstWhere(
-                  (s) => s['id'] == sectionId,
-                );
+                final section = _dynamicSections
+                    .firstWhere((s) => s['id'] == sectionId);
                 (section['options'] as List).removeAt(optionIndex);
               });
               Navigator.pop(context);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style:
+                ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('حذف'),
           ),
         ],
@@ -1003,7 +903,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     );
   }
 
-  // UI COMPONENTS
   Widget _buildSectionLabel(String text) {
     return Align(
       alignment: Alignment.centerRight,
@@ -1021,7 +920,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   Widget _buildTextField(TextEditingController controller) {
     return TextFormField(
       controller: controller,
-      enabled: true,
       textAlign: TextAlign.right,
       style: const TextStyle(fontSize: 15),
       decoration: InputDecoration(
@@ -1033,10 +931,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
@@ -1066,7 +962,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   }) {
     return TextFormField(
       controller: controller,
-      enabled: true,
       textAlign: TextAlign.right,
       keyboardType: TextInputType.number,
       style: const TextStyle(fontSize: 15),
@@ -1079,10 +974,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
@@ -1097,9 +990,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         ),
       ),
       validator: (value) {
-        if (!isOptional && (value == null || value.isEmpty)) {
-          return 'مطلوب';
-        }
+        if (!isOptional && (value == null || value.isEmpty)) return 'مطلوب';
         if (value != null &&
             value.isNotEmpty &&
             double.tryParse(value) == null) {
@@ -1111,7 +1002,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   }
 
   Widget _buildCategoryDropdown() {
-    // Show error state
     if (_categoriesError != null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1125,15 +1015,14 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             ),
             child: Column(
               children: [
-                Icon(Icons.error_outline, color: Colors.red.shade700, size: 32),
+                Icon(Icons.error_outline,
+                    color: Colors.red.shade700, size: 32),
                 const SizedBox(height: 8),
                 Text(
                   _categoriesError!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.red.shade700,
-                    fontSize: 14,
-                  ),
+                  style:
+                      TextStyle(color: Colors.red.shade700, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
@@ -1144,9 +1033,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                     backgroundColor: const Color(0xFFD4AF37),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
+                        horizontal: 16, vertical: 8),
                   ),
                 ),
               ],
@@ -1156,7 +1043,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       );
     }
 
-    // Show loading state
     if (_isCategoriesLoading) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -1179,17 +1065,13 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             const SizedBox(width: 12),
             Text(
               'جاري تحميل الفئات...',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             ),
           ],
         ),
       );
     }
 
-    // Show dropdown with loaded categories
     return DropdownButtonFormField<String>(
       value: _selectedCategory,
       isExpanded: true,
@@ -1197,10 +1079,8 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       decoration: InputDecoration(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
@@ -1238,9 +1118,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         });
       },
       validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'الرجاء اختيار الفئة';
-        }
+        if (value == null || value.isEmpty) return 'الرجاء اختيار الفئة';
         return null;
       },
     );
@@ -1250,76 +1128,73 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
     final hasImage = index < _selectedImages.length;
 
     return GestureDetector(
-        onTap: hasImage ? null : _pickImage,
-        child: Container(
-          height: 145,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8E8E8),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade300, width: 1),
-          ),
-          child: hasImage
-              ? Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(
-                        _selectedImages[index],
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: GestureDetector(
-                        onTap: () => _removeImage(index),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade600,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.image_outlined,
-                      size: 36,
-                      color: Colors.grey.shade400,
+      onTap: hasImage ? null : _pickImage,
+      child: Container(
+        height: 145,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8E8E8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: hasImage
+            ? Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.file(
+                      _selectedImages[index],
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
                     ),
                   ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: GestureDetector(
+                      onTap: () => _removeImage(index),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade600,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.close,
+                            color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Center(
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.image_outlined,
+                    size: 36,
+                    color: Colors.grey.shade400,
+                  ),
                 ),
-        ),
+              ),
+      ),
     );
   }
 
@@ -1334,7 +1209,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
-            // OpenStreetMap
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
@@ -1343,14 +1217,13 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                 minZoom: 5.0,
                 maxZoom: 18.0,
                 onTap: (tapPosition, point) {
-                  setState(() {
-                    _pickedLocation = point;
-                  });
+                  setState(() => _pickedLocation = point);
                 },
               ),
               children: [
                 TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.wedlyapp.services',
                   tileProvider: NetworkTileProvider(),
                 ),
@@ -1370,13 +1243,13 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                 ),
               ],
             ),
-            // Instructions overlay
             Positioned(
               top: 10,
               right: 10,
               left: 10,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(8),
@@ -1392,7 +1265,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                 ),
               ),
             ),
-            // Current location info
             Positioned(
               bottom: 10,
               right: 10,
@@ -1414,15 +1286,14 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                    Icon(Icons.location_on,
+                        size: 16, color: Colors.grey.shade600),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'الموقع: ${_pickedLocation.latitude.toStringAsFixed(5)}, ${_pickedLocation.longitude.toStringAsFixed(5)}',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade700,
-                        ),
+                            fontSize: 11, color: Colors.grey.shade700),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1463,23 +1334,244 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
   }
 
   void _handleSubmit() async {
-    if (_formKey.currentState!.validate()) {
-      final authState = context.read<AuthBloc>().state;
-      if (authState is! AuthAuthenticated) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('خطأ: يجب تسجيل الدخول أولاً')),
-        );
-        return;
+    if (!_formKey.currentState!.validate()) return;
+
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('خطأ: يجب تسجيل الدخول أولاً')),
+      );
+      return;
+    }
+
+    if (_selectedImages.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          contentPadding: const EdgeInsets.all(32),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.image_outlined,
+                    color: Colors.orange, size: 40),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'الصورة مطلوبة',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'يرجى اختيار صورة للخدمة قبل الإضافة',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.black54),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('حسناً'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Show ID verification sheet on first service submission
+    if (!_idVerified) {
+      final verified = await _showIdVerificationSheet();
+      if (!verified) return;
+      setState(() => _idVerified = true);
+    }
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+      ),
+    );
+
+    try {
+      final serviceRepository = getIt<ServiceRepository>();
+
+      final isVenueCategory = _selectedCategory == 'قاعات أفراح' ||
+          _selectedCategory == 'القاعات';
+
+      final selectedCategoryModel = _categories.firstWhere(
+        (cat) => cat.nameAr == _selectedCategory,
+        orElse: () => _categories.first,
+      );
+      final categoryId = selectedCategoryModel.id;
+
+      double? servicePrice;
+      if (!isVenueCategory) {
+        if (_generalPriceController.text.isNotEmpty) {
+          servicePrice = double.tryParse(_generalPriceController.text);
+        } else {
+          servicePrice = _calculatePriceFromSections();
+        }
       }
 
-      // Client-side validation: Check if image is selected
-      if (_selectedImages.isEmpty) {
+      final newService = ServiceModel(
+        id: '',
+        name: _nameController.text.trim(),
+        description: 'خدمة ${_nameController.text.trim()}',
+        imageUrl: '',
+        category: categoryId,
+        providerId: authState.user.id,
+        imageFile: _selectedImages.isNotEmpty ? _selectedImages[0] : null,
+        price: servicePrice,
+        morningPrice: isVenueCategory && _morningPriceController.text.isNotEmpty
+            ? double.tryParse(_morningPriceController.text)
+            : null,
+        eveningPrice: isVenueCategory && _eveningPriceController.text.isNotEmpty
+            ? double.tryParse(_eveningPriceController.text)
+            : null,
+        chairCount: isVenueCategory && _chairsController.text.isNotEmpty
+            ? int.tryParse(_chairsController.text)
+            : null,
+        latitude: isVenueCategory ? _pickedLocation.latitude : null,
+        longitude: isVenueCategory ? _pickedLocation.longitude : null,
+        isActive: true,
+        isPendingApproval: false,
+        hasOffer: false,
+        discountPercentage: null,
+        offerExpiryDate: null,
+        offerApproved: false,
+      );
+
+      final createdService = await serviceRepository.addService(newService);
+      final serviceId = createdService.id;
+
+      for (final section in _dynamicSections) {
+        final options = section['options'] as List;
+        await serviceRepository.addDynamicSection(
+          serviceId: serviceId,
+          sectionName: section['title'],
+          description: section['description'] ?? '',
+          options: options
+              .map((option) => {
+                    'text': option['text'],
+                    'price': option['price'],
+                  })
+              .toList(),
+        );
+      }
+
+      if (mounted) Navigator.of(context).pop(); // close loading
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            contentPadding: const EdgeInsets.all(40),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFD4AF37),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_rounded,
+                      color: Colors.white, size: 40),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'تم إضافة الخدمة بنجاح',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'ستظهر الخدمة في قائمة خدماتك وللعملاء',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (mounted) {
+          Navigator.of(context).pop();
+          if (context.mounted) Navigator.of(context).pop(true);
+        }
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop(); // close loading
+
+      String errorTitle = 'فشل إضافة الخدمة';
+      String errorMessage = 'حدث خطأ أثناء إضافة الخدمة';
+      IconData errorIcon = Icons.error_outline;
+      Color errorColor = Colors.red;
+
+      if (e is NoInternetException) {
+        errorTitle = 'لا توجد اتصال بالإنترنت';
+        errorMessage = 'يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى';
+        errorIcon = Icons.wifi_off_rounded;
+        errorColor = Colors.orange;
+      } else if (e is TimeoutException) {
+        errorTitle = 'انتهت مهلة الاتصال';
+        errorMessage = 'الخادم يستغرق وقتاً طويلاً. يرجى المحاولة مرة أخرى';
+        errorIcon = Icons.access_time_rounded;
+        errorColor = Colors.orange;
+      } else if (e is ServerException) {
+        errorTitle = 'خطأ في الخادم';
+        errorMessage = 'حدث خطأ في الخادم. يرجى المحاولة لاحقاً';
+        errorIcon = Icons.dns_rounded;
+        errorColor = Colors.red;
+      } else if (e is ValidationException) {
+        errorTitle = 'بيانات غير صحيحة';
+        errorMessage =
+            'يرجى التحقق من البيانات المدخلة والمحاولة مرة أخرى';
+        errorIcon = Icons.warning_amber_rounded;
+        errorColor = Colors.amber;
+      } else if (e is UnauthorizedException) {
+        errorTitle = 'جلسة منتهية';
+        errorMessage = 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى';
+        errorIcon = Icons.lock_outline_rounded;
+        errorColor = Colors.orange;
+      }
+
+      if (mounted) {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+                borderRadius: BorderRadius.circular(20)),
             contentPadding: const EdgeInsets.all(32),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1487,30 +1579,26 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: errorColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.image_outlined,
-                    color: Colors.orange,
-                    size: 40,
-                  ),
+                  child: Icon(errorIcon, color: errorColor, size: 40),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'الصورة مطلوبة',
+                Text(
+                  errorTitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'يرجى اختيار صورة للخدمة قبل الإضافة',
+                Text(
+                  errorMessage,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                  style:
+                      const TextStyle(fontSize: 14, color: Colors.black54),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -1520,8 +1608,7 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD4AF37),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('حسناً'),
                   ),
@@ -1530,246 +1617,175 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
             ),
           ),
         );
-        return;
-      }
-
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
-        ),
-      );
-
-      try {
-        final serviceRepository = getIt<ServiceRepository>();
-
-        // Determine if this is a venue category
-        final isVenueCategory = _selectedCategory == 'قاعات أفراح' || _selectedCategory == 'القاعات';
-
-        // Get the category ID from the selected Arabic name
-        final selectedCategoryModel = _categories.firstWhere(
-          (cat) => cat.nameAr == _selectedCategory,
-          orElse: () => _categories.first,
-        );
-        final categoryId = selectedCategoryModel.id;
-
-        // Calculate price for non-venue categories from sections or general price field
-        double? servicePrice;
-        if (!isVenueCategory) {
-          if (_generalPriceController.text.isNotEmpty) {
-            servicePrice = double.tryParse(_generalPriceController.text);
-          } else {
-            // Use minimum price from dynamic sections
-            servicePrice = _calculatePriceFromSections();
-          }
-        }
-
-        // Create the service with image file (will be uploaded as part of service creation)
-        final newService = ServiceModel(
-          id: '',
-          name: _nameController.text.trim(),
-          description: 'خدمة ${_nameController.text.trim()}',
-          imageUrl: '', // Will be set by the backend after upload
-          category: categoryId, // Send the category ID, not the Arabic name
-          providerId: authState.user.id,
-          imageFile: _selectedImages.isNotEmpty ? _selectedImages[0] : null,
-          // General price for non-venue categories (from input or calculated from sections)
-          price: servicePrice,
-          // Venue-specific pricing (morning/evening) - only for venues
-          morningPrice: isVenueCategory && _morningPriceController.text.isNotEmpty
-              ? double.tryParse(_morningPriceController.text)
-              : null,
-          eveningPrice: isVenueCategory && _eveningPriceController.text.isNotEmpty
-              ? double.tryParse(_eveningPriceController.text)
-              : null,
-          chairCount: isVenueCategory && _chairsController.text.isNotEmpty
-              ? int.tryParse(_chairsController.text)
-              : null,
-          latitude: isVenueCategory ? _pickedLocation.latitude : null,
-          longitude: isVenueCategory ? _pickedLocation.longitude : null,
-          isActive: true,
-          isPendingApproval: false,
-          // Offers are not set during creation - only via edit screen
-          hasOffer: false,
-          discountPercentage: null,
-          offerExpiryDate: null,
-          offerApproved: false,
-        );
-
-        final createdService = await serviceRepository.addService(newService);
-        final serviceId = createdService.id;
-
-        // Step 3: Add dynamic sections with their options
-        for (final section in _dynamicSections) {
-          final options = section['options'] as List;
-          await serviceRepository.addDynamicSection(
-            serviceId: serviceId,
-            sectionName: section['title'],
-            description: section['description'] ?? '',
-            options: options.map((option) => {
-              'text': option['text'],
-              'price': option['price'],
-            }).toList(),
-          );
-        }
-
-        // Close loading dialog
-        if (mounted) Navigator.of(context).pop();
-
-        // Show success dialog
-        if (mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (dialogContext) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              contentPadding: const EdgeInsets.all(40),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFD4AF37),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'تم إضافة الخدمة بنجاح',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'ستظهر الخدمة في قائمة خدماتك وللعملاء',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-          );
-
-          await Future.delayed(const Duration(seconds: 2));
-
-          if (mounted) {
-            Navigator.of(context).pop(); // Close success dialog
-            if (context.mounted) {
-              Navigator.of(context).pop(true); // Return to previous screen
-            }
-          }
-        }
-      } catch (e) {
-        // Close loading dialog
-        if (mounted) Navigator.of(context).pop();
-
-        // Get user-friendly error message
-        String errorTitle = 'فشل إضافة الخدمة';
-        String errorMessage = 'حدث خطأ أثناء إضافة الخدمة';
-        IconData errorIcon = Icons.error_outline;
-        Color errorColor = Colors.red;
-
-        if (e is NoInternetException) {
-          errorTitle = 'لا توجد اتصال بالإنترنت';
-          errorMessage = 'يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى';
-          errorIcon = Icons.wifi_off_rounded;
-          errorColor = Colors.orange;
-        } else if (e is TimeoutException) {
-          errorTitle = 'انتهت مهلة الاتصال';
-          errorMessage = 'الخادم يستغرق وقتاً طويلاً. يرجى المحاولة مرة أخرى';
-          errorIcon = Icons.access_time_rounded;
-          errorColor = Colors.orange;
-        } else if (e is ServerException) {
-          errorTitle = 'خطأ في الخادم';
-          errorMessage = 'حدث خطأ في الخادم. يرجى المحاولة لاحقاً';
-          errorIcon = Icons.dns_rounded;
-          errorColor = Colors.red;
-        } else if (e is ValidationException) {
-          errorTitle = 'بيانات غير صحيحة';
-          errorMessage = 'يرجى التحقق من البيانات المدخلة والمحاولة مرة أخرى';
-          errorIcon = Icons.warning_amber_rounded;
-          errorColor = Colors.amber;
-        } else if (e is UnauthorizedException) {
-          errorTitle = 'جلسة منتهية';
-          errorMessage = 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى';
-          errorIcon = Icons.lock_outline_rounded;
-          errorColor = Colors.orange;
-        }
-
-        // Show user-friendly error dialog
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              contentPadding: const EdgeInsets.all(32),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: errorColor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      errorIcon,
-                      color: errorColor,
-                      size: 40,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    errorTitle,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    errorMessage,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4AF37),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('حسناً'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
       }
     }
+  }
+}
+
+// Dummy observer to avoid removing WidgetsBindingObserver usage
+class _AppLifecycleObserver with WidgetsBindingObserver {}
+
+// ID Verification Bottom Sheet
+class _IdVerificationSheet extends StatefulWidget {
+  const _IdVerificationSheet();
+
+  @override
+  State<_IdVerificationSheet> createState() => _IdVerificationSheetState();
+}
+
+class _IdVerificationSheetState extends State<_IdVerificationSheet> {
+  final ImagePicker _picker = ImagePicker();
+  String? _idFrontPath;
+  String? _idBackPath;
+
+  Future<void> _pickImage(bool isFront) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+      if (image != null && mounted) {
+        setState(() {
+          if (isFront) {
+            _idFrontPath = image.path;
+          } else {
+            _idBackPath = image.path;
+          }
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 24,
+        right: 24,
+        top: 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Icon(Icons.verified_user_outlined,
+              color: Color(0xFFD4AF37), size: 48),
+          const SizedBox(height: 12),
+          const Text(
+            'التحقق من الهوية',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            textDirection: TextDirection.rtl,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'لضمان أمان المستخدمين، نحتاج إلى التحقق من هويتك قبل نشر خدمتك.',
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+            style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+          _buildIdPickerRow(
+            label: 'صورة البطاقة (الوجه)',
+            path: _idFrontPath,
+            onTap: () => _pickImage(true),
+          ),
+          const SizedBox(height: 12),
+          _buildIdPickerRow(
+            label: 'صورة البطاقة (الظهر)',
+            path: _idBackPath,
+            onTap: () => _pickImage(false),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: (_idFrontPath != null && _idBackPath != null)
+                  ? () => Navigator.pop(context, true)
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'تأكيد ونشر الخدمة',
+                style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'تخطي الآن وإضافة لاحقاً',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIdPickerRow({
+    required String label,
+    required String? path,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: path != null
+              ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
+              : Colors.grey[100],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                path != null ? const Color(0xFFD4AF37) : Colors.grey.shade300,
+          ),
+        ),
+        child: Row(
+          textDirection: TextDirection.rtl,
+          children: [
+            Icon(
+              path != null
+                  ? Icons.check_circle
+                  : Icons.add_photo_alternate_outlined,
+              color: path != null ? const Color(0xFFD4AF37) : Colors.grey,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              path != null ? 'تم الاختيار ✓' : label,
+              textDirection: TextDirection.rtl,
+              style: TextStyle(
+                fontSize: 14,
+                color: path != null
+                    ? const Color(0xFF8B6914)
+                    : Colors.grey[700],
+                fontWeight:
+                    path != null ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

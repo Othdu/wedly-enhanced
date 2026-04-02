@@ -13,42 +13,49 @@ class ForgotPasswordScreen extends StatefulWidget {
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  // Controllers
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
+    with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final List<TextEditingController> _otpControllers =
-      List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final _otpController = TextEditingController();
+  final _otpFocusNode = FocusNode();
 
   final _formKey = GlobalKey<FormState>();
 
-  // State
   bool _isLoading = false;
-  int _currentStep = 0; // 0: Email, 1: OTP, 2: New Password
-  bool _isResendDisabled = true; // Start disabled like signup OTP
+  int _currentStep = 0;
+  bool _isResendDisabled = true;
   int _resendCountdown = 60;
   Timer? _timer;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  late AnimationController _shakeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
-    for (var controller in _otpControllers) {
-      controller.dispose();
-    }
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
+    _otpController.dispose();
+    _otpFocusNode.dispose();
     _timer?.cancel();
+    _shakeController.dispose();
     super.dispose();
   }
 
-  // Step 1: Send OTP to email
+  String get _otpValue => _otpController.text;
+  bool get _isOtpComplete => _otpValue.length == 6;
+
   Future<void> _sendOtp() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
@@ -66,46 +73,44 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  result['message'] ?? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
+                  result['message'] ??
+                      'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
                   textDirection: TextDirection.rtl,
                 ),
                 backgroundColor: AppColors.gold,
               ),
             );
-
-            // Move to OTP step
-            setState(() {
-              _currentStep = 1;
-            });
+            setState(() => _currentStep = 1);
             _startCountdownTimer(60);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _otpFocusNode.requestFocus();
+            });
           }
         } else {
           if (mounted) {
-            _showErrorSnackBar(result['message'] ?? 'حدث خطأ أثناء إرسال الكود');
+            _showErrorSnackBar(
+                result['message'] ?? 'حدث خطأ أثناء إرسال الكود');
           }
         }
       } catch (e) {
         setState(() => _isLoading = false);
         if (mounted) {
-          _showErrorSnackBar('حدث خطأ أثناء إرسال الكود. الرجاء المحاولة مرة أخرى');
+          _showErrorSnackBar(
+              'حدث خطأ أثناء إرسال الكود. الرجاء المحاولة مرة أخرى');
         }
       }
     }
   }
 
-  // Step 2: Verify OTP (just validate and move to next step, no API call)
   void _verifyOtp() {
-    final otp = _otpControllers.map((c) => c.text).join();
-
-    if (otp.length != 6) {
+    if (!_isOtpComplete) {
+      _shakeController.forward(from: 0);
       _showErrorSnackBar('الرجاء إدخال الكود كاملاً (6 أرقام)');
       return;
     }
 
-    // Just move to password reset step - OTP will be verified with the password
-    setState(() {
-      _currentStep = 2;
-    });
+    FocusScope.of(context).unfocus();
+    setState(() => _currentStep = 2);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,18 +125,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
-  // Step 3: Reset Password with OTP
   Future<void> _resetPassword() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
       try {
         final authRepository = getIt<AuthRepository>();
-        final otp = _otpControllers.map((c) => c.text).join();
 
         final result = await authRepository.resetPassword(
           email: _emailController.text.trim(),
-          otp: otp,
+          otp: _otpValue,
           password: _newPasswordController.text,
         );
 
@@ -147,8 +150,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               backgroundColor: AppColors.gold,
             ),
           );
-
-          // Navigate to login
           Navigator.of(context).pushReplacementNamed(AppRouter.login);
         }
       } catch (e) {
@@ -172,7 +173,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         email: _emailController.text.trim(),
       );
 
-      // Success - start 60 second countdown
       _startCountdownTimer(60);
 
       if (mounted) {
@@ -188,14 +188,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     } catch (e) {
       if (mounted) {
-        // Check if it's a rate limit error and parse wait time from message
         final errorMessage = e.toString();
         final waitTime = _parseWaitTimeFromMessage(errorMessage);
 
         if (errorMessage.contains('wait') ||
             errorMessage.contains('انتظار') ||
             errorMessage.contains('Please wait')) {
-          // Rate limit error - start countdown with the time from backend
           _startCountdownTimer(waitTime);
         }
 
@@ -226,14 +224,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   int _parseWaitTimeFromMessage(String message) {
-    // Parse messages like "Please wait 31 seconds before requesting a new OTP"
-    // or "الرجاء الانتظار 31 ثانية قبل طلب رمز جديد"
     final regex = RegExp(r'(\d+)\s*(?:seconds|ثانية|ثواني)');
     final match = regex.firstMatch(message);
     if (match != null) {
       return int.tryParse(match.group(1) ?? '60') ?? 60;
     }
-    return 60; // Default to 60 seconds
+    return 60;
   }
 
   void _showErrorSnackBar(String message) {
@@ -247,106 +243,218 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+    final scale = (screenWidth / 375).clamp(0.8, 1.4);
+    final vScale = (screenHeight / 812).clamp(0.7, 1.3);
+
+    final iconSize = (72 * scale).clamp(56.0, 80.0);
+    final titleFontSize = (24 * scale).clamp(20.0, 28.0);
+    final bodyFontSize = (14 * scale).clamp(12.0, 16.0);
+    final buttonHeight = (56 * vScale).clamp(46.0, 60.0);
+    final buttonFontSize = (16 * scale).clamp(14.0, 18.0);
+    final cardPaddingH = (24 * scale).clamp(16.0, 28.0);
+    final cardPaddingV = (32 * vScale).clamp(20.0, 36.0);
+    final outerPaddingH = (24 * scale).clamp(16.0, 28.0);
+
     return Scaffold(
-      backgroundColor: AppColors.gold,
-      appBar: AppBar(
-        backgroundColor: AppColors.gold,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          _currentStep == 0
-              ? 'نسيت كلمة المرور'
-              : _currentStep == 1
-                  ? 'أدخل كود التحقق'
-                  : 'كلمة مرور جديدة',
-          style: const TextStyle(
-            color: AppColors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            // White card with content
-            Expanded(
-              child: GestureDetector(
-                onTap: () => FocusScope.of(context).unfocus(),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(32),
-                      topRight: Radius.circular(32),
-                    ),
-                  ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(32),
-                    child: _buildCurrentStepContent(),
-                  ),
-                ),
+      backgroundColor: AppColors.white,
+      body: Stack(
+        children: [
+          Positioned(
+            top: -100,
+            left: -100,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
               ),
             ),
-          ],
-        ),
+          ),
+          SafeArea(
+            child: GestureDetector(
+              onTap: () {
+                if (_currentStep == 1) {
+                  _otpFocusNode.requestFocus();
+                } else {
+                  FocusScope.of(context).unfocus();
+                }
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios,
+                              color: AppColors.black, size: 20),
+                          onPressed: () {
+                            if (_currentStep > 0) {
+                              setState(() => _currentStep--);
+                            } else {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: outerPaddingH),
+                      child: Column(
+                        children: [
+                          SizedBox(height: isSmallScreen ? 4 : 8),
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: cardPaddingH,
+                              vertical: cardPaddingV,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.black
+                                      .withValues(alpha: 0.08),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              child: _buildCurrentStep(
+                                scale: scale,
+                                vScale: vScale,
+                                isSmallScreen: isSmallScreen,
+                                iconSize: iconSize,
+                                titleFontSize: titleFontSize,
+                                bodyFontSize: bodyFontSize,
+                                buttonHeight: buttonHeight,
+                                buttonFontSize: buttonFontSize,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: isSmallScreen ? 20 : 40),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCurrentStepContent() {
+  Widget _buildCurrentStep({
+    required double scale,
+    required double vScale,
+    required bool isSmallScreen,
+    required double iconSize,
+    required double titleFontSize,
+    required double bodyFontSize,
+    required double buttonHeight,
+    required double buttonFontSize,
+  }) {
     switch (_currentStep) {
       case 0:
-        return _buildEmailStep();
+        return _buildEmailStep(
+          key: const ValueKey(0),
+          iconSize: iconSize,
+          titleFontSize: titleFontSize,
+          bodyFontSize: bodyFontSize,
+          buttonHeight: buttonHeight,
+          buttonFontSize: buttonFontSize,
+          isSmallScreen: isSmallScreen,
+        );
       case 1:
-        return _buildOtpStep();
+        return _buildOtpStep(
+          key: const ValueKey(1),
+          scale: scale,
+          iconSize: iconSize,
+          titleFontSize: titleFontSize,
+          bodyFontSize: bodyFontSize,
+          buttonHeight: buttonHeight,
+          buttonFontSize: buttonFontSize,
+          isSmallScreen: isSmallScreen,
+        );
       case 2:
-        return _buildResetPasswordStep();
+        return _buildResetPasswordStep(
+          key: const ValueKey(2),
+          iconSize: iconSize,
+          titleFontSize: titleFontSize,
+          bodyFontSize: bodyFontSize,
+          buttonHeight: buttonHeight,
+          buttonFontSize: buttonFontSize,
+          isSmallScreen: isSmallScreen,
+        );
       default:
-        return _buildEmailStep();
+        return const SizedBox.shrink();
     }
   }
 
-  // STEP 1: Email Input
-  Widget _buildEmailStep() {
+  Widget _buildEmailStep({
+    Key? key,
+    required double iconSize,
+    required double titleFontSize,
+    required double bodyFontSize,
+    required double buttonHeight,
+    required double buttonFontSize,
+    required bool isSmallScreen,
+  }) {
     return Form(
       key: _formKey,
       child: Column(
+        key: key,
         children: [
-          // Icon
           Container(
-            width: 80,
-            height: 80,
+            width: iconSize,
+            height: iconSize,
             decoration: BoxDecoration(
-              color: AppColors.greyBackground,
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.gold.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(iconSize * 0.28),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.fingerprint,
-              size: 40,
+              size: iconSize * 0.5,
               color: AppColors.gold,
             ),
           ),
-          const SizedBox(height: 32),
-          // Title
-          const Text(
-            'أدخل بريدك الإلكتروني وسيُرسل لك كود تحقق لإعادة تعيين كلمة المرور الخاصة بك.',
+          SizedBox(height: isSmallScreen ? 16 : 24),
+          Text(
+            'نسيت كلمة المرور',
             textAlign: TextAlign.center,
             textDirection: TextDirection.rtl,
             style: TextStyle(
-              fontSize: 16,
-              color: AppColors.textPrimary,
-              height: 1.6,
+              fontSize: titleFontSize,
+              fontWeight: FontWeight.bold,
+              color: AppColors.gold,
             ),
           ),
-          const SizedBox(height: 40),
-          // Email input
+          SizedBox(height: isSmallScreen ? 8 : 12),
+          Text(
+            'أدخل بريدك الإلكتروني وسيُرسل لك كود تحقق لإعادة تعيين كلمة المرور.',
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              fontSize: bodyFontSize,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          SizedBox(height: isSmallScreen ? 28 : 40),
           TextFormField(
             controller: _emailController,
             textInputAction: TextInputAction.done,
@@ -358,7 +466,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               hintText: 'البريد الإلكتروني',
               hintTextDirection: TextDirection.rtl,
               hintStyle: const TextStyle(color: AppColors.textHint),
-              suffixIcon: const Icon(Icons.email_outlined),
+              prefixIcon: const Icon(Icons.email_outlined),
               filled: true,
               fillColor: AppColors.greyBackground,
               border: OutlineInputBorder(
@@ -371,13 +479,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.gold, width: 2),
+                borderSide:
+                    const BorderSide(color: AppColors.gold, width: 2),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red, width: 1),
+                borderSide:
+                    const BorderSide(color: Colors.red, width: 1),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 16),
             ),
             textDirection: TextDirection.rtl,
             keyboardType: TextInputType.emailAddress,
@@ -392,29 +503,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               return null;
             },
           ),
-          const SizedBox(height: 32),
-          // Send code button
+          SizedBox(height: isSmallScreen ? 24 : 32),
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: buttonHeight,
             child: ElevatedButton(
               onPressed: _isLoading ? null : _sendOtp,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.gold,
+                backgroundColor: AppColors.black,
                 foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                disabledBackgroundColor:
+                    AppColors.black.withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
               child: _isLoading
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.white),
                     )
-                  : const Text(
+                  : Text(
                       'إرسال الكود',
                       textDirection: TextDirection.rtl,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontSize: buttonFontSize,
+                          fontWeight: FontWeight.w600),
                     ),
             ),
           ),
@@ -423,134 +539,187 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  // STEP 2: OTP Input
-  Widget _buildOtpStep() {
+  Widget _buildOtpStep({
+    Key? key,
+    required double scale,
+    required double iconSize,
+    required double titleFontSize,
+    required double bodyFontSize,
+    required double buttonHeight,
+    required double buttonFontSize,
+    required bool isSmallScreen,
+  }) {
     return Column(
+      key: key,
       children: [
-        // Icon
         Container(
-          width: 80,
-          height: 80,
+          width: iconSize,
+          height: iconSize,
           decoration: BoxDecoration(
-            color: AppColors.greyBackground,
-            borderRadius: BorderRadius.circular(20),
+            color: AppColors.gold.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(iconSize * 0.28),
           ),
-          child: const Icon(Icons.mail_outline, size: 40, color: AppColors.gold),
-        ),
-        const SizedBox(height: 32),
-        // Title
-        const Text(
-          'من فضلك أدخل الكود لتأكيد هويتك ومتابعة إعادة تعيين كلمة المرور الخاصة بك.',
-          textAlign: TextAlign.center,
-          textDirection: TextDirection.rtl,
-          style: TextStyle(fontSize: 16, color: AppColors.textPrimary, height: 1.6),
-        ),
-        const SizedBox(height: 8),
-        // Subtitle
-        const Text(
-          'أدخل الكود المكون من 6 أرقام',
-          textAlign: TextAlign.center,
-          textDirection: TextDirection.rtl,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 40),
-        // OTP Input boxes
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double availableWidth = constraints.maxWidth;
-              final double totalSpacing = 5 * 8;
-              final double boxWidth = ((availableWidth - totalSpacing) / 6).clamp(40.0, 60.0);
-
-              return Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                children: List.generate(6, (index) => _buildOtpBox(index, boxWidth)),
-              );
-            },
+          child: Icon(
+            Icons.mark_email_read_outlined,
+            size: iconSize * 0.5,
+            color: AppColors.gold,
           ),
         ),
-        const SizedBox(height: 32),
-        // Verify button
+        SizedBox(height: isSmallScreen ? 16 : 24),
+        Text(
+          'أدخل كود التحقق',
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            fontSize: titleFontSize,
+            fontWeight: FontWeight.bold,
+            color: AppColors.gold,
+          ),
+        ),
+        SizedBox(height: isSmallScreen ? 8 : 12),
+        Text(
+          'أدخل الكود المكون من 6 أرقام المرسل إلى',
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            fontSize: bodyFontSize,
+            color: AppColors.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _emailController.text.trim(),
+            textDirection: TextDirection.ltr,
+            style: TextStyle(
+              fontSize: (15 * scale).clamp(13.0, 17.0),
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        SizedBox(height: isSmallScreen ? 24 : 32),
+        _buildOtpSection(scale),
+        SizedBox(height: isSmallScreen ? 24 : 32),
         SizedBox(
           width: double.infinity,
-          height: 56,
+          height: buttonHeight,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _verifyOtp,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.gold,
+              backgroundColor: AppColors.black,
               foregroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              disabledBackgroundColor:
+                  AppColors.black.withValues(alpha: 0.4),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               elevation: 0,
             ),
             child: _isLoading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.white),
                   )
-                : const Text(
+                : Text(
                     'تحقق',
                     textDirection: TextDirection.rtl,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        fontSize: buttonFontSize,
+                        fontWeight: FontWeight.w600),
                   ),
           ),
         ),
-        const SizedBox(height: 24),
-        // Resend code
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'لم تستلم الكود؟',
-              textDirection: TextDirection.rtl,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: _isResendDisabled ? null : _resendOtp,
-              child: Text(
-                _isResendDisabled ? 'أعد الإرسال ($_resendCountdown)' : 'أعد الإرسال',
+        SizedBox(height: isSmallScreen ? 16 : 24),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'لم تستلم الكود؟',
+                textDirection: TextDirection.rtl,
                 style: TextStyle(
-                  color: _isResendDisabled ? AppColors.textSecondary : AppColors.gold,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  fontSize: bodyFontSize,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: _isResendDisabled ? null : _resendOtp,
+                child: Text(
+                  _isResendDisabled
+                      ? 'أعد الإرسال ($_resendCountdown)'
+                      : 'أعد الإرسال',
+                  style: TextStyle(
+                    color: _isResendDisabled
+                        ? AppColors.textSecondary
+                        : AppColors.gold,
+                    fontSize: bodyFontSize,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  // STEP 3: Reset Password
-  Widget _buildResetPasswordStep() {
+  Widget _buildResetPasswordStep({
+    Key? key,
+    required double iconSize,
+    required double titleFontSize,
+    required double bodyFontSize,
+    required double buttonHeight,
+    required double buttonFontSize,
+    required bool isSmallScreen,
+  }) {
     return Form(
       key: _formKey,
       child: Column(
+        key: key,
         children: [
-          // Icon
           Container(
-            width: 80,
-            height: 80,
+            width: iconSize,
+            height: iconSize,
             decoration: BoxDecoration(
-              color: AppColors.greyBackground,
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.gold.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(iconSize * 0.28),
             ),
-            child: const Icon(Icons.lock_reset, size: 40, color: AppColors.gold),
+            child: Icon(
+              Icons.lock_reset,
+              size: iconSize * 0.5,
+              color: AppColors.gold,
+            ),
           ),
-          const SizedBox(height: 32),
-          // Title
-          const Text(
+          SizedBox(height: isSmallScreen ? 16 : 24),
+          Text(
+            'كلمة مرور جديدة',
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              fontSize: titleFontSize,
+              fontWeight: FontWeight.bold,
+              color: AppColors.gold,
+            ),
+          ),
+          SizedBox(height: isSmallScreen ? 8 : 12),
+          Text(
             'أدخل كلمة المرور الجديدة الخاصة بك.',
             textAlign: TextAlign.center,
             textDirection: TextDirection.rtl,
-            style: TextStyle(fontSize: 16, color: AppColors.textPrimary, height: 1.6),
+            style: TextStyle(
+              fontSize: bodyFontSize,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
           ),
-          const SizedBox(height: 40),
-          // New Password
+          SizedBox(height: isSmallScreen ? 28 : 40),
           TextFormField(
             controller: _newPasswordController,
             obscureText: _obscurePassword,
@@ -559,9 +728,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               hintText: 'كلمة المرور الجديدة',
               hintTextDirection: TextDirection.rtl,
               hintStyle: const TextStyle(color: AppColors.textHint),
+              prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
-                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                icon: Icon(_obscurePassword
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
               filled: true,
               fillColor: AppColors.greyBackground,
@@ -569,15 +742,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.gold, width: 2),
+                borderSide:
+                    const BorderSide(color: AppColors.gold, width: 2),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red, width: 1),
+                borderSide:
+                    const BorderSide(color: Colors.red, width: 1),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 16),
             ),
             textDirection: TextDirection.rtl,
             enabled: !_isLoading,
@@ -591,8 +771,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               return null;
             },
           ),
-          const SizedBox(height: 20),
-          // Confirm Password
+          const SizedBox(height: 16),
           TextFormField(
             controller: _confirmPasswordController,
             obscureText: _obscureConfirmPassword,
@@ -605,9 +784,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               hintText: 'تأكيد كلمة المرور',
               hintTextDirection: TextDirection.rtl,
               hintStyle: const TextStyle(color: AppColors.textHint),
+              prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
-                icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                icon: Icon(_obscureConfirmPassword
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined),
+                onPressed: () => setState(
+                    () => _obscureConfirmPassword = !_obscureConfirmPassword),
               ),
               filled: true,
               fillColor: AppColors.greyBackground,
@@ -615,15 +798,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.gold, width: 2),
+                borderSide:
+                    const BorderSide(color: AppColors.gold, width: 2),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red, width: 1),
+                borderSide:
+                    const BorderSide(color: Colors.red, width: 1),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 16),
             ),
             textDirection: TextDirection.rtl,
             enabled: !_isLoading,
@@ -637,29 +827,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               return null;
             },
           ),
-          const SizedBox(height: 32),
-          // Reset button
+          SizedBox(height: isSmallScreen ? 24 : 32),
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: buttonHeight,
             child: ElevatedButton(
               onPressed: _isLoading ? null : _resetPassword,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.gold,
+                backgroundColor: AppColors.black,
                 foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                disabledBackgroundColor:
+                    AppColors.black.withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
               child: _isLoading
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.white),
                     )
-                  : const Text(
+                  : Text(
                       'تأكيد',
                       textDirection: TextDirection.rtl,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontSize: buttonFontSize,
+                          fontWeight: FontWeight.w600),
                     ),
             ),
           ),
@@ -668,85 +863,129 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  Widget _buildOtpBox(int index, double boxWidth) {
-    final bool hasValue = _otpControllers[index].text.isNotEmpty;
-    final double boxHeight = boxWidth * 1.3;
+  Widget _buildOtpSection(double scale) {
+    return AnimatedBuilder(
+      animation: _shakeController,
+      builder: (context, child) {
+        final progress = _shakeController.value;
+        final shakeOffset = progress < 1.0
+            ? 12.0 *
+                (1.0 - progress) *
+                ((progress * 8).remainder(2) < 1 ? 1.0 : -1.0)
+            : 0.0;
+        return Transform.translate(
+          offset: Offset(shakeOffset, 0),
+          child: child,
+        );
+      },
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final availableWidth = constraints.maxWidth;
+                final gap = (8 * scale).clamp(6.0, 12.0);
+                final totalGaps = 5 * gap;
+                final boxWidth =
+                    ((availableWidth - totalGaps) / 6).clamp(36.0, 56.0);
+                final boxHeight = (boxWidth * 1.2).clamp(44.0, 67.0);
 
-    return Container(
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(6, (index) {
+                    return Padding(
+                      padding:
+                          EdgeInsets.only(left: index > 0 ? gap : 0),
+                      child:
+                          _buildDigitBox(index, boxWidth, boxHeight),
+                    );
+                  }),
+                );
+              },
+            ),
+          ),
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0,
+              child: TextField(
+                controller: _otpController,
+                focusNode: _otpFocusNode,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                enableSuggestions: false,
+                autocorrect: false,
+                showCursor: false,
+                decoration: const InputDecoration(
+                  counterText: '',
+                  border: InputBorder.none,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
+                ],
+                onChanged: (value) {
+                  setState(() {});
+                  if (value.length == 6) {
+                    _verifyOtp();
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDigitBox(int index, double boxWidth, double boxHeight) {
+    final text = _otpValue;
+    final hasDigit = index < text.length;
+    final digit = hasDigit ? text[index] : '';
+    final isActive = index == text.length && _otpFocusNode.hasFocus;
+    final digitFontSize = (boxWidth * 0.45).clamp(16.0, 24.0);
+    final cursorHeight = (boxHeight * 0.4).clamp(16.0, 26.0);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
       width: boxWidth,
       height: boxHeight,
-      child: KeyboardListener(
-        focusNode: FocusNode(),
-        onKeyEvent: (KeyEvent event) {
-          if (event is KeyDownEvent) {
-            if (event.logicalKey == LogicalKeyboardKey.backspace) {
-              if (_otpControllers[index].text.isEmpty && index > 0) {
-                // Move to previous box (left in LTR) when backspace on empty field
-                _focusNodes[index - 1].requestFocus();
-              }
-            }
-          }
-        },
-        child: TextField(
-          controller: _otpControllers[index],
-          focusNode: _focusNodes[index],
-          textAlign: TextAlign.center,
-          keyboardType: TextInputType.number,
-          maxLength: 1,
-          obscureText: false,
-          enableSuggestions: false,
-          autocorrect: false,
-          style: TextStyle(
-            fontSize: boxWidth * 0.5,
-            fontWeight: FontWeight.w600,
-            color: AppColors.black,
-            letterSpacing: 0,
-          ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
-          decoration: InputDecoration(
-            counterText: '',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: AppColors.greyBackground,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: hasValue ? AppColors.gold : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.gold,
-                width: 2,
-              ),
-            ),
-            contentPadding: EdgeInsets.zero,
-            isDense: true,
-          ),
-          onChanged: (value) {
-            setState(() {}); // Rebuild to show border color change
-            if (value.isNotEmpty) {
-              // Move to next box (right in LTR) when digit is entered
-              if (index < 5) {
-                _focusNodes[index + 1].requestFocus();
-              }
-            }
-          },
-          onTap: () {
-            // Place cursor at the end when tapping
-            _otpControllers[index].selection = TextSelection.fromPosition(
-              TextPosition(offset: _otpControllers[index].text.length),
-            );
-          },
+      decoration: BoxDecoration(
+        color: hasDigit
+            ? AppColors.gold.withValues(alpha: 0.08)
+            : AppColors.greyBackground,
+        borderRadius:
+            BorderRadius.circular((boxWidth * 0.25).clamp(8.0, 14.0)),
+        border: Border.all(
+          color: hasDigit
+              ? AppColors.gold
+              : isActive
+                  ? AppColors.gold.withValues(alpha: 0.5)
+                  : Colors.transparent,
+          width: 1.5,
         ),
       ),
+      alignment: Alignment.center,
+      child: hasDigit
+          ? Text(
+              digit,
+              style: TextStyle(
+                fontSize: digitFontSize,
+                fontWeight: FontWeight.w700,
+                color: AppColors.black,
+              ),
+            )
+          : isActive
+              ? Container(
+                  width: 2,
+                  height: cursorHeight,
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                )
+              : const SizedBox.shrink(),
     );
   }
 }

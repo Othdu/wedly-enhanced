@@ -38,7 +38,10 @@ class PaymentRepository {
       },
     );
 
-    final data = response.data['data'];
+    final data = response.data['data'] ?? response.data;
+    if (data == null || data is! Map<String, dynamic>) {
+      throw Exception('استجابة غير صالحة من خادم الدفع');
+    }
     return {
       'payment_intent_id': data['payment_intent_id'],
       'paymob_order_id': data['paymob_order_id'],

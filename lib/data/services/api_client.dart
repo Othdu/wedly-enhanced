@@ -408,7 +408,7 @@ class ApiClient {
           return _handleResponseError(error.response);
 
         case DioExceptionType.cancel:
-          return ApiException(message: 'تم إلغاء الطلب\nRequest cancelled');
+          return ApiException(message: 'تم إلغاء الطلب.');
 
         case DioExceptionType.badCertificate:
           return SslCertificateException();
