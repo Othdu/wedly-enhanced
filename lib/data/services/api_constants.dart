@@ -24,6 +24,7 @@ class ApiConstants {
   static const String appleLogin = '/api/auth/apple-login';
   static const String socialLogin = '/api/auth/google-login'; // Kept for backward compatibility
   static const String deleteAccount = '/api/auth/delete-account'; // DELETE - Request account deletion
+  static const String uploadProviderDocuments = '/api/auth/upload-provider-documents'; // POST - Upload provider verification docs
 
   // User Endpoints
   static const String userProfile = '/api/users/profile';

@@ -6,7 +6,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:wedly/data/models/service_model.dart';
 import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_event.dart';
 import 'package:wedly/logic/blocs/auth/auth_state.dart';
+import 'package:wedly/data/repositories/auth_repository.dart';
 import 'package:wedly/data/repositories/service_repository.dart';
 import 'package:wedly/data/repositories/category_repository.dart';
 import 'package:wedly/data/models/category_model.dart';
@@ -44,9 +46,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 
   LatLng _pickedLocation = LatLng(30.0444, 31.2357);
   final MapController _mapController = MapController();
-
-  // ID verification state
-  bool _idVerified = false;
 
   @override
   void initState() {
@@ -182,6 +181,60 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       builder: (ctx) => const _IdVerificationSheet(),
     );
     return result == true;
+  }
+
+  void _showPendingApprovalDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(32),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.hourglass_top_rounded,
+                  color: Colors.orange, size: 40),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'مستنداتك قيد المراجعة',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'تم رفع مستنداتك بنجاح وهي الآن قيد المراجعة. '
+              'سيتم إشعارك فور الموافقة عليها لتتمكن من إضافة خدماتك.',
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD4AF37),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('حسناً'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -1398,11 +1451,17 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
       return;
     }
 
-    // Show ID verification sheet on first service submission
-    if (!_idVerified) {
-      final verified = await _showIdVerificationSheet();
-      if (!verified) return;
-      setState(() => _idVerified = true);
+    final user = authState.user;
+    final status = user.approvalStatus;
+
+    if (status == 'pending') {
+      if (!mounted) return;
+      _showPendingApprovalDialog();
+      return;
+    } else if (status == 'rejected' || status == null) {
+      if (!mounted) return;
+      final uploaded = await _showIdVerificationSheet();
+      if (!uploaded) return;
     }
 
     // Show loading
@@ -1625,7 +1684,6 @@ class _ProviderAddServiceScreenState extends State<ProviderAddServiceScreen> {
 // Dummy observer to avoid removing WidgetsBindingObserver usage
 class _AppLifecycleObserver with WidgetsBindingObserver {}
 
-// ID Verification Bottom Sheet
 class _IdVerificationSheet extends StatefulWidget {
   const _IdVerificationSheet();
 
@@ -1637,8 +1695,14 @@ class _IdVerificationSheetState extends State<_IdVerificationSheet> {
   final ImagePicker _picker = ImagePicker();
   String? _idFrontPath;
   String? _idBackPath;
+  String? _commercialRegisterPath;
+  String? _taxCardPath;
+  bool _isUploading = false;
+  String? _errorMessage;
 
-  Future<void> _pickImage(bool isFront) async {
+  bool get _requiredFieldsFilled => _idFrontPath != null && _idBackPath != null;
+
+  Future<void> _pickImage(String field) async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -1646,15 +1710,57 @@ class _IdVerificationSheetState extends State<_IdVerificationSheet> {
       );
       if (image != null && mounted) {
         setState(() {
-          if (isFront) {
-            _idFrontPath = image.path;
-          } else {
-            _idBackPath = image.path;
+          switch (field) {
+            case 'front':
+              _idFrontPath = image.path;
+            case 'back':
+              _idBackPath = image.path;
+            case 'commercial':
+              _commercialRegisterPath = image.path;
+            case 'tax':
+              _taxCardPath = image.path;
           }
+          _errorMessage = null;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _uploadDocuments() async {
+    if (!_requiredFieldsFilled) return;
+
+    setState(() {
+      _isUploading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final authRepository = getIt<AuthRepository>();
+      await authRepository.uploadProviderDocuments(
+        idFrontPath: _idFrontPath!,
+        idBackPath: _idBackPath!,
+        commercialRegisterPath: _commercialRegisterPath,
+        taxCardPath: _taxCardPath,
+      );
+
+      if (mounted) {
+        context.read<AuthBloc>().add(const AuthDocumentsUploaded());
+        Navigator.pop(context, true);
+      }
+    } on NoInternetException {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _errorMessage = 'لا يوجد اتصال بالإنترنت. يرجى المحاولة مرة أخرى';
         });
       }
     } catch (e) {
-      // ignore
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _errorMessage = 'فشل رفع المستندات. يرجى المحاولة مرة أخرى';
+        });
+      }
     }
   }
 
@@ -1689,51 +1795,88 @@ class _IdVerificationSheetState extends State<_IdVerificationSheet> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'لضمان أمان المستخدمين، نحتاج إلى التحقق من هويتك قبل نشر خدمتك.',
+            'لضمان أمان المستخدمين، نحتاج إلى رفع مستندات التحقق قبل نشر خدمتك.',
             textAlign: TextAlign.center,
             textDirection: TextDirection.rtl,
             style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
           ),
           const SizedBox(height: 24),
-          _buildIdPickerRow(
-            label: 'صورة البطاقة (الوجه)',
+          _buildDocPickerRow(
+            label: 'صورة البطاقة (الوجه) *',
             path: _idFrontPath,
-            onTap: () => _pickImage(true),
+            onTap: () => _pickImage('front'),
           ),
           const SizedBox(height: 12),
-          _buildIdPickerRow(
-            label: 'صورة البطاقة (الظهر)',
+          _buildDocPickerRow(
+            label: 'صورة البطاقة (الظهر) *',
             path: _idBackPath,
-            onTap: () => _pickImage(false),
+            onTap: () => _pickImage('back'),
           ),
+          const SizedBox(height: 12),
+          _buildDocPickerRow(
+            label: 'السجل التجاري (اختياري)',
+            path: _commercialRegisterPath,
+            onTap: () => _pickImage('commercial'),
+          ),
+          const SizedBox(height: 12),
+          _buildDocPickerRow(
+            label: 'البطاقة الضريبية (اختياري)',
+            path: _taxCardPath,
+            onTap: () => _pickImage('tax'),
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(fontSize: 13, color: Colors.red.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: (_idFrontPath != null && _idBackPath != null)
-                  ? () => Navigator.pop(context, true)
-                  : null,
+              onPressed:
+                  (_requiredFieldsFilled && !_isUploading) ? _uploadDocuments : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFD4AF37),
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
-              child: const Text(
-                'تأكيد ونشر الخدمة',
-                style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'تخطي الآن وإضافة لاحقاً',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
+              child: _isUploading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : const Text(
+                      'رفع المستندات والمتابعة',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
             ),
           ),
           const SizedBox(height: 16),
@@ -1742,13 +1885,13 @@ class _IdVerificationSheetState extends State<_IdVerificationSheet> {
     );
   }
 
-  Widget _buildIdPickerRow({
+  Widget _buildDocPickerRow({
     required String label,
     required String? path,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: _isUploading ? null : onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
@@ -1771,16 +1914,18 @@ class _IdVerificationSheetState extends State<_IdVerificationSheet> {
               color: path != null ? const Color(0xFFD4AF37) : Colors.grey,
             ),
             const SizedBox(width: 12),
-            Text(
-              path != null ? 'تم الاختيار ✓' : label,
-              textDirection: TextDirection.rtl,
-              style: TextStyle(
-                fontSize: 14,
-                color: path != null
-                    ? const Color(0xFF8B6914)
-                    : Colors.grey[700],
-                fontWeight:
-                    path != null ? FontWeight.w600 : FontWeight.normal,
+            Expanded(
+              child: Text(
+                path != null ? 'تم الاختيار ✓' : label,
+                textDirection: TextDirection.rtl,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: path != null
+                      ? const Color(0xFF8B6914)
+                      : Colors.grey[700],
+                  fontWeight:
+                      path != null ? FontWeight.w600 : FontWeight.normal,
+                ),
               ),
             ),
           ],

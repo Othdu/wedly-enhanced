@@ -175,6 +175,9 @@ class AuthRepository {
       return _currentUser;
     }
 
+    final hasToken = await _tokenManager.hasValidToken();
+    if (!hasToken) return null;
+
     try {
       final response = await _apiClient.get(ApiConstants.getCurrentUser);
       final responseData = response.data['data'] ?? response.data;
@@ -653,6 +656,42 @@ class AuthRepository {
     'message': responseData['message'] ?? 'تم إنشاء حسابك بنجاح',
   };
 }
+  Future<void> uploadProviderDocuments({
+    required String idFrontPath,
+    required String idBackPath,
+    String? commercialRegisterPath,
+    String? taxCardPath,
+  }) async {
+    final formData = FormData();
+    formData.files.add(MapEntry(
+      'id_front',
+      await MultipartFile.fromFile(idFrontPath, filename: 'id_front.jpg'),
+    ));
+    formData.files.add(MapEntry(
+      'id_back',
+      await MultipartFile.fromFile(idBackPath, filename: 'id_back.jpg'),
+    ));
+    if (commercialRegisterPath != null) {
+      formData.files.add(MapEntry(
+        'commercial_register',
+        await MultipartFile.fromFile(commercialRegisterPath,
+            filename: 'commercial_register.jpg'),
+      ));
+    }
+    if (taxCardPath != null) {
+      formData.files.add(MapEntry(
+        'tax_card',
+        await MultipartFile.fromFile(taxCardPath, filename: 'tax_card.jpg'),
+      ));
+    }
+
+    await _apiClient.post(
+      ApiConstants.uploadProviderDocuments,
+      data: formData,
+    );
+    AppLogger.success('Provider documents uploaded', tag: 'AuthRepo');
+  }
+
   Future<Map<String, dynamic>> forgotPassword({required String email}) async {
     final response = await _apiClient.post(ApiConstants.forgotPassword,
         data: {'email': email});

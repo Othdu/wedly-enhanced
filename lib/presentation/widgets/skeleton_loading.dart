@@ -453,16 +453,12 @@ class SkeletonLoading {
 
   /// Skeleton for provider bookings list with tab header
   static Widget providerBookingsList() {
-    return Padding(
+    return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      child: Column(
-        children: List.generate(
-          3,
-          (index) => Padding(
-            padding: EdgeInsets.only(bottom: index < 2 ? 12 : 0),
-            child: bookingCard(),
-          ),
-        ),
+      itemCount: 3,
+      itemBuilder: (context, index) => Padding(
+        padding: EdgeInsets.only(bottom: index < 2 ? 12 : 0),
+        child: bookingCard(),
       ),
     );
   }

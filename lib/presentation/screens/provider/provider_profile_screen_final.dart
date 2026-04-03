@@ -1,249 +1,34 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../logic/blocs/auth/auth_bloc.dart';
-import '../../../logic/blocs/auth/auth_event.dart';
-import '../../../logic/blocs/auth/auth_state.dart';
-import '../../widgets/profile_picture_widget.dart';
-import 'provider_edit_profile_screen.dart';
+import 'package:wedly/core/constants/app_strings.dart';
+import 'package:wedly/logic/blocs/auth/auth_bloc.dart';
+import 'package:wedly/logic/blocs/auth/auth_event.dart';
+import 'package:wedly/logic/blocs/auth/auth_state.dart';
+import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
+import 'package:wedly/logic/blocs/notification/notification_state.dart';
+import 'package:wedly/presentation/widgets/profile_picture_widget.dart';
+import 'package:wedly/presentation/screens/provider/provider_edit_profile_screen.dart';
+import 'package:wedly/routes/app_router.dart';
 
 class ProviderProfileScreen extends StatelessWidget {
   const ProviderProfileScreen({super.key});
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.logout_rounded, color: AppColors.gold, size: 32),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟',
-                  textAlign: TextAlign.center,
-                  textDirection: ui.TextDirection.rtl,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'بإمكانك تسجيل الدخول لاحقاً بنفس البيانات.',
-                  textAlign: TextAlign.center,
-                  textDirection: ui.TextDirection.rtl,
-                  style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.4),
-                ),
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop();
-                      context.read<AuthBloc>().add(const AuthLogoutRequested());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'تسجيل الخروج',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey.shade700,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text(
-                      'إلغاء',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      // ✅ FIX: Prevent tapping outside to dismiss while request is in flight
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return BlocConsumer<AuthBloc, AuthState>(
-          // ✅ FIX: Close dialog automatically on success or error
-          listener: (context, state) {
-            if (state is AuthDeleteAccountSuccess ||
-                state is AuthUnauthenticated ||
-                state is AuthError ||
-                state is AuthAuthenticated) {
-              if (Navigator.of(dialogContext).canPop()) {
-                Navigator.of(dialogContext).pop();
-              }
-            }
-          },
-          builder: (context, state) {
-            final isLoading = state is AuthLoading;
-            return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Container(
-                padding: const EdgeInsets.all(28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.delete_forever_rounded,
-                        color: Colors.red.shade600,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'حذف الحساب نهائياً',
-                      textAlign: TextAlign.center,
-                      textDirection: ui.TextDirection.rtl,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'سيتم حذف حسابك وجميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.',
-                      textAlign: TextAlign.center,
-                      textDirection: ui.TextDirection.rtl,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isLoading
-                            ? null
-                            : () => context
-                                .read<AuthBloc>()
-                                .add(const AuthDeleteAccountRequested()),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        // ✅ FIX: Show spinner while request is in flight
-                        child: isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'حذف الحساب',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        // ✅ Disabled while loading
-                        onPressed:
-                            isLoading ? null : () => Navigator.of(dialogContext).pop(),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey.shade700,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'إلغاء',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.greyBackground,
+      backgroundColor: const Color(0xFFF5F5F5),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthUnauthenticated) {
             Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
           }
 
-          // ✅ FIX: Show success snackbar when account deleted
           if (state is AuthDeleteAccountSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
                   state.message,
-                  textDirection: ui.TextDirection.rtl,
+                  textDirection: TextDirection.rtl,
                 ),
                 backgroundColor: Colors.green.shade600,
                 duration: const Duration(seconds: 2),
@@ -251,13 +36,12 @@ class ProviderProfileScreen extends StatelessWidget {
             );
           }
 
-          // ✅ FIX: Show error snackbar instead of silently doing nothing
           if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
                   state.message,
-                  textDirection: ui.TextDirection.rtl,
+                  textDirection: TextDirection.rtl,
                 ),
                 backgroundColor: Colors.red.shade600,
               ),
@@ -266,302 +50,432 @@ class ProviderProfileScreen extends StatelessWidget {
         },
         child: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
-            if (state is! AuthAuthenticated) {
-              return Center(
+            if (state is AuthAuthenticated) {
+              final user = state.user;
+              return SingleChildScrollView(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.person_off_outlined, size: 64, color: Colors.grey.shade400),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'لم يتم تسجيل الدخول',
-                      textDirection: ui.TextDirection.rtl,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w500,
+                    // Header
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.only(
+                        top: MediaQuery.of(context).padding.top + 24,
+                        bottom: 32,
+                      ),
+                      decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
+                      child: Column(
+                        children: [
+                          ProfilePictureWidget(
+                            profileImageUrl: user.profileImageUrl,
+                            size: 120,
+                            isEditable: false,
+                            showEditIcon: false,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            AppStrings.welcome2,
+                            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                            textDirection: TextDirection.rtl,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            user.name,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            textDirection: TextDirection.rtl,
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'مقدم خدمة',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFD4AF37),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+
+                    // Profile Management Section
+                    _buildSection(
+                      context,
+                      title: AppStrings.profileManagement,
+                      items: [
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.person_outline,
+                          title: AppStrings.editProfile,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ProviderEditProfileScreen(),
+                            ),
+                          ),
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.lock_outline,
+                          title: AppStrings.changePassword,
+                          onTap: () => Navigator.of(context).pushNamed('/user-change-password'),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Settings Section
+                    _buildSection(
+                      context,
+                      title: AppStrings.settings,
+                      items: [
+                        BlocBuilder<NotificationBloc, NotificationState>(
+                          builder: (context, notificationState) {
+                            int unreadCount = 0;
+                            if (notificationState is NotificationLoaded) {
+                              unreadCount = notificationState.unreadCount;
+                            }
+                            return _buildMenuItem(
+                              context,
+                              icon: Icons.notifications_outlined,
+                              title: AppStrings.notifications,
+                              onTap: () => Navigator.pushNamed(context, AppRouter.notificationsList),
+                              badge: unreadCount > 0 ? unreadCount : null,
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.article_outlined,
+                          title: AppStrings.termsAndConditions,
+                          onTap: () => Navigator.pushNamed(context, AppRouter.termsAndConditions),
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.help_outline,
+                          title: AppStrings.helpAndSupport,
+                          onTap: () => Navigator.pushNamed(context, AppRouter.helpAndSupport),
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.logout,
+                          title: AppStrings.logout,
+                          onTap: () => _showLogoutDialog(context),
+                          isDestructive: true,
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.delete_forever_outlined,
+                          title: 'حذف الحساب',
+                          onTap: () => _showDeleteAccountDialog(context),
+                          isDestructive: true,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
                   ],
                 ),
               );
             }
-
-            final user = state.user;
-
-            return Column(
-              children: [
-                // Gold Header
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 16,
-                    bottom: 20,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: AppColors.gold,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(24),
-                      bottomRight: Radius.circular(24),
-                    ),
-                  ),
-                  child: const Text(
-                    'حسابي',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 24),
-                        // Profile Picture
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.gold.withValues(alpha: 0.3),
-                                blurRadius: 20,
-                                spreadRadius: 2,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ProfilePictureWidget(
-                            profileImageUrl: user.profileImageUrl,
-                            isEditable: false,
-                            showEditIcon: false,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          user.name,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.gold.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'مقدم خدمة',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.gold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Info Card
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                const SizedBox(height: 8),
-                                _buildInfoRow(
-                                  user.email,
-                                  Icons.email_outlined,
-                                  'البريد الإلكتروني',
-                                ),
-                                _buildDivider(),
-                                _buildInfoRow(
-                                  user.phone ?? 'غير محدد',
-                                  Icons.phone_outlined,
-                                  'رقم الهاتف',
-                                ),
-                                _buildDivider(),
-                                _buildInfoRow(
-                                  user.city ?? 'غير محدد',
-                                  Icons.location_on_outlined,
-                                  'المدينة',
-                                ),
-                                const SizedBox(height: 8),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Action Buttons
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Edit Profile
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const ProviderEditProfileScreen(),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.edit_outlined, size: 20),
-                                label: const Text(
-                                  'تعديل البيانات',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.gold,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  elevation: 2,
-                                  shadowColor: AppColors.gold.withValues(alpha: 0.4),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Logout
-                              OutlinedButton.icon(
-                                onPressed: () => _showLogoutDialog(context),
-                                icon: const Icon(Icons.logout_rounded, size: 20),
-                                label: const Text(
-                                  'تسجيل الخروج',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.gold,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  side: const BorderSide(color: AppColors.gold, width: 2),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Delete Account
-                              OutlinedButton.icon(
-                                onPressed: () => _showDeleteAccountDialog(context),
-                                icon: Icon(
-                                  Icons.delete_forever_outlined,
-                                  size: 20,
-                                  color: Colors.red.shade600,
-                                ),
-                                label: Text(
-                                  'حذف الحساب',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade600,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.red.shade600,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  side: BorderSide(color: Colors.red.shade400, width: 2),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 32),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
+            return const Center(child: CircularProgressIndicator());
           },
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String value, IconData icon, String label) {
-    final isPhoneNumber = value.startsWith('+');
+  Widget _buildSection(
+    BuildContext context, {
+    required String title,
+    required List<Widget> items,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        textDirection: ui.TextDirection.rtl,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  textAlign: TextAlign.left,
-                  textDirection:
-                      isPhoneNumber ? ui.TextDirection.ltr : ui.TextDirection.rtl,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8, left: 8, top: 12, bottom: 12),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFD4AF37),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
-                  ),
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.gold.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppColors.gold, size: 24),
+            child: Column(children: items),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
+  Widget _buildMenuItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+    int? badge,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
+        ),
+        child: Row(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  icon,
+                  size: 24,
+                  color: isDestructive ? Colors.red.shade600 : Colors.grey.shade700,
+                ),
+                if (badge != null && badge > 0)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                      child: Center(
+                        child: Text(
+                          badge > 9 ? '9+' : '$badge',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: isDestructive ? Colors.red.shade600 : Colors.black87,
+              ),
+              textDirection: TextDirection.rtl,
+            ),
+            const Spacer(),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: isDestructive ? Colors.red.shade400 : Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.logout, color: Color(0xFFD4AF37), size: 60),
+              const SizedBox(height: 16),
+              const Text(
+                'هل تريد تسجيل الخروج؟',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textDirection: TextDirection.rtl,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: Color(0xFFD4AF37)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text(
+                        'إلغاء',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFD4AF37),
+                        ),
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        context.read<AuthBloc>().add(const AuthLogoutRequested());
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD4AF37),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text(
+                        'تسجيل الخروج',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthDeleteAccountSuccess ||
+              state is AuthUnauthenticated ||
+              state is AuthError ||
+              state is AuthAuthenticated) {
+            if (Navigator.of(dialogContext).canPop()) {
+              Navigator.of(dialogContext).pop();
+            }
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.delete_forever, color: Colors.red.shade600, size: 60),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'حذف الحساب نهائياً',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textDirection: TextDirection.rtl,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'سيتم حذف حسابك وجميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.',
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isLoading ? null : () => Navigator.of(dialogContext).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: Color(0xFFD4AF37)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text(
+                            'إلغاء',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFD4AF37),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isLoading
+                              ? null
+                              : () => context
+                                  .read<AuthBloc>()
+                                  .add(const AuthDeleteAccountRequested()),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'حذف الحساب',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

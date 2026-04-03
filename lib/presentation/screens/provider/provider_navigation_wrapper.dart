@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wedly/core/di/injection_container.dart';
 import 'package:wedly/logic/blocs/booking/booking_bloc.dart';
+import 'package:wedly/logic/blocs/notification/notification_bloc.dart';
 import 'package:wedly/logic/blocs/provider_service/provider_service_bloc.dart';
 import 'package:wedly/presentation/screens/provider/provider_services_screen.dart';
 import 'package:wedly/presentation/screens/provider/provider_bookings_screen_new.dart';
@@ -35,6 +36,9 @@ class _ProviderNavigationWrapperState
         ),
         BlocProvider<BookingBloc>(
           create: (context) => getIt<BookingBloc>(),
+        ),
+        BlocProvider<NotificationBloc>(
+          create: (context) => getIt<NotificationBloc>(),
         ),
       ],
       child: Scaffold(

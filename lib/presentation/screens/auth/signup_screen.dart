@@ -218,9 +218,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       body: BlocConsumer<AuthBloc, AuthState>(
+        listenWhen: (previous, current) {
+          // Don't react to AuthAuthenticated that follows OTP verification —
+          // the OTP / success screens handle their own navigation.
+          if (current is AuthAuthenticated && previous is AuthOtpVerificationSuccess) {
+            return false;
+          }
+          return true;
+        },
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            AppRouter.goToUserHome(context);
+            if (state.user.role == UserRole.provider) {
+              AppRouter.goToProviderHome(context);
+            } else {
+              AppRouter.goToUserHome(context);
+            }
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

@@ -8,10 +8,11 @@ class UserModel extends Equatable {
   final UserRole role;
   final Gender? gender;
   final String? profileImageUrl;
-  final String? phone; // Phone number field
-  final String? city; // City field
-  final DateTime? weddingDate; // Wedding date field
-  final String? eventName; // Custom event name field
+  final String? phone;
+  final String? city;
+  final DateTime? weddingDate;
+  final String? eventName;
+  final String? approvalStatus;
 
   const UserModel({
     required this.id,
@@ -24,10 +25,13 @@ class UserModel extends Equatable {
     this.city,
     this.weddingDate,
     this.eventName,
+    this.approvalStatus,
   });
 
+  bool get isDocumentsApproved => approvalStatus == 'approved';
+
   @override
-  List<Object?> get props => [id, email, name, role, gender, profileImageUrl, phone, city, weddingDate, eventName];
+  List<Object?> get props => [id, email, name, role, gender, profileImageUrl, phone, city, weddingDate, eventName, approvalStatus];
 
   UserModel copyWith({
     String? id,
@@ -40,6 +44,7 @@ class UserModel extends Equatable {
     String? city,
     DateTime? weddingDate,
     String? eventName,
+    String? approvalStatus,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -52,6 +57,7 @@ class UserModel extends Equatable {
       city: city ?? this.city,
       weddingDate: weddingDate ?? this.weddingDate,
       eventName: eventName ?? this.eventName,
+      approvalStatus: approvalStatus ?? this.approvalStatus,
     );
   }
 
@@ -72,6 +78,7 @@ class UserModel extends Equatable {
           ? DateTime.parse(json['wedding_date'] as String)
           : null,
       eventName: json['event_name'] as String?,
+      approvalStatus: json['approval_status'] as String?,
     );
   }
 
@@ -87,6 +94,7 @@ class UserModel extends Equatable {
       'city': city,
       'wedding_date': weddingDate?.toIso8601String(),
       'event_name': eventName,
+      'approval_status': approvalStatus,
     };
   }
 

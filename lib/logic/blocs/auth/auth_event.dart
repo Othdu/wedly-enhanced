@@ -132,9 +132,15 @@ class AuthResetPasswordRequested extends AuthEvent {
   List<Object?> get props => [email, otp, password];
 }
 
-/// Event triggered when session expires (refresh token invalid)
+/// Event triggered when session expires (refresh token invalid).
+/// Carries [loginVersion] so the bloc can discard stale expiry events
+/// that were queued before a new login succeeded.
 class AuthSessionExpired extends AuthEvent {
-  const AuthSessionExpired();
+  final int loginVersion;
+  const AuthSessionExpired({this.loginVersion = 0});
+
+  @override
+  List<Object?> get props => [loginVersion];
 }
 
 class AuthChangePasswordRequested extends AuthEvent {
@@ -202,4 +208,10 @@ class AuthDeleteEventRequested extends AuthEvent {
 
 class AuthDeleteAccountRequested extends AuthEvent {
   const AuthDeleteAccountRequested();
+}
+
+/// Fired after provider verification documents are successfully uploaded.
+/// Updates the local user model's approval status without an API call.
+class AuthDocumentsUploaded extends AuthEvent {
+  const AuthDocumentsUploaded();
 }

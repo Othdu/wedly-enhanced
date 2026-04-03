@@ -10,6 +10,7 @@ import 'package:wedly/logic/blocs/auth/auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
   StreamSubscription<void>? _sessionExpiredSubscription;
+  int _loginVersion = 0;
 
   AuthBloc({required this.authRepository}) : super(const AuthInitial()) {
     on<AuthStatusChecked>(_onAuthStatusChecked);
@@ -31,12 +32,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSetEventRequested>(_onAuthSetEventRequested);
     on<AuthDeleteEventRequested>(_onAuthDeleteEventRequested);
     on<AuthDeleteAccountRequested>(_onAuthDeleteAccountRequested);
+    on<AuthDocumentsUploaded>(_onAuthDocumentsUploaded);
 
     _sessionExpiredSubscription = authRepository.sessionExpiredStream.listen((_) {
-      add(const AuthSessionExpired());
+      add(AuthSessionExpired(loginVersion: _loginVersion));
     });
 
     add(const AuthStatusChecked());
+  }
+
+  void _onAuthDocumentsUploaded(
+    AuthDocumentsUploaded event,
+    Emitter<AuthState> emit,
+  ) {
+    if (state is AuthAuthenticated) {
+      final user = (state as AuthAuthenticated).user;
+      emit(AuthAuthenticated(user.copyWith(approvalStatus: 'approved')));
+    }
   }
 
   @override
@@ -68,10 +80,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
         role: event.role,
       );
+      _loginVersion++;
       emit(AuthAuthenticated(user));
     } catch (e) {
-      // ✅ FIX: Pass 'login' context so ErrorHandler returns "wrong credentials"
-      // instead of "session expired" for a 401 during login
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'login')));
     }
   }
@@ -173,6 +184,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
 
       AppLogger.success('OTP verified successfully', tag: 'AuthBloc');
+      _loginVersion++;
       emit(AuthOtpVerificationSuccess(user));
       emit(AuthAuthenticated(user));
     } catch (e) {
@@ -230,6 +242,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthSessionExpired event,
     Emitter<AuthState> emit,
   ) async {
+    if (event.loginVersion != _loginVersion) {
+      AppLogger.debug(
+        'Ignoring stale session expiry (event v${event.loginVersion}, current v$_loginVersion)',
+        tag: 'AuthBloc',
+      );
+      return;
+    }
     AppLogger.warning('Session expired, logging out', tag: 'AuthBloc');
     try {
       await authRepository.logout();
@@ -310,6 +329,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         nonce: socialData['nonce'],
       );
 
+      _loginVersion++;
       emit(AuthAuthenticated(user));
     } catch (e) {
       emit(AuthError(ErrorHandler.getContextualMessage(e, 'social_login')));
