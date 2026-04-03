@@ -33,8 +33,8 @@ class AuthRepository {
     _apiClient.onSessionExpired = _handleSessionExpired;
   }
 
-  void _handleSessionExpired() async {
-    await _performLocalLogout();
+  void _handleSessionExpired() {
+    _performLocalLogout();
     _sessionExpiredController.add(null);
   }
 
@@ -48,6 +48,7 @@ class AuthRepository {
     await _tokenManager.clearTokens();
   }
 
+  /// Login user with email and password
   Future<UserModel> login({
     required String email,
     required String password,
@@ -55,28 +56,31 @@ class AuthRepository {
   }) async {
     final response = await _apiClient.post(
       ApiConstants.login,
-      data: {'email': email, 'password': password},
+      data: {
+        'email': email,
+        'password': password,
+      },
     );
 
     final responseData = response.data['data'] ?? response.data;
     AppLogger.auth('Login response received');
 
+    // Check if provider account is pending approval
     final isPending = responseData['pending'] == true ||
-        responseData['status'] == 'pending' ||
-        responseData['approval_status'] == 'pending';
+                      responseData['status'] == 'pending' ||
+                      responseData['approval_status'] == 'pending';
     if (isPending) {
       final message = responseData['message'] as String? ??
-          'حسابك قيد المراجعة. يرجى الانتظار حتى يتم الموافقة على حسابك.';
+          '╪¡╪│╪º╪¿┘â ┘é┘è╪» ╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐. ┘è╪▒╪¼┘ë ╪º┘ä╪º┘å╪¬╪╕╪º╪▒ ╪¡╪¬┘ë ┘è╪¬┘à ╪º┘ä┘à┘ê╪º┘ü┘é╪⌐ ╪╣┘ä┘ë ╪¡╪│╪º╪¿┘â.';
       throw ProviderPendingApprovalException(message: message);
     }
 
-    final accessToken =
-        (responseData['access_token'] ?? responseData['accessToken']) as String?;
-    final refreshToken =
-        (responseData['refresh_token'] ?? responseData['refreshToken']) as String?;
+    // Save tokens
+    final accessToken = (responseData['access_token'] ?? responseData['accessToken']) as String?;
+    final refreshToken = (responseData['refresh_token'] ?? responseData['refreshToken']) as String?;
 
     if (accessToken == null || refreshToken == null) {
-      throw Exception('فشل في الحصول على رموز المصادقة من الخادم');
+      throw Exception('┘ü╪┤┘ä ┘ü┘è ╪º┘ä╪¡╪╡┘ê┘ä ╪╣┘ä┘ë ╪▒┘à┘ê╪▓ ╪º┘ä┘à╪╡╪º╪»┘é╪⌐ ┘à┘å ╪º┘ä╪«╪º╪»┘à');
     }
 
     AppLogger.success('Tokens extracted from response', tag: 'AuthRepo');
@@ -86,11 +90,8 @@ class AuthRepository {
       refreshToken: refreshToken,
     );
 
-    final userData = responseData['user'] ?? responseData;
-    if (userData == null || userData is! Map<String, dynamic>) {
-      throw Exception('استجابة غير صالحة من الخادم');
-    }
-    final user = UserModel.fromJson(userData);
+    // Parse user data
+    final user = UserModel.fromJson(responseData['user']);
     await _tokenManager.saveUserRole(user.role.name);
 
     _currentUser = user;
@@ -99,12 +100,14 @@ class AuthRepository {
     return user;
   }
 
+  /// Save user to SharedPreferences
   Future<void> _saveUserToCache(UserModel user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, jsonEncode(user.toJson()));
     await prefs.setBool(_isLoggedInKey, true);
   }
 
+  /// Load user from SharedPreferences
   Future<UserModel?> _loadUserFromCache() async {
     final prefs = await SharedPreferences.getInstance();
     final isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
@@ -112,27 +115,35 @@ class AuthRepository {
     if (!isLoggedIn) return null;
 
     final userJson = prefs.getString(_userKey);
+
     if (userJson == null) return null;
 
     try {
       final user = UserModel.fromJson(jsonDecode(userJson));
+
+      // Load event name from local storage (fallback for when backend doesn't have endpoint yet)
       final localEventName = prefs.getString('user_event_name');
+
+      // If user doesn't have event name but we have it locally, merge it
       if (user.eventName == null && localEventName != null) {
-        debugPrint('📝 Loading event name from local storage: $localEventName');
+        debugPrint('≡ƒô¥ Loading event name from local storage: $localEventName');
         return user.copyWith(eventName: localEventName);
       }
+
       return user;
     } catch (e) {
       return null;
     }
   }
 
+  /// Clear cached user data
   Future<void> _clearUserCache() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_userKey);
     await prefs.setBool(_isLoggedInKey, false);
   }
 
+  /// Logout user
   Future<void> logout() async {
     try {
       await _apiClient.post(ApiConstants.logout);
@@ -141,6 +152,7 @@ class AuthRepository {
     }
     await _performLocalLogout();
 
+    // Sign out from Google to clear cached account
     try {
       final socialAuthService = SocialAuthService();
       await socialAuthService.signOut();
@@ -149,34 +161,10 @@ class AuthRepository {
     }
   }
 
-  Future<void> deleteAccount() async {
-    AppLogger.auth('Deleting account...');
-    try {
-      await _apiClient.delete('/api/auth/delete-account');
-      AppLogger.success('Account deleted from server', tag: 'AuthRepo');
-    } catch (e) {
-      AppLogger.error('Delete account API failed', tag: 'AuthRepo', error: e);
-      rethrow;
-    } finally {
-      await _performLocalLogout();
-      try {
-        final socialAuthService = SocialAuthService();
-        await socialAuthService.signOut();
-      } catch (_) {}
-    }
-  }
-
+  /// Get current user - checks cache first
   Future<UserModel?> getCurrentUser() async {
-    if (_currentUser != null) return _currentUser;
-
-    final hasToken = await _tokenManager.hasValidToken();
-    if (!hasToken) {
-      // Tokens are expired or missing — don't trust the cache.
-      // This prevents iOS Keychain stale-token scenarios where the cached
-      // user would briefly produce AuthAuthenticated then immediately expire.
-      await _clearUserCache();
-      await _tokenManager.clearTokens();
-      return null;
+    if (_currentUser != null) {
+      return _currentUser;
     }
 
     final cachedUser = await _loadUserFromCache();
@@ -190,11 +178,12 @@ class AuthRepository {
       final responseData = response.data['data'] ?? response.data;
       _currentUser = UserModel.fromJson(responseData['user'] ?? responseData);
 
+      // Load event name from local storage if not in API response (fallback)
       if (_currentUser!.eventName == null) {
         final prefs = await SharedPreferences.getInstance();
         final localEventName = prefs.getString('user_event_name');
         if (localEventName != null) {
-          debugPrint('📝 Merging local event name into user from API: $localEventName');
+          debugPrint('≡ƒô¥ Merging local event name into user from API: $localEventName');
           _currentUser = _currentUser!.copyWith(eventName: localEventName);
         }
       }
@@ -206,10 +195,12 @@ class AuthRepository {
     }
   }
 
+  /// Check if user is authenticated
   Future<bool> isAuthenticated() async {
     return await _tokenManager.hasValidToken();
   }
 
+  /// Set user role
   Future<void> setUserRole(UserRole role) async {
     if (_currentUser != null) {
       _currentUser = _currentUser!.copyWith(role: role);
@@ -217,6 +208,7 @@ class AuthRepository {
     }
   }
 
+  /// Update user profile
   Future<UserModel> updateProfile({
     String? name,
     String? phone,
@@ -247,9 +239,13 @@ class AuthRepository {
     }
   }
 
+  /// Upload profile image
   Future<String> uploadProfileImage(String imagePath) async {
     final formData = FormData.fromMap({
-      'image': await MultipartFile.fromFile(imagePath, filename: 'profile.jpg'),
+      'image': await MultipartFile.fromFile(
+        imagePath,
+        filename: 'profile.jpg',
+      ),
     });
 
     final response = await _apiClient.post(
@@ -259,17 +255,18 @@ class AuthRepository {
 
     final responseData = response.data['data'] ?? response.data;
     final imageUrl = responseData['profile_image_url'] ??
-        responseData['image_url'] ??
-        responseData['imageUrl'] ??
-        responseData['url'];
+                     responseData['image_url'] ??
+                     responseData['imageUrl'] ??
+                     responseData['url'];
 
     if (imageUrl == null) {
-      throw Exception('لم يتم العثور على رابط الصورة في استجابة الخادم');
+      throw Exception('Image URL not found in response: ${response.data}');
     }
 
     return imageUrl as String;
   }
 
+  /// Change password
   Future<Map<String, dynamic>> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -285,10 +282,11 @@ class AuthRepository {
     final responseData = response.data['data'] ?? response.data;
     return {
       'success': responseData['success'] ?? true,
-      'message': responseData['message'] ?? 'تم تغيير كلمة المرور بنجاح',
+      'message': responseData['message'] ?? '╪¬┘à ╪¬╪║┘è┘è╪▒ ┘â┘ä┘à╪⌐ ╪º┘ä┘à╪▒┘ê╪▒ ╪¿┘å╪¼╪º╪¡',
     };
   }
 
+  /// Switch user role (user <-> provider)
   Future<UserModel> switchRole(UserRole newRole) async {
     final response = await _apiClient.post(
       ApiConstants.switchRole,
@@ -303,47 +301,62 @@ class AuthRepository {
     return user;
   }
 
+  /// Set wedding date
   Future<Map<String, dynamic>> setWeddingDate(DateTime weddingDate) async {
-    debugPrint('🌐 AuthRepository.setWeddingDate called with: $weddingDate');
+    debugPrint('≡ƒîÉ AuthRepository.setWeddingDate called with: $weddingDate');
+    debugPrint('≡ƒîÉ ISO format: ${weddingDate.toIso8601String()}');
+    debugPrint('≡ƒîÉ Endpoint: ${ApiConstants.setWeddingDate}');
 
     final response = await _apiClient.post(
       ApiConstants.setWeddingDate,
-      data: {'wedding_date': weddingDate.toUtc().toIso8601String()},
+      data: {
+        'wedding_date': weddingDate.toUtc().toIso8601String(),
+      },
     );
+
+    debugPrint('≡ƒîÉ Response status: ${response.statusCode}');
+    debugPrint('≡ƒîÉ Response data: ${response.data}');
 
     final responseData = response.data['data'] ?? response.data;
 
+    // Update local user with wedding date
     if (_currentUser != null) {
       _currentUser = _currentUser!.copyWith(weddingDate: weddingDate);
       await _saveUserToCache(_currentUser!);
+      debugPrint('≡ƒîÉ Updated local user with wedding date');
     }
 
     return {
       'success': responseData['success'] ?? true,
-      'message': responseData['message'] ?? 'تم حفظ تاريخ الزفاف بنجاح',
+      'message': responseData['message'] ?? '╪¬┘à ╪¡┘ü╪╕ ╪¬╪º╪▒┘è╪« ╪º┘ä╪▓┘ü╪º┘ü ╪¿┘å╪¼╪º╪¡',
       'wedding_date': weddingDate.toIso8601String(),
     };
   }
 
+  /// Get wedding date
   Future<Map<String, dynamic>> getWeddingDate() async {
     final response = await _apiClient.get(ApiConstants.getWeddingDate);
+
     final responseData = response.data['data'] ?? response.data;
     return {
       'success': responseData['success'] ?? true,
-      'message': responseData['message'] ?? 'تم جلب تاريخ الزفاف بنجاح',
+      'message': responseData['message'] ?? '╪¬┘à ╪¼┘ä╪¿ ╪¬╪º╪▒┘è╪« ╪º┘ä╪▓┘ü╪º┘ü ╪¿┘å╪¼╪º╪¡',
       'wedding_date': responseData['wedding_date'],
       'days_remaining': responseData['days_remaining'],
     };
   }
 
+  /// Set custom event with name and date
+  /// Falls back to wedding date endpoint if new endpoint not available
   Future<Map<String, dynamic>> setEvent({
     required String eventName,
     required DateTime eventDate,
   }) async {
-    debugPrint('🌐 AuthRepository.setEvent called with: $eventName, $eventDate');
+    debugPrint('≡ƒîÉ AuthRepository.setEvent called with: $eventName, $eventDate');
 
     try {
-      debugPrint('🔄 Trying new event endpoint: ${ApiConstants.setEvent}');
+      debugPrint('≡ƒöä Trying new event endpoint: ${ApiConstants.setEvent}');
+      // Try new event endpoint first
       final response = await _apiClient.post(
         ApiConstants.setEvent,
         data: {
@@ -352,147 +365,192 @@ class AuthRepository {
         },
       );
 
-      debugPrint('✅ Event endpoint succeeded!');
+      debugPrint('Γ£à Event endpoint succeeded!');
       final responseData = response.data['data'] ?? response.data;
 
+      // Update local user with event date and name
       if (_currentUser != null) {
         _currentUser = _currentUser!.copyWith(
           weddingDate: eventDate,
           eventName: eventName,
         );
         await _saveUserToCache(_currentUser!);
+        debugPrint('≡ƒîÉ Updated local user with event date and name');
       }
 
       return {
         'success': responseData['success'] ?? true,
-        'message': responseData['message'] ?? 'تم حفظ مناسبتك بنجاح',
+        'message': responseData['message'] ?? '╪¬┘à ╪¡┘ü╪╕ ┘à┘å╪º╪│╪¿╪¬┘â ╪¿┘å╪¼╪º╪¡',
         'event_name': eventName,
         'event_date': eventDate.toIso8601String(),
       };
     } catch (e) {
-      debugPrint('⚠️ Exception caught in setEvent: ${e.runtimeType}');
+      debugPrint('ΓÜá∩╕Å Exception caught in setEvent: ${e.runtimeType}');
+      debugPrint('ΓÜá∩╕Å Exception details: $e');
 
+      // Check if it's a 404 error (NotFoundException or DioException with 404 status)
       bool is404 = false;
       if (e is NotFoundException) {
+        debugPrint('ΓÜá∩╕Å NotFoundException caught - endpoint not available');
         is404 = true;
       } else if (e is ApiException && e.statusCode == 404) {
+        debugPrint('ΓÜá∩╕Å ApiException with 404 status');
         is404 = true;
       } else if (e is DioException) {
+        debugPrint('ΓÜá∩╕Å DioException - Type: ${e.type}, Status: ${e.response?.statusCode}');
         is404 = e.response?.statusCode == 404;
       }
 
+      // If endpoint returns 404, fall back to old wedding date endpoint
       if (is404) {
-        debugPrint('🔄 Event endpoint not found (404), activating fallback...');
+        debugPrint('≡ƒöä Event endpoint not found (404), activating fallback...');
+        debugPrint('≡ƒô¥ Storing event name locally: $eventName');
+
         try {
+          // Use old endpoint for date only
           final fallbackResponse = await _apiClient.post(
             ApiConstants.setWeddingDate,
-            data: {'wedding_date': eventDate.toUtc().toIso8601String()},
+            data: {
+              'wedding_date': eventDate.toUtc().toIso8601String(),
+            },
           );
 
+          // Store event name locally in SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_event_name', eventName);
+          debugPrint('Γ£à Event name stored locally');
 
+          // Update local user with event date and name
           if (_currentUser != null) {
             _currentUser = _currentUser!.copyWith(
               weddingDate: eventDate,
               eventName: eventName,
             );
             await _saveUserToCache(_currentUser!);
+            debugPrint('≡ƒîÉ Updated local user with event date and name (fallback)');
           }
 
-          final responseData =
-              fallbackResponse.data['data'] ?? fallbackResponse.data;
+          final responseData = fallbackResponse.data['data'] ?? fallbackResponse.data;
           return {
             'success': responseData['success'] ?? true,
-            'message': 'تم حفظ مناسبتك بنجاح',
+            'message': '╪¬┘à ╪¡┘ü╪╕ ┘à┘å╪º╪│╪¿╪¬┘â ╪¿┘å╪¼╪º╪¡',
             'event_name': eventName,
             'event_date': eventDate.toIso8601String(),
-            'fallback': true,
+            'fallback': true, // Indicate this used fallback
           };
         } catch (fallbackError) {
-          debugPrint('❌ Fallback also failed: $fallbackError');
+          debugPrint('Γ¥î Fallback also failed: $fallbackError');
           rethrow;
         }
       }
 
-      debugPrint('❌ Re-throwing non-404 error');
+      // Re-throw other errors
+      debugPrint('Γ¥î Re-throwing non-404 error');
       rethrow;
     }
   }
 
+  /// Delete event (set date to past date to hide countdown)
+  /// Falls back to wedding date endpoint if new endpoint not available
   Future<Map<String, dynamic>> deleteEvent() async {
-    debugPrint('🌐 AuthRepository.deleteEvent called');
+    debugPrint('≡ƒîÉ AuthRepository.deleteEvent called');
+
+    // Set date to past date (2020-12-12) to hide countdown
     final pastDate = DateTime(2020, 12, 12);
 
     try {
+      // Try new event endpoint first
       final response = await _apiClient.post(
         ApiConstants.deleteEvent,
-        data: {'event_date': pastDate.toUtc().toIso8601String()},
+        data: {
+          'event_date': pastDate.toUtc().toIso8601String(),
+        },
       );
 
       final responseData = response.data['data'] ?? response.data;
 
+      // Clear event name from local storage
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('user_event_name');
 
+      // Update local user with past date to hide countdown
       if (_currentUser != null) {
-        _currentUser =
-            _currentUser!.copyWith(weddingDate: pastDate, eventName: null);
+        _currentUser = _currentUser!.copyWith(
+          weddingDate: pastDate,
+          eventName: null,
+        );
         await _saveUserToCache(_currentUser!);
+        debugPrint('≡ƒîÉ Updated local user - event deleted');
       }
 
       return {
         'success': responseData['success'] ?? true,
-        'message': responseData['message'] ?? 'تم حذف المناسبة بنجاح',
+        'message': responseData['message'] ?? '╪¬┘à ╪¡╪░┘ü ╪º┘ä┘à┘å╪º╪│╪¿╪⌐ ╪¿┘å╪¼╪º╪¡',
       };
     } catch (e) {
-      debugPrint('⚠️ Exception caught in deleteEvent: ${e.runtimeType}');
+      debugPrint('ΓÜá∩╕Å Exception caught in deleteEvent: ${e.runtimeType}');
+      debugPrint('ΓÜá∩╕Å Exception details: $e');
 
+      // Check if it's a 404 error (NotFoundException or DioException with 404 status)
       bool is404 = false;
       if (e is NotFoundException) {
+        debugPrint('ΓÜá∩╕Å NotFoundException caught - endpoint not available');
         is404 = true;
       } else if (e is ApiException && e.statusCode == 404) {
+        debugPrint('ΓÜá∩╕Å ApiException with 404 status');
         is404 = true;
       } else if (e is DioException) {
+        debugPrint('ΓÜá∩╕Å DioException - Type: ${e.type}, Status: ${e.response?.statusCode}');
         is404 = e.response?.statusCode == 404;
       }
 
+      // If endpoint returns 404, fall back to old wedding date endpoint
       if (is404) {
-        debugPrint(
-            '🔄 Event endpoint not found (404), activating fallback for delete...');
+        debugPrint('≡ƒöä Event endpoint not found (404), activating fallback for delete...');
+
         try {
+          // Use old endpoint for date only
           final fallbackResponse = await _apiClient.post(
             ApiConstants.setWeddingDate,
-            data: {'wedding_date': pastDate.toUtc().toIso8601String()},
+            data: {
+              'wedding_date': pastDate.toUtc().toIso8601String(),
+            },
           );
 
+          // Clear event name from local storage
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove('user_event_name');
+          debugPrint('Γ£à Event name cleared from local storage');
 
+          // Update local user with past date to hide countdown
           if (_currentUser != null) {
-            _currentUser =
-                _currentUser!.copyWith(weddingDate: pastDate, eventName: null);
+            _currentUser = _currentUser!.copyWith(
+              weddingDate: pastDate,
+              eventName: null,
+            );
             await _saveUserToCache(_currentUser!);
+            debugPrint('≡ƒîÉ Updated local user - event deleted (fallback)');
           }
 
-          final responseData =
-              fallbackResponse.data['data'] ?? fallbackResponse.data;
+          final responseData = fallbackResponse.data['data'] ?? fallbackResponse.data;
           return {
             'success': responseData['success'] ?? true,
-            'message': 'تم حذف المناسبة بنجاح',
-            'fallback': true,
+            'message': '╪¬┘à ╪¡╪░┘ü ╪º┘ä┘à┘å╪º╪│╪¿╪⌐ ╪¿┘å╪¼╪º╪¡',
+            'fallback': true, // Indicate this used fallback
           };
         } catch (fallbackError) {
-          debugPrint('❌ Delete fallback also failed: $fallbackError');
+          debugPrint('Γ¥î Delete fallback also failed: $fallbackError');
           rethrow;
         }
       }
 
-      debugPrint('❌ Re-throwing non-404 error from deleteEvent');
+      // Re-throw other errors
+      debugPrint('Γ¥î Re-throwing non-404 error from deleteEvent');
       rethrow;
     }
   }
 
+  /// Register new user
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
@@ -515,14 +573,16 @@ class AuthRepository {
     );
 
     AppLogger.success('Registration response received', tag: 'AuthRepo');
+
     final responseData = response.data['data'] ?? response.data;
     return {
       'success': responseData['success'] ?? true,
-      'message': responseData['message'] ?? 'تم إرسال كود التحقق',
+      'message': responseData['message'] ?? '╪¬┘à ╪Ñ╪▒╪│╪º┘ä ┘â┘ê╪» ╪º┘ä╪¬╪¡┘é┘é',
       'email': email,
     };
   }
 
+  /// Verify OTP for registration
   Future<UserModel> verifyOtp({
     required String email,
     required String otp,
@@ -531,35 +591,47 @@ class AuthRepository {
     String? phone,
     UserRole? role,
   }) async {
-    final requestData = {'email': email, 'otp': otp.toString()};
+    final requestData = {
+      'email': email,
+      'otp': otp.toString(),
+    };
+
     AppLogger.auth('Sending verifyOtp request');
 
-    final response =
-        await _apiClient.post(ApiConstants.verifyOtp, data: requestData);
+    final response = await _apiClient.post(
+      ApiConstants.verifyOtp,
+      data: requestData,
+    );
+
     AppLogger.success('OTP Verification successful', tag: 'AuthRepo');
 
     final responseData = response.data['data'] ?? response.data;
 
+    // Backend only returns {verified: true}, not user data or tokens
     if (responseData['verified'] == true) {
       AppLogger.auth('Account verified! Now logging in automatically...');
+
       if (password != null && email.isNotEmpty) {
-        final loginUser =
-            await login(email: email, password: password, role: role);
+        final loginUser = await login(
+          email: email,
+          password: password,
+          role: role,
+        );
         AppLogger.success('Auto-login successful', tag: 'AuthRepo');
         return loginUser;
       } else {
-        throw Exception(
-            'لا يمكن تسجيل الدخول تلقائياً. الرجاء تسجيل الدخول يدوياً.');
+        throw Exception('┘ä╪º ┘è┘à┘â┘å ╪¬╪│╪¼┘è┘ä ╪º┘ä╪»╪«┘ê┘ä ╪¬┘ä┘é╪º╪ª┘è╪º┘ï. ╪º┘ä╪▒╪¼╪º╪í ╪¬╪│╪¼┘è┘ä ╪º┘ä╪»╪«┘ê┘ä ┘è╪»┘ê┘è╪º┘ï.');
       }
     }
 
-    final accessToken =
-        responseData['access_token'] ?? responseData['accessToken'];
-    final refreshToken =
-        responseData['refresh_token'] ?? responseData['refreshToken'];
+    // Legacy flow: If backend returns user data directly
+    final accessToken = responseData['access_token'] ?? responseData['accessToken'];
+    final refreshToken = responseData['refresh_token'] ?? responseData['refreshToken'];
     if (accessToken != null && refreshToken != null) {
       await _tokenManager.saveTokens(
-          accessToken: accessToken, refreshToken: refreshToken);
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
     }
 
     final user = UserModel.fromJson(responseData['user'] ?? responseData);
@@ -570,106 +642,47 @@ class AuthRepository {
     return user;
   }
 
-  Future<Map<String, dynamic>> resendOtp({required String email}) async {
-    final response =
-        await _apiClient.post(ApiConstants.resendOtp, data: {'email': email});
+  /// Resend OTP
+  Future<Map<String, dynamic>> resendOtp({
+    required String email,
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.resendOtp,
+      data: {'email': email},
+    );
+
     final responseData = response.data['data'] ?? response.data;
     return {
       'success': responseData['success'] ?? true,
-      'message': responseData['message'] ?? 'تم إعادة إرسال الكود',
+      'message': responseData['message'] ?? '╪¬┘à ╪Ñ╪╣╪º╪»╪⌐ ╪Ñ╪▒╪│╪º┘ä ╪º┘ä┘â┘ê╪»',
     };
   }
 
-  // 👇 idFrontPath and idBackPath are now optional
+  /// Register provider with documents
   Future<Map<String, dynamic>> registerProvider({
-  required String email,
-  required String password,
-  required String name,
-  String? phone,
-  String? city,
-  String? idFrontPath,
-  String? idBackPath,
-  String? commercialRegisterPath,
-  String? taxCardPath,
-}) async {
-  final hasFiles = idFrontPath != null ||
-      idBackPath != null ||
-      commercialRegisterPath != null ||
-      taxCardPath != null;
-
-  AppLogger.auth('Registering provider (hasFiles: $hasFiles)');
-
-  final Response response;
-
-  if (hasFiles) {
-    final formData = FormData();
-    formData.fields.add(MapEntry('email', email));
-    formData.fields.add(MapEntry('password', password));
-    formData.fields.add(MapEntry('name', name));
-    if (phone != null && phone.isNotEmpty) {
-      formData.fields.add(MapEntry('phone', phone));
-    }
-    if (city != null && city.isNotEmpty) {
-      formData.fields.add(MapEntry('city', city));
-    }
-    if (idFrontPath != null) {
-      formData.files.add(MapEntry(
-        'id_front',
-        await MultipartFile.fromFile(idFrontPath, filename: 'id_front.jpg'),
-      ));
-    }
-    if (idBackPath != null) {
-      formData.files.add(MapEntry(
-        'id_back',
-        await MultipartFile.fromFile(idBackPath, filename: 'id_back.jpg'),
-      ));
-    }
-    if (commercialRegisterPath != null) {
-      formData.files.add(MapEntry(
-        'commercial_register',
-        await MultipartFile.fromFile(commercialRegisterPath,
-            filename: 'commercial_register.jpg'),
-      ));
-    }
-    if (taxCardPath != null) {
-      formData.files.add(MapEntry(
-        'tax_card',
-        await MultipartFile.fromFile(taxCardPath, filename: 'tax_card.jpg'),
-      ));
-    }
-
-    response = await _apiClient.post(
-      ApiConstants.registerProvider,
-      data: formData,
-    );
-  } else {
-    // No files — send plain JSON so the server receives the expected object
-    response = await _apiClient.post(
-      ApiConstants.registerProvider,
-      data: {
-        'email': email,
-        'password': password,
-        'name': name,
-        if (phone != null && phone.isNotEmpty) 'phone': phone,
-        if (city != null && city.isNotEmpty) 'city': city,
-      },
-    );
-  }
-
-  AppLogger.success('Provider registration response received', tag: 'AuthRepo');
-  final responseData = response.data['data'] ?? response.data;
-  return {
-    'success': responseData['success'] ?? true,
-    'message': responseData['message'] ?? 'تم إنشاء حسابك بنجاح',
-  };
-}
-  Future<void> uploadProviderDocuments({
+    required String email,
+    required String password,
+    required String name,
+    String? phone,
+    String? city,
     required String idFrontPath,
     required String idBackPath,
     String? commercialRegisterPath,
     String? taxCardPath,
   }) async {
     final formData = FormData();
+
+    formData.fields.add(MapEntry('email', email));
+    formData.fields.add(MapEntry('password', password));
+    formData.fields.add(MapEntry('name', name));
+
+    if (phone != null && phone.isNotEmpty) {
+      formData.fields.add(MapEntry('phone', phone));
+    }
+    if (city != null && city.isNotEmpty) {
+      formData.fields.add(MapEntry('city', city));
+    }
+
     formData.files.add(MapEntry(
       'id_front',
       await MultipartFile.fromFile(idFrontPath, filename: 'id_front.jpg'),
@@ -678,11 +691,11 @@ class AuthRepository {
       'id_back',
       await MultipartFile.fromFile(idBackPath, filename: 'id_back.jpg'),
     ));
+
     if (commercialRegisterPath != null) {
       formData.files.add(MapEntry(
         'commercial_register',
-        await MultipartFile.fromFile(commercialRegisterPath,
-            filename: 'commercial_register.jpg'),
+        await MultipartFile.fromFile(commercialRegisterPath, filename: 'commercial_register.jpg'),
       ));
     }
     if (taxCardPath != null) {
@@ -692,24 +705,38 @@ class AuthRepository {
       ));
     }
 
-    await _apiClient.post(
-      ApiConstants.uploadProviderDocuments,
+    AppLogger.auth('Registering provider with documents');
+    final response = await _apiClient.post(
+      ApiConstants.registerProvider,
       data: formData,
     );
-    AppLogger.success('Provider documents uploaded', tag: 'AuthRepo');
-  }
 
-  Future<Map<String, dynamic>> forgotPassword({required String email}) async {
-    final response = await _apiClient.post(ApiConstants.forgotPassword,
-        data: {'email': email});
+    AppLogger.success('Provider registration response received', tag: 'AuthRepo');
     final responseData = response.data['data'] ?? response.data;
     return {
       'success': responseData['success'] ?? true,
-      'message': responseData['message'] ?? 'تم إرسال رمز التحقق',
+      'message': responseData['message'] ?? '╪¬┘à ╪Ñ╪▒╪│╪º┘ä ╪╖┘ä╪¿┘â ┘ä┘ä┘à╪▒╪º╪¼╪╣╪⌐ ╪¿┘å╪¼╪º╪¡',
+    };
+  }
+
+  /// Request password reset
+  Future<Map<String, dynamic>> forgotPassword({
+    required String email,
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.forgotPassword,
+      data: {'email': email},
+    );
+
+    final responseData = response.data['data'] ?? response.data;
+    return {
+      'success': responseData['success'] ?? true,
+      'message': responseData['message'] ?? '╪¬┘à ╪Ñ╪▒╪│╪º┘ä ╪▒┘à╪▓ ╪º┘ä╪¬╪¡┘é┘é',
       'email': email,
     };
   }
 
+  /// Reset password with email, OTP and new password
   Future<Map<String, dynamic>> resetPassword({
     required String email,
     required String otp,
@@ -717,15 +744,21 @@ class AuthRepository {
   }) async {
     final response = await _apiClient.post(
       ApiConstants.resetPassword,
-      data: {'email': email, 'otp': otp, 'new_password': password},
+      data: {
+        'email': email,
+        'otp': otp,
+        'new_password': password,
+      },
     );
+
     final responseData = response.data['data'] ?? response.data;
     return {
       'success': responseData['success'] ?? true,
-      'message': responseData['message'] ?? 'تم تغيير كلمة المرور بنجاح',
+      'message': responseData['message'] ?? '╪¬┘à ╪¬╪║┘è┘è╪▒ ┘â┘ä┘à╪⌐ ╪º┘ä┘à╪▒┘ê╪▒ ╪¿┘å╪¼╪º╪¡',
     };
   }
 
+  /// Social login (Google & Apple)
   Future<UserModel> socialLogin({
     required String provider,
     required String email,
@@ -738,44 +771,34 @@ class AuthRepository {
     String? authorizationCode,
     String? nonce,
   }) async {
+    // Determine endpoint and payload based on provider
     final String endpoint;
     final Map<String, dynamic> data;
 
     if (provider == 'apple') {
       if (idToken == null || idToken.isEmpty) {
         throw ValidationException(
-            message: 'رمز التحقق من Apple مطلوب لتسجيل الدخول');
+          message: 'Apple identity token is required for authentication',
+        );
       }
       endpoint = ApiConstants.appleLogin;
       data = {
-        'provider': provider,
-        'provider_id': providerId,
-        'email': email,
-        'name': name,
-        if (profileImageUrl != null) 'profile_image_url': profileImageUrl,
         'identityToken': idToken,
-        if (authorizationCode != null) 'authorization_code': authorizationCode,
-        if (nonce != null) 'nonce': nonce,
       };
     } else {
       if (idToken == null || idToken.isEmpty) {
         throw ValidationException(
-            message: 'رمز التحقق من Google مطلوب لتسجيل الدخول');
+          message: 'Google ID token is required for authentication',
+        );
       }
-      endpoint = ApiConstants.socialLogin;
+      endpoint = ApiConstants.googleLogin;
       data = {
-        'provider': provider,
-        'provider_id': providerId,
-        'email': email,
-        'name': name,
-        if (profileImageUrl != null) 'profile_image_url': profileImageUrl,
-        if (firebaseToken != null) 'firebase_token': firebaseToken,
-        if (accessToken != null) 'access_token': accessToken,
         'id_token': idToken,
       };
     }
 
     final response = await _apiClient.post(endpoint, data: data);
+
     final responseData = response.data['data'] ?? response.data;
 
     final accessTokenFromResponse =
@@ -784,7 +807,7 @@ class AuthRepository {
         (responseData['refresh_token'] ?? responseData['refreshToken']) as String?;
 
     if (accessTokenFromResponse == null || refreshToken == null) {
-      throw Exception('فشل في الحصول على رموز المصادقة من الخادم');
+      throw Exception('┘ü╪┤┘ä ┘ü┘è ╪º┘ä╪¡╪╡┘ê┘ä ╪╣┘ä┘ë ╪▒┘à┘ê╪▓ ╪º┘ä┘à╪╡╪º╪»┘é╪⌐ ┘à┘å ╪º┘ä╪«╪º╪»┘à');
     }
 
     await _tokenManager.saveTokens(
@@ -792,11 +815,7 @@ class AuthRepository {
       refreshToken: refreshToken,
     );
 
-    final userData = responseData['user'] ?? responseData;
-    if (userData == null || userData is! Map<String, dynamic>) {
-      throw Exception('استجابة غير صالحة من الخادم');
-    }
-    final user = UserModel.fromJson(userData);
+    final user = UserModel.fromJson(responseData['user']);
     await _tokenManager.saveUserRole(user.role.name);
 
     _currentUser = user;

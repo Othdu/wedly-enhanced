@@ -98,6 +98,15 @@ class ValidationException extends ApiException {
         );
 }
 
+/// Exception thrown when a resource already exists (409 Conflict)
+class ConflictException extends ApiException {
+  ConflictException({String? message, super.data})
+      : super(
+          message: message ?? 'هذا العنصر موجود بالفعل.',
+          statusCode: 409,
+        );
+}
+
 /// Exception thrown for unknown/unexpected errors
 class UnknownException extends ApiException {
   UnknownException({String? message})

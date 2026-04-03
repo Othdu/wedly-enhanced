@@ -22,7 +22,7 @@ class ApiConstants {
   static const String getCurrentUser = '/api/auth/me';
   static const String googleLogin = '/api/auth/google-login';
   static const String appleLogin = '/api/auth/apple-login';
-  static const String socialLogin = '/api/auth/google-login'; // Kept for backward compatibility
+  static const String socialLogin = '/api/auth/google-login';
   static const String deleteAccount = '/api/auth/delete-account'; // DELETE - Request account deletion
   static const String uploadProviderDocuments = '/api/auth/upload-provider-documents'; // POST - Upload provider verification docs
 

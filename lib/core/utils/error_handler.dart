@@ -41,6 +41,9 @@ class ErrorHandler {
       }
       return 'البيانات المدخلة غير صحيحة، راجعها وحاول مجدداً.';
     }
+    if (error is ConflictException) {
+      return 'هذا الحساب مسجّل بالفعل. جرّب تسجيل الدخول بالبريد الإلكتروني وكلمة المرور.';
+    }
     if (error is ClientException) {
       return 'حدث خطأ في الطلب، حاول مرة أخرى.';
     }
@@ -52,6 +55,15 @@ class ErrorHandler {
 
   /// Get error message with context (e.g. during login vs other screens)
   static String getContextualMessage(dynamic error, String context) {
+    if (error is ConflictException) {
+      if (context == 'social_login') {
+        return 'هذا البريد الإلكتروني مسجّل بالفعل. جرّب تسجيل الدخول بالبريد وكلمة المرور.';
+      }
+      if (context == 'registration') {
+        return 'هذا البريد الإلكتروني مسجّل بالفعل. جرّب تسجيل الدخول بدلاً من إنشاء حساب جديد.';
+      }
+      return getUserFriendlyMessage(error);
+    }
     if (error is UnauthorizedException) {
       if (context == 'login') {
         return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';

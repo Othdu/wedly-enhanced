@@ -97,13 +97,21 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // CRITICAL: Skip adding Authorization header for refresh requests
-          // The refresh token is sent in the body, not the header
+          // Skip adding Authorization header for refresh requests
           if (options.extra['isRefreshRequest'] == true) {
             return handler.next(options);
           }
 
-          // Add access token to headers for all other requests
+          // Skip adding Authorization header for credential-based auth
+          // endpoints — stale tokens (especially iOS Keychain) can cause the
+          // server to reject valid credentials. Social login endpoints
+          // (google/apple) keep the header since the backend may use it for
+          // account linking.
+          final path = options.path;
+          if (_isCredentialAuthEndpoint(path)) {
+            return handler.next(options);
+          }
+
           final token = await _tokenManager.getAccessToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -118,19 +126,9 @@ class ApiClient {
 
           // Handle 401 Unauthorized - attempt token refresh
           if (error.response?.statusCode == 401) {
-            // CRITICAL FIX: Don't try to refresh tokens for auth endpoints
-            // These endpoints are for logging in, not for authenticated requests
             final path = error.requestOptions.path;
-            final isAuthEndpoint = path.contains('/auth/login') ||
-                path.contains('/auth/register') ||
-                path.contains('/auth/social-login') ||
-                path.contains('/auth/verify-otp') ||
-                path.contains('/auth/forgot-password') ||
-                path.contains('/auth/reset-password');
 
-            if (isAuthEndpoint) {
-              // Don't attempt token refresh for auth endpoints
-              // Just pass the error through normally
+            if (_isAuthEndpoint(path)) {
               return handler.next(error);
             }
 
@@ -167,6 +165,27 @@ class ApiClient {
         },
       ),
     );
+  }
+
+  /// Credential-based auth endpoints that should NOT carry a Bearer token.
+  /// Stale tokens can make the server reject valid login/register requests.
+  bool _isCredentialAuthEndpoint(String path) {
+    return path.contains('/auth/login') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/verify-otp') ||
+        path.contains('/auth/forgot-password') ||
+        path.contains('/auth/reset-password') ||
+        path.contains('/auth/resend-otp');
+  }
+
+  /// All auth endpoints (including social) that should NOT trigger token
+  /// refresh on 401 — a failure here is a real auth error, not an expired
+  /// session.
+  bool _isAuthEndpoint(String path) {
+    return _isCredentialAuthEndpoint(path) ||
+        path.contains('/auth/google-login') ||
+        path.contains('/auth/apple-login') ||
+        path.contains('/auth/social-login');
   }
 
   /// Attempt to refresh the access token
@@ -486,6 +505,11 @@ class ApiClient {
         return ForbiddenException(message: message);
       case 404:
         return NotFoundException(message: message);
+      case 409:
+        return ConflictException(
+          message: message,
+          data: response?.data,
+        );
       case 422:
         return ValidationException(
           message: message,
